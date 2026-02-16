@@ -395,6 +395,8 @@ export default function Journal() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [allExpanded, setAllExpanded] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
 
   // Hent data ved mount
   useEffect(() => {
@@ -448,13 +450,28 @@ export default function Journal() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Grupper data efter dato
+  // Debounce search term (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Grupper data efter dato og filtrer baseret på søgning
   const dayDataMap = useMemo(() => {
     const map = new Map<string, DayData>()
+    const searchLower = debouncedSearchTerm.toLowerCase().trim()
     
     // Tilføj memory entries (group by YYYY-MM-DD)
     for (const mem of memoryFiles) {
       const dateKey = extractDatePart(mem.date)
+      
+      // Filtrer hvis der er søgning
+      if (searchLower && !mem.content.toLowerCase().includes(searchLower)) {
+        continue
+      }
+      
       if (!map.has(dateKey)) {
         map.set(dateKey, { date: dateKey, sessions: [], memories: [] })
       }
@@ -467,14 +484,33 @@ export default function Journal() {
     // Tilføj sessions grupperet efter dato
     for (const session of allSessions) {
       const dateKey = getDateKey(session.updatedAt || session.startedAt || Date.now())
+      
+      // Filtrer hvis der er søgning
+      if (searchLower) {
+        const matchesLabel = session.label?.toLowerCase().includes(searchLower)
+        const matchesFirstMessage = session.firstMessage?.toLowerCase().includes(searchLower)
+        const matchesSessionId = session.sessionId.toLowerCase().includes(searchLower)
+        
+        if (!matchesLabel && !matchesFirstMessage && !matchesSessionId) {
+          continue
+        }
+      }
+      
       if (!map.has(dateKey)) {
         map.set(dateKey, { date: dateKey, sessions: [] })
       }
       map.get(dateKey)!.sessions.push(session)
     }
     
+    // Fjern dage uden indhold
+    for (const [dateKey, day] of map.entries()) {
+      if (day.sessions.length === 0 && (!day.memories || day.memories.length === 0)) {
+        map.delete(dateKey)
+      }
+    }
+    
     return map
-  }, [memoryFiles, allSessions])
+  }, [memoryFiles, allSessions, debouncedSearchTerm])
 
   // Sorter datoer (nyeste først)
   const sortedDates = useMemo(() => {
@@ -510,18 +546,136 @@ export default function Journal() {
     return (
       <div className="h-full flex flex-col">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+            <button
+              onClick={() => setAllExpanded(!allExpanded)}
+              style={{
+                background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                backdropFilter: 'blur(20px)',
+                color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+              {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+            </button>
+          </div>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Kronologisk dagbog over sessions og noter
           </p>
         </div>
         
+        {/* Søgefelt */}
+        <div className="mb-6">
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Icon 
+              name="search" 
+              size={16} 
+              style={{ 
+                position: 'absolute',
+                left: '14px',
+                color: 'rgba(255,255,255,0.4)',
+                pointerEvents: 'none'
+              }} 
+            />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Søg i journal..."
+              style={{
+                width: '100%',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(20px)',
+                color: '#fff',
+                padding: '10px 40px 10px 40px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.2s',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+              }}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+                }}
+              >
+                <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.6)' }} />
+              </button>
+            )}
+          </div>
+        </div>
+        
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Icon name="calendar-week" size={48} className="mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
+            <Icon name={debouncedSearchTerm ? 'search' : 'calendar-week'} size={48} className="mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.1)' }} />
             <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              Ingen journalindlæg endnu
+              {debouncedSearchTerm ? 'Ingen resultater matcher søgningen' : 'Ingen journalindlæg endnu'}
             </p>
+            {debouncedSearchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{
+                  marginTop: '12px',
+                  background: 'rgba(0,122,255,0.15)',
+                  border: '1px solid rgba(0,122,255,0.3)',
+                  backdropFilter: 'blur(20px)',
+                  color: '#5AC8FA',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                Ryd søgning
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -557,6 +711,80 @@ export default function Journal() {
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
           {sortedDates.length} dage · {allSessions.length} sessions · {memoryFiles.length} noter
         </p>
+      </div>
+
+      {/* Søgefelt */}
+      <div className="mb-6">
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Icon 
+            name="search" 
+            size={16} 
+            style={{ 
+              position: 'absolute',
+              left: '14px',
+              color: 'rgba(255,255,255,0.4)',
+              pointerEvents: 'none'
+            }} 
+          />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Søg i journal..."
+            style={{
+              width: '100%',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(20px)',
+              color: '#fff',
+              padding: '10px 40px 10px 40px',
+              borderRadius: '12px',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'all 0.2s',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(0,122,255,0.3)'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+            }}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+              }}
+            >
+              <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.6)' }} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 min-h-0">
