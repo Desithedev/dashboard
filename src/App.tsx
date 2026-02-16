@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
@@ -7,6 +7,7 @@ import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useHashRouter } from './hooks/useHashRouter'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -67,23 +68,18 @@ export default function App() {
   const Page = pages[page] || Dashboard
 
   // Global keyboard shortcuts
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Cmd+K / Ctrl+K → open Command Palette
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setCmdOpen(o => !o)
-        return
-      }
-      // Esc → close command palette or modals
-      if (e.key === 'Escape') {
-        if (cmdOpen) { setCmdOpen(false); return }
+  useKeyboardShortcuts({
+    onCommandK: () => setCmdOpen(o => !o),
+    onEscape: () => {
+      if (cmdOpen) {
+        setCmdOpen(false)
+      } else {
         window.dispatchEvent(new CustomEvent('modal-close'))
       }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [cmdOpen])
+    },
+    onNavigate: setPage,
+    isCommandPaletteOpen: cmdOpen,
+  })
 
   return (
     <LiveDataProvider>

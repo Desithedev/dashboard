@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from './Icon'
+import { NUMBER_SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 
 interface CommandPaletteProps {
   open: boolean
@@ -26,6 +27,12 @@ const items = [
   { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
   { id: 'settings', label: 'Indstillinger', icon: 'gear' },
 ]
+
+// Reverse lookup: page id → shortcut number
+const PAGE_TO_SHORTCUT = Object.entries(NUMBER_SHORTCUTS).reduce((acc, [key, pageId]) => {
+  acc[pageId] = key
+  return acc
+}, {} as Record<string, string>)
 
 function fuzzyMatch(query: string, text: string): boolean {
   const q = query.toLowerCase()
@@ -129,24 +136,36 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
               Ingen resultater
             </div>
           )}
-          {filtered.map((item, i) => (
-            <div
-              key={item.id}
-              onClick={() => go(item.id)}
-              onMouseEnter={() => setSelected(i)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 18px', cursor: 'pointer',
-                background: i === selected ? 'rgba(59,130,246,0.15)' : 'transparent',
-                transition: 'background 0.1s',
-              }}
-            >
-              <Icon name={item.icon} size={18} style={{ color: i === selected ? '#60a5fa' : 'rgba(255,255,255,0.4)' }} />
-              <span style={{ color: i === selected ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 14 }}>
-                {item.label}
-              </span>
-            </div>
-          ))}
+          {filtered.map((item, i) => {
+            const shortcut = PAGE_TO_SHORTCUT[item.id]
+            return (
+              <div
+                key={item.id}
+                onClick={() => go(item.id)}
+                onMouseEnter={() => setSelected(i)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 18px', cursor: 'pointer',
+                  background: i === selected ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <Icon name={item.icon} size={18} style={{ color: i === selected ? '#60a5fa' : 'rgba(255,255,255,0.4)' }} />
+                <span style={{ flex: 1, color: i === selected ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 14 }}>
+                  {item.label}
+                </span>
+                {shortcut && (
+                  <kbd style={{
+                    padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    {shortcut}
+                  </kbd>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
