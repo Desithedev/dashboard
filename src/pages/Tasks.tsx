@@ -162,7 +162,7 @@ function StatBox({ label, value, color, icon, onClick }: {
 }
 
 /* ── Task Mini Card (in popup list) ──────────── */
-function TaskMiniCard({ task, onSelect, onStart }: { task: Task; onSelect: () => void; onStart?: () => void }) {
+function TaskMiniCard({ task, onSelect, onStart, expanded }: { task: Task; onSelect: () => void; onStart?: () => void; expanded?: boolean }) {
   const catInfo = CATEGORIES.find(c => c.id === task.category) || CATEGORIES[5]
   
   return (
@@ -182,7 +182,7 @@ function TaskMiniCard({ task, onSelect, onStart }: { task: Task; onSelect: () =>
           <p className="text-sm font-medium text-white truncate">{task.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{task.agent}</span>
-            {task.firstMessage && (
+            {task.firstMessage && !expanded && (
               <>
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
                 <span className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{task.firstMessage.slice(0, 60)}</span>
@@ -205,6 +205,18 @@ function TaskMiniCard({ task, onSelect, onStart }: { task: Task; onSelect: () =>
           )}
         </div>
       </div>
+      {expanded && task.firstMessage && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+            {task.firstMessage.slice(0, 500)}
+          </p>
+          <div style={{ marginTop: '6px', display: 'flex', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
+            <span>Model: {task.model}</span>
+            <span>Kanal: {task.channel}</span>
+            <span>Beskeder: {task.messageCount}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -832,6 +844,7 @@ export default function Tasks() {
   const [showArchive, setShowArchive] = useState(false)
   const [statusPopup, setStatusPopup] = useState<'queued' | 'active' | 'completed' | null>(null)
   const [search, setSearch] = useState('')
+  const [allExpanded, setAllExpanded] = useState(false)
 
   useEffect(() => {
     const cached = localStorage.getItem(CACHE_KEY_SESSIONS)
@@ -985,6 +998,26 @@ export default function Tasks() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={() => setAllExpanded(!allExpanded)}
+            style={{
+              background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+              backdropFilter: 'blur(20px)',
+              color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+            {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+          </button>
+          <button
             onClick={() => setShowArchive(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
             style={{ background: 'rgba(255,255,255,0.06)' }}
@@ -1055,7 +1088,7 @@ export default function Tasks() {
               </div>
             ) : (
               queuedFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} onStart={() => handleStartTask(t)} />
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} onStart={() => handleStartTask(t)} expanded={allExpanded} />
               ))
             )}
           </div>
@@ -1078,7 +1111,7 @@ export default function Tasks() {
               </div>
             ) : (
               activeFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} />
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
               ))
             )}
           </div>
@@ -1101,7 +1134,7 @@ export default function Tasks() {
               </div>
             ) : (
               completedFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} />
+                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
               ))
             )}
           </div>

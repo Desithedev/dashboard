@@ -165,8 +165,9 @@ function renderMarkdown(content: string): JSX.Element {
 }
 
 /* ── Session Card ────────────────────────────── */
-function SessionCard({ session }: { session: TranscriptSession }) {
+function SessionCard({ session, forceExpanded }: { session: TranscriptSession; forceExpanded?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const expanded = forceExpanded !== undefined ? forceExpanded : isExpanded
   
   const agentColor = session.agent === 'main' ? '#007AFF' : '#AF52DE'
   const agentIcon = session.agent === 'main' ? 'brain' : 'robot'
@@ -206,19 +207,19 @@ function SessionCard({ session }: { session: TranscriptSession }) {
             </div>
           </div>
           <Icon 
-            name={isExpanded ? 'chevron-down' : 'chevron-right'} 
+            name={expanded ? 'chevron-down' : 'chevron-right'} 
             size={16} 
             style={{ color: 'rgba(255,255,255,0.3)' }} 
           />
         </div>
         
-        {session.firstMessage && !isExpanded && (
+        {session.firstMessage && !expanded && (
           <p className="text-xs mt-2 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {session.firstMessage}
           </p>
         )}
         
-        {isExpanded && (
+        {expanded && (
           <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             {session.firstMessage && (
               <div>
@@ -271,7 +272,7 @@ function SessionCard({ session }: { session: TranscriptSession }) {
 }
 
 /* ── Day Content ─────────────────────────────── */
-function DayContent({ day }: { day: DayData }) {
+function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean }) {
   return (
     <div className="space-y-6">
       {/* Memory content */}
@@ -308,7 +309,7 @@ function DayContent({ day }: { day: DayData }) {
           
           <div className="space-y-3">
             {day.sessions.map(session => (
-              <SessionCard key={session.sessionId} session={session} />
+              <SessionCard key={session.sessionId} session={session} forceExpanded={allExpanded ? true : undefined} />
             ))}
           </div>
         </div>
@@ -384,6 +385,7 @@ export default function Journal() {
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [allExpanded, setAllExpanded] = useState(false)
 
   // Hent data ved mount
   useEffect(() => {
@@ -520,7 +522,29 @@ export default function Journal() {
   return (
     <div className="h-full flex flex-col">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+          <button
+            onClick={() => setAllExpanded(!allExpanded)}
+            style={{
+              background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+              backdropFilter: 'blur(20px)',
+              color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+            {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+          </button>
+        </div>
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
           {sortedDates.length} dage · {allSessions.length} sessions · {memoryFiles.length} noter
         </p>
@@ -550,7 +574,7 @@ export default function Journal() {
                 </p>
               </div>
               
-              <DayContent day={currentDayData} />
+              <DayContent day={currentDayData} allExpanded={allExpanded} />
             </div>
           ) : (
             <div className="text-center py-12">

@@ -17,6 +17,7 @@ export default function Communication() {
   const [messageInput, setMessageInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [allExpanded, setAllExpanded] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Scroll to bottom when messages change
@@ -110,8 +111,28 @@ export default function Communication() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-1">
+      <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Kommunikation</h1>
+        <button
+          onClick={() => setAllExpanded(!allExpanded)}
+          style={{
+            background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            backdropFilter: 'blur(20px)',
+            color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+          {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+        </button>
       </div>
       <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Live beskeder fra Telegram og andre kanaler
@@ -148,6 +169,12 @@ export default function Communication() {
                       </span>
                     </div>
                     <p className="caption text-xs truncate">{session.channel || 'ingen kanal'}</p>
+                    {allExpanded && (
+                      <div style={{ marginTop: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>
+                        <p>Model: {session.model || 'ukendt'}</p>
+                        <p>Opdateret: {new Date(session.updatedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    )}
                   </button>
                 )
               })}

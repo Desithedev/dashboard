@@ -271,37 +271,31 @@ function OrgNode({ agent, onClick, size = 'normal' }: { agent: OrgAgent; onClick
 /* ── Org Chart View ──────────────────────────────────────────── */
 function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelectAgent: (agent: OrgAgent) => void }) {
   return (
-    <div className="flex flex-col items-center gap-8 py-8">
+    <div className="flex flex-col items-center gap-0 py-8">
       {/* Martin (CEO) */}
-      <div className="flex flex-col items-center">
-        <OrgNode agent={orgChart} onClick={() => onSelectAgent(orgChart)} size="normal" />
-        <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.15)' }} />
-      </div>
+      <OrgNode agent={orgChart} onClick={() => onSelectAgent(orgChart)} size="normal" />
+      <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.15)' }} />
       
       {/* Maison (COO) */}
       {orgChart.children && orgChart.children.length > 0 && (
-        <div className="flex flex-col items-center">
+        <>
           <OrgNode agent={orgChart.children[0]} onClick={() => orgChart.children && onSelectAgent(orgChart.children[0])} size="large" />
-          <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.15)' }} />
           
-          {/* Horizontal line for department heads */}
-          <div className="relative w-full" style={{ height: '1px', background: 'rgba(255,255,255,0.15)', width: '800px', maxWidth: '90vw' }}>
-            <div className="absolute left-0 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
-            <div className="absolute left-1/2 -translate-x-1/2 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
-            <div className="absolute right-0 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
-          </div>
-          
-          {/* Department Heads (Elon, Gary, Warren) */}
-          <div className="flex gap-8 mt-8 flex-wrap justify-center">
-            {orgChart.children[0].children && orgChart.children[0].children.map((dept) => (
-              <div key={dept.id} className="flex flex-col items-center">
+          {/* Department Heads — stacked vertically, sub-agents horizontal */}
+          {orgChart.children[0].children && orgChart.children[0].children.map((dept, idx) => (
+            <div key={dept.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              {/* Vertical connector line */}
+              <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.15)' }} />
+              
+              {/* Department head row: head + sub-agents horizontal */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <OrgNode agent={dept} onClick={() => onSelectAgent(dept)} size="normal" />
                 
-                {/* Sub-agents */}
                 {dept.children && dept.children.length > 0 && (
                   <>
-                    <div className="w-px h-6" style={{ background: 'rgba(255,255,255,0.15)' }} />
-                    <div className="flex gap-3">
+                    {/* Horizontal connector */}
+                    <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+                    <div style={{ display: 'flex', gap: '12px' }}>
                       {dept.children.map((sub) => (
                         <OrgNode key={sub.id} agent={sub} onClick={() => onSelectAgent(sub)} size="small" />
                       ))}
@@ -309,9 +303,9 @@ function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelec
                   </>
                 )}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          ))}
+        </>
       )}
     </div>
   )

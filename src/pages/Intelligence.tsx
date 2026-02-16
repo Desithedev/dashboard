@@ -29,6 +29,97 @@ function saveCache(articles: Article[]) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(articles)) } catch {}
 }
 
+/* ── Markdown Renderer ───────────────────────── */
+function renderMarkdown(text: string): string {
+  if (!text) return ''
+  
+  const lines = text.split('\n')
+  const html: string[] = []
+  let inList = false
+  let inTable = false
+  let tableRows: string[][] = []
+  
+  function inlineFormat(s: string): string {
+    return s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#5AC8FA;text-decoration:none">$1</a>')
+  }
+  
+  function flushList() {
+    if (inList) { html.push('</ul>'); inList = false }
+  }
+  
+  function flushTable() {
+    if (tableRows.length > 0) {
+      html.push('<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;font-size:12px">')
+      html.push('<thead><tr>')
+      for (const cell of tableRows[0]) {
+        html.push(`<th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);font-weight:600">${inlineFormat(cell.trim())}</th>`)
+      }
+      html.push('</tr></thead><tbody>')
+      for (let r = 2; r < tableRows.length; r++) {
+        html.push('<tr>')
+        for (const cell of tableRows[r]) {
+          html.push(`<td style="padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)">${inlineFormat(cell.trim())}</td>`)
+        }
+        html.push('</tr>')
+      }
+      html.push('</tbody></table></div>')
+      tableRows = []
+      inTable = false
+    }
+  }
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    
+    // Table rows
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      flushList()
+      if (!inTable) inTable = true
+      const cells = trimmed.split('|').slice(1, -1)
+      if (!trimmed.match(/^\|[\s\-:|]+\|$/)) {
+        tableRows.push(cells)
+      } else if (tableRows.length === 1) {
+        tableRows.push(cells) // separator
+      }
+      continue
+    } else if (inTable) {
+      flushTable()
+    }
+    
+    // Headings
+    if (trimmed.startsWith('### ')) { flushList(); html.push(`<h3 style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);margin:12px 0 4px">${inlineFormat(trimmed.slice(4))}</h3>`); continue }
+    if (trimmed.startsWith('## ')) { flushList(); html.push(`<h2 style="font-size:16px;font-weight:700;color:#fff;margin:16px 0 6px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px">${inlineFormat(trimmed.slice(3))}</h2>`); continue }
+    if (trimmed.startsWith('# ')) { flushList(); html.push(`<h1 style="font-size:20px;font-weight:700;color:#fff;margin:20px 0 8px">${inlineFormat(trimmed.slice(2))}</h1>`); continue }
+    
+    // HR
+    if (trimmed === '---' || trimmed === '***') { flushList(); html.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0" />'); continue }
+    
+    // List items
+    if (trimmed.match(/^[-*]\s/) || trimmed.match(/^\d+\.\s/)) {
+      if (!inList) { html.push('<ul style="margin:8px 0;padding-left:20px;color:rgba(255,255,255,0.7)">'); inList = true }
+      const text = trimmed.replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, '')
+      html.push(`<li style="font-size:13px;line-height:1.8">${inlineFormat(text)}</li>`)
+      continue
+    }
+    
+    // Empty line
+    if (trimmed === '') { flushList(); continue }
+    
+    // Paragraph
+    flushList()
+    html.push(`<p style="font-size:13px;line-height:1.7;color:rgba(255,255,255,0.7);margin:6px 0">${inlineFormat(trimmed)}</p>`)
+  }
+  
+  flushList()
+  flushTable()
+  
+  return html.join('\n')
+}
+
 /* ── Helpers ─────────────────────────────────── */
 function timeAgo(dateStr: string): string {
   const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
@@ -415,17 +506,7 @@ export default function Intelligence() {
                 </div>
               </div>
 
-              <div className="prose prose-invert max-w-none">
-                {selectedArticle.source === 'Intern Analyse' ? (
-                  <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans" style={{ color: 'rgba(255,255,255,0.7)', background: 'none', border: 'none', padding: 0 }}>
-                    {selectedArticle.summary}
-                  </pre>
-                ) : (
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                    {selectedArticle.summary}
-                  </p>
-                )}
-              </div>
+              <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedArticle.summary) }} />
 
               {selectedArticle.url && (
                 <div className="mt-8 pt-6 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
