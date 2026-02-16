@@ -4,6 +4,7 @@ import { NotificationProvider } from './api/NotificationContext'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -82,7 +83,9 @@ export default function App() {
       <UpdateBanner />
       <Layout activePage={page} onNavigate={setPage}>
         <Suspense fallback={<LoadingFallback />}>
-          <Page />
+          <ErrorBoundary>
+            <Page />
+          </ErrorBoundary>
         </Suspense>
       </Layout>
           </NotificationProvider>
