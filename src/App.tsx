@@ -3,6 +3,7 @@ import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
+import CommandPalette from './components/CommandPalette'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -52,28 +53,32 @@ function LoadingFallback() {
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
+  const [cmdOpen, setCmdOpen] = useState(false)
   const Page = pages[page] || Dashboard
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Cmd+K / Ctrl+K → navigate to search page
+      // Cmd+K / Ctrl+K → open Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setPage('index')
+        setCmdOpen(o => !o)
+        return
       }
-      // Esc → close any open modals (dispatches custom event)
+      // Esc → close command palette or modals
       if (e.key === 'Escape') {
+        if (cmdOpen) { setCmdOpen(false); return }
         window.dispatchEvent(new CustomEvent('modal-close'))
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [cmdOpen])
 
   return (
     <LiveDataProvider>
       <NotificationProvider>
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
       <UpdateBanner />
       <Layout activePage={page} onNavigate={setPage}>
         <Suspense fallback={<LoadingFallback />}>
