@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Icon from './Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import ConnectionStatus from './ConnectionStatus'
 
 interface SidebarProps {
   active: string
@@ -136,7 +137,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
 
       <div className="px-5 py-4 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'} ${isLoading ? 'animate-pulse' : ''}`} />
+          <ConnectionStatus />
           <span className="text-[11px] text-white/50">
             {isRefreshing ? (
               <span style={{ color: 'rgba(0,122,255,0.7)' }}>Opdaterer...</span>
