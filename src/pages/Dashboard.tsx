@@ -4,10 +4,11 @@ import Icon from '../components/Icon'
 import StatusBadge from '../components/StatusBadge'
 import { DonutChart, BarChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
-import { fetchSystemInfo } from '../api/openclaw'
+import { fetchSystemInfo, ApiSession, CronJobApi } from '../api/openclaw'
 import { Status } from '../types'
 import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useRelativeTime, formatRelativeTime } from '../hooks/useRelativeTime'
 
 interface SystemInfo {
   host?: string
@@ -422,6 +423,8 @@ export default function Dashboard() {
           <QuickActions onHealthcheck={() => {
             fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => {})
           }} />
+
+          <RecentActivity sessions={sessions} cronJobs={cronJobs} />
         </>
       )}
     </div>
@@ -513,6 +516,157 @@ function QuickActions({ onHealthcheck }: { onHealthcheck: () => void }) {
           </button>
         </div>
       </Card>
+    </div>
+  )
+}
+
+function RecentActivity({ sessions, cronJobs }: { sessions: ApiSession[], cronJobs: CronJobApi[] }) {
+  interface ActivityEvent {
+    id: string
+    type: 'session_start' | 'session_end' | 'cron_run' | 'error'
+    timestamp: number
+    icon: string
+    title: string
+    description: string
+  }
+
+  const events = useMemo(() => {
+    const allEvents: ActivityEvent[] = []
+
+    // Tilføj session events
+    sessions.forEach(s => {
+      const isActive = Date.now() - s.updatedAt < 120000
+      const sessionType = s.key.includes('subagent') ? 'Subagent' : s.key.includes('main') ? 'Hovedagent' : 'Session'
+      const agentName = s.displayName || s.label || s.key.split(':')[1] || 'Unavngiven'
+
+      if (isActive) {
+        // Aktiv session = start event
+        allEvents.push({
+          id: `session-start-${s.key}`,
+          type: 'session_start',
+          timestamp: s.updatedAt,
+          icon: 'play',
+          title: `${agentName} startede`,
+          description: `${sessionType} · ${s.channel || 'ingen kanal'}`
+        })
+      } else {
+        // Inaktiv session = slut event
+        allEvents.push({
+          id: `session-end-${s.key}`,
+          type: 'session_end',
+          timestamp: s.updatedAt,
+          icon: 'checkmark-circle',
+          title: `${agentName} afsluttede`,
+          description: `${sessionType} · ${s.contextTokens ? `${Math.round(s.contextTokens / 1000)}k tokens` : 'Færdig'}`
+        })
+      }
+    })
+
+    // Tilføj cron job runs
+    cronJobs.forEach(job => {
+      if (job.lastRun) {
+        const lastRunTime = new Date(job.lastRun).getTime()
+        if (!isNaN(lastRunTime)) {
+          allEvents.push({
+            id: `cron-${job.id}-${lastRunTime}`,
+            type: 'cron_run',
+            timestamp: lastRunTime,
+            icon: 'timer',
+            title: `${job.name || 'Planlagt job'} kørte`,
+            description: typeof job.schedule === 'object' 
+              ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') 
+              : (job.schedule || 'Ukendt tidsplan')
+          })
+        }
+      }
+    })
+
+    // Sorter efter tidspunkt (nyeste først) og tag max 10
+    return allEvents
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10)
+  }, [sessions, cronJobs])
+
+  if (events.length === 0) {
+    return (
+      <div className="mb-8">
+        <Card title="Seneste Aktivitet" subtitle="Unified activity feed">
+          <div className="text-center py-12 text-white/50 text-sm">
+            <Icon name="info-circle" size={32} className="mb-3 opacity-30" style={{ display: 'inline-flex' }} />
+            <p>Ingen aktivitet endnu</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-8">
+      <Card title="Seneste Aktivitet" subtitle={`${events.length} seneste hændelser`}>
+        <div className="space-y-1">
+          {events.map((event, index) => (
+            <ActivityEventRow key={event.id} event={event} isLast={index === events.length - 1} />
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+function ActivityEventRow({ event, isLast }: { event: { type: string; timestamp: number; icon: string; title: string; description: string }; isLast: boolean }) {
+  const timeAgo = useRelativeTime(event.timestamp)
+  
+  const iconColor = event.type === 'session_start' 
+    ? '#34C759' 
+    : event.type === 'session_end' 
+    ? '#007AFF' 
+    : event.type === 'cron_run' 
+    ? '#FF9F0A' 
+    : '#FF3B30'
+
+  return (
+    <div className="relative flex gap-3 py-3">
+      {/* Timeline line */}
+      {!isLast && (
+        <div 
+          style={{
+            position: 'absolute',
+            left: '11px',
+            top: '36px',
+            bottom: '-12px',
+            width: '2px',
+            background: 'linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
+          }}
+        />
+      )}
+      
+      {/* Icon circle */}
+      <div 
+        style={{
+          position: 'relative',
+          flexShrink: 0,
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: `${iconColor}15`,
+          border: `2px solid ${iconColor}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1
+        }}
+      >
+        <Icon name={event.icon} size={12} style={{ color: iconColor }} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="flex items-start justify-between gap-2 mb-0.5">
+          <p className="text-sm font-medium text-white truncate">{event.title}</p>
+          <span className="caption text-xs flex-shrink-0">{timeAgo}</span>
+        </div>
+        <p className="caption text-xs truncate">{event.description}</p>
+      </div>
     </div>
   )
 }
