@@ -4,6 +4,7 @@ import SearchBar from '../components/SearchBar'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { searchWorkspace, invokeToolRaw } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Category = 'all' | 'workspace' | 'sessions' | 'cron' | 'web'
 
@@ -24,6 +25,8 @@ interface SearchResult {
 }
 
 export default function Index() {
+  usePageTitle('Søg')
+  
   const { sessions, cronJobs } = useLiveData()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<Category>('all')

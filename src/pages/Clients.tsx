@@ -4,6 +4,7 @@ import SearchBar from '../components/SearchBar'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
 import { fetchProjects, type Project } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const statusLabels: Record<string, string> = {
   active: 'Aktiv',
@@ -18,6 +19,8 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 }
 
 export default function Clients() {
+  usePageTitle('Klienter')
+  
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Project | null>(null)
   const [projects, setProjects] = useState<Project[]>([])

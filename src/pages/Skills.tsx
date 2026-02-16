@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface Skill extends SkillInfo {
   path?: string
@@ -59,6 +60,8 @@ const categoryColors: Record<string, { text: string; bg: string }> = {
 }
 
 export default function Skills() {
+  usePageTitle('Skills')
+  
   const { isConnected } = useLiveData()
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([])
   const [recommendedSkills, setRecommendedSkills] = useState<RecommendedSkill[]>([])

@@ -2,8 +2,11 @@ import { useMemo } from 'react'
 import Card from '../components/Card'
 import { BarChart, MiniLineChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ApiUsage() {
+  usePageTitle('API Forbrug')
+  
   const { sessions, statusText, gatewayConfig, isLoading } = useLiveData()
 
   // Parse token info fra statusText (session_status output)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { getGatewayUrl, getGatewayToken, setGatewayUrl, setGatewayToken, testConnection, fetchSystemInfo } from '../api/openclaw'
 
 interface SystemInfo {
@@ -110,6 +111,8 @@ function ApiConnectionSection() {
 }
 
 export default function Settings() {
+  usePageTitle('Indstillinger')
+  
   const [activeTab, setActiveTab] = useState<'api' | 'system' | 'modeller' | 'sikkerhed'>('api')
   const { isConnected, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})

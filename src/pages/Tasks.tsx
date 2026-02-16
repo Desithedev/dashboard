@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { 
   createAgent, 
   invokeToolRaw,
@@ -836,6 +837,8 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
 
 /* ── Main Page ──────────────────────────────── */
 export default function Tasks() {
+  usePageTitle('Opgaver')
+  
   const { sessions, cronJobs } = useLiveData()
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
   const [loading, setLoading] = useState(true)

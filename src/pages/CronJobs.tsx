@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchCronRuns } from '../api/openclaw'
 import { useToast } from '../components/Toast'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface CronRun {
   timestamp: string
@@ -15,6 +16,8 @@ interface CronRun {
 }
 
 export default function CronJobs() {
+  usePageTitle('Planlagte Jobs')
+  
   const { isConnected, cronJobs, isLoading } = useLiveData()
   const { showToast } = useToast()
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)

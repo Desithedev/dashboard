@@ -1,8 +1,11 @@
 import { useMemo } from 'react'
 import Card from '../components/Card'
 import { useLiveData } from '../api/LiveDataContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function WeeklyRecap() {
+  usePageTitle('Ugeoversigt')
+  
   const { sessions, cronJobs, isLoading } = useLiveData()
 
   // Beregn metrics fra live data

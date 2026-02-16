@@ -7,6 +7,7 @@ import Icon from '../components/Icon'
 import { fetchWorkspaceFiles, readFileContent, downloadFile } from '../api/openclaw'
 import { useLiveData } from '../api/LiveDataContext'
 import { useToast } from '../components/Toast'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface WorkspaceFile {
   id: string
@@ -18,6 +19,8 @@ interface WorkspaceFile {
 }
 
 export default function Documents() {
+  usePageTitle('Dokumenter')
+  
   const { isConnected } = useLiveData()
   const { showToast } = useToast()
   const [files, setFiles] = useState<WorkspaceFile[]>([])

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
@@ -1206,6 +1207,8 @@ function AgentChatView() {
 
 /* ── Main Page ──────────────────────────────────────────────── */
 export default function Agents() {
+  usePageTitle('Agenter')
+  
   const { sessions } = useLiveData()
   const [activeTab, setActiveTab] = useState<'org' | 'chat' | 'standups' | 'workspaces'>('org')
   const [selectedAgent, setSelectedAgent] = useState<OrgAgent | null>(null)

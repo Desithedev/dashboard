@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { invokeToolRaw } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface Eval {
   id: string
@@ -11,6 +12,8 @@ interface Eval {
 }
 
 export default function Evals() {
+  usePageTitle('Evalueringer')
+  
   const [evals, setEvals] = useState<Eval[]>([])
   const [isLoadingEvals, setIsLoadingEvals] = useState(true)
   const [evalsError, setEvalsError] = useState<string | null>(null)

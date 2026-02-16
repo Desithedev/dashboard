@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { useNotifications, NotificationType } from '../api/NotificationContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const typeConfig: Record<NotificationType, { icon: string; color: string; bg: string; label: string }> = {
   error: { icon: 'exclamation-triangle', color: '#FF3B30', bg: 'rgba(255,59,48,0.1)', label: 'Fejl' },
@@ -17,6 +18,8 @@ function formatTime(ts: number): string {
 }
 
 export default function Notifications() {
+  usePageTitle('Notifikationer')
+  
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, dismissNotification } = useNotifications()
   const [filter, setFilter] = useState<Filter>('all')
 

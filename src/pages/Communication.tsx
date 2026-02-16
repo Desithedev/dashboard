@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
+import { usePageTitle } from '../hooks/usePageTitle'
 import { invokeToolRaw, ApiSession } from '../api/openclaw'
 
 interface Message {
@@ -11,6 +12,8 @@ interface Message {
 }
 
 export default function Communication() {
+  usePageTitle('Kommunikation')
+  
   const [sessions, setSessions] = useState<ApiSession[]>([])
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])

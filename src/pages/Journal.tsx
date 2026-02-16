@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Icon from '../components/Icon'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /* ── Types ───────────────────────────────────── */
 interface DayData {
@@ -381,6 +382,8 @@ function DateSidebar({
 
 /* ── Main Page ──────────────────────────────── */
 export default function Journal() {
+  usePageTitle('Journal')
+  
   const [memoryFiles, setMemoryFiles] = useState<MemoryEntry[]>([])
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
   const [loading, setLoading] = useState(true)

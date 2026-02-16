@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Card from '../components/Card'
 import StatusBadge from '../components/StatusBadge'
 import { DonutChart, BarChart } from '../components/Chart'
@@ -6,6 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { fetchSystemInfo } from '../api/openclaw'
 import { Status } from '../types'
 import { DashboardSkeleton } from '../components/SkeletonLoader'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface SystemInfo {
   host?: string
@@ -72,6 +73,8 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
 }
 
 export default function Dashboard() {
+  usePageTitle('Dashboard')
+  
   const { isConnected, isLoading, isRefreshing, error, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
 
@@ -85,6 +88,11 @@ export default function Dashboard() {
     return <DashboardSkeleton />
   }
 
+  // Memoize reload handler
+  const handleReload = useCallback(() => {
+    window.location.reload()
+  }, [])
+
   if (error && !isConnected && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -92,7 +100,7 @@ export default function Dashboard() {
           <p className="text-white/70 mb-2">Kunne ikke hente data</p>
           <p className="text-sm text-white/40 mb-4">{error}</p>
           <button
-            onClick={() => { window.location.reload() }}
+            onClick={handleReload}
             style={{ background: '#007AFF', color: '#fff', padding: '8px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
           >
             Prøv igen
@@ -102,46 +110,65 @@ export default function Dashboard() {
     )
   }
 
-  const parsedStatus = statusText ? parseStatusText(statusText) : {}
-  const channels = gatewayConfig ? deriveChannelsFromConfig(gatewayConfig) : []
+  // Memoize parsed status and channels to avoid re-parsing on every render
+  const parsedStatus = useMemo(
+    () => statusText ? parseStatusText(statusText) : {},
+    [statusText]
+  )
+  
+  const channels = useMemo(
+    () => gatewayConfig ? deriveChannelsFromConfig(gatewayConfig) : [],
+    [gatewayConfig]
+  )
 
-  // Stats from live sessions
-  const runningCount = sessions.filter(s => {
-    const age = Date.now() - s.updatedAt
-    return age < 120000 // active within 2 min
-  }).length
-  const completedCount = sessions.filter(s => {
-    const age = Date.now() - s.updatedAt
-    return age >= 120000
-  }).length
+  // Memoize session stats calculations
+  const { runningCount, completedCount } = useMemo(() => {
+    const now = Date.now()
+    const running = sessions.filter(s => (now - s.updatedAt) < 120000).length
+    const completed = sessions.filter(s => (now - s.updatedAt) >= 120000).length
+    return { runningCount: running, completedCount: completed }
+  }, [sessions])
 
-  const cronActiveCount = cronJobs.filter((j: any) => j.enabled !== false).length
+  const cronActiveCount = useMemo(
+    () => cronJobs.filter((j: any) => j.enabled !== false).length,
+    [cronJobs]
+  )
 
-  // Extract tokens from status text (format: "1.23M in / 456k out")
-  const tokensText = parsedStatus.tokens || '0 in / 0 out'
-  const tokensMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
-  const tokensValue = tokensMatch ? tokensMatch[1] : '0'
+  // Memoize token parsing and cost calculation
+  const { tokensValue, formattedCost, tokensIn, tokensOut, costUSD } = useMemo(() => {
+    const tokensText = parsedStatus.tokens || '0 in / 0 out'
+    const tokensMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
+    const tokensVal = tokensMatch ? tokensMatch[1] : '0'
 
-  // Calculate estimated cost from tokens
-  function parseTokenValue(val: string): number {
-    const match = val.match(/([\d.]+)([kM]?)/)
-    if (!match) return 0
-    const num = parseFloat(match[1])
-    const unit = match[2]
-    if (unit === 'M') return num * 1000000
-    if (unit === 'k') return num * 1000
-    return num
-  }
+    // Parse token values
+    function parseTokenValue(val: string): number {
+      const match = val.match(/([\d.]+)([kM]?)/)
+      if (!match) return 0
+      const num = parseFloat(match[1])
+      const unit = match[2]
+      if (unit === 'M') return num * 1000000
+      if (unit === 'k') return num * 1000
+      return num
+    }
 
-  const inMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
-  const outMatch = tokensText.match(/([\d.]+[kM]?)\s*out/)
-  const tokensIn = inMatch ? parseTokenValue(inMatch[1]) : 0
-  const tokensOut = outMatch ? parseTokenValue(outMatch[1]) : 0
+    const inMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
+    const outMatch = tokensText.match(/([\d.]+[kM]?)\s*out/)
+    const tIn = inMatch ? parseTokenValue(inMatch[1]) : 0
+    const tOut = outMatch ? parseTokenValue(outMatch[1]) : 0
 
-  // Opus 4 pricing: ~$15/M input, ~$75/M output
-  const costUSD = (tokensIn / 1000000 * 15) + (tokensOut / 1000000 * 75)
-  const costDKK = costUSD * 7
-  const formattedCost = costDKK < 1 ? `${(costDKK * 100).toFixed(0)} øre` : `${costDKK.toFixed(2)} kr`
+    // Opus 4 pricing: ~$15/M input, ~$75/M output
+    const cUSD = (tIn / 1000000 * 15) + (tOut / 1000000 * 75)
+    const cDKK = cUSD * 7
+    const fCost = cDKK < 1 ? `${(cDKK * 100).toFixed(0)} øre` : `${cDKK.toFixed(2)} kr`
+
+    return {
+      tokensValue: tokensVal,
+      formattedCost: fCost,
+      tokensIn: tIn,
+      tokensOut: tOut,
+      costUSD: cUSD
+    }
+  }, [parsedStatus.tokens])
 
   return (
     <div>

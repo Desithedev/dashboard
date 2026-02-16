@@ -2,8 +2,11 @@ import { useState, useMemo } from 'react'
 import Card from '../components/Card'
 import { useLiveData } from '../api/LiveDataContext'
 import { runPrompt } from '../api/openclaw'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function Workshop() {
+  usePageTitle('Værksted')
+  
   const { gatewayConfig, isLoading } = useLiveData()
   const [prompt, setPrompt] = useState('')
   const [selectedModel, setSelectedModel] = useState('')

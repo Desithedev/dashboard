@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -272,6 +273,8 @@ async function searchArticles(query: string): Promise<string> {
 
 /* ── Main Page ───────────────────────────────── */
 export default function Intelligence() {
+  usePageTitle('Intelligence')
+  
   const { isConnected } = useLiveData()
   const [articles, setArticles] = useState<Article[]>(loadCache)
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
