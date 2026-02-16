@@ -7,11 +7,12 @@ interface CardProps {
   subtitle?: string
   action?: ReactNode
   style?: React.CSSProperties
+  onClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-export default function Card({ children, className = '', title, subtitle, action, style }: CardProps) {
+export default function Card({ children, className = '', title, subtitle, action, style, onClick }: CardProps) {
   return (
-    <div className={`card ${className}`} style={style}>
+    <div className={`card ${className}`} style={style} onClick={onClick}>
       {(title || action) && (
         <div className="flex items-center justify-between mb-4">
           <div>

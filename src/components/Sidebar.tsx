@@ -26,6 +26,7 @@ const nav = [
   { id: 'workshop', label: 'Værksted', icon: 'wrench' },
   { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
   { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
+  { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
   { id: 'settings', label: 'Indstillinger', icon: 'gear' },
 ]
 

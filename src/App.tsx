@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
+import { NotificationProvider } from './api/NotificationContext'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 
@@ -20,6 +21,7 @@ const Workshop = lazy(() => import('./pages/Workshop'))
 const Index = lazy(() => import('./pages/Index'))
 const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
+const Notifications = lazy(() => import('./pages/Notifications'))
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
   communication: Communication,
@@ -37,6 +39,7 @@ const pages: Record<string, React.ComponentType> = {
   index: Index,
   evals: Evals,
   settings: Settings,
+  notifications: Notifications,
 }
 
 function LoadingFallback() {
@@ -53,12 +56,14 @@ export default function App() {
 
   return (
     <LiveDataProvider>
+      <NotificationProvider>
       <UpdateBanner />
       <Layout activePage={page} onNavigate={setPage}>
         <Suspense fallback={<LoadingFallback />}>
           <Page />
         </Suspense>
       </Layout>
+          </NotificationProvider>
     </LiveDataProvider>
   )
 }

@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
+import NotificationCenter from './NotificationCenter'
 
 interface LayoutProps {
   children: ReactNode
@@ -102,10 +103,16 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           >
             <Icon name="menu" size={22} className="text-white/80" />
           </button>
-          <span className="ml-3 font-semibold text-white text-sm">
+          <span className="ml-3 font-semibold text-white text-sm" style={{ flex: 1 }}>
             Mission Kontrol
           </span>
+          <NotificationCenter />
         </header>
+
+        {/* Desktop notification bell */}
+        <div className="hidden lg:flex items-center justify-end h-12 px-8" style={{ position: 'sticky', top: 0, zIndex: 30 }}>
+          <NotificationCenter />
+        </div>
 
         <main className="p-4 sm:p-6 lg:p-8 w-full">
           {children}
