@@ -1,130 +1,32 @@
 import { useState, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
-import { createAgent, ApiSession, listAgents, AgentApi, fetchAllSessions, TranscriptSession, readTranscriptMessages, DetailedSessionMessage } from '../api/openclaw'
+import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
-type AgentCategory = 'main' | 'team' | 'sub'
 
-interface AgentEntry {
+interface OrgAgent {
   id: string
   name: string
   role: string
-  directive: string
-  status: AgentStatus
-  model: string
   icon: string
   iconBg: string
-  category: AgentCategory
+  model?: string
+  status?: AgentStatus
   contextPercent?: number
   session?: ApiSession
+  children?: OrgAgent[]
+}
+
+interface WorkspaceInfo {
+  agent: string
+  path: string
+  exists: boolean
+  files: string[]
 }
 
 /* ── Helper Functions ────────────────────────────────────────── */
-function getAgentIcon(name: string): { icon: string; iconBg: string } {
-  const lower = name.toLowerCase()
-  if (lower.includes('maison')) return { icon: 'brain', iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)' }
-  if (lower.includes('design')) return { icon: 'palette', iconBg: 'linear-gradient(135deg, #BF5AF2, #AF52DE)' }
-  if (lower.includes('frontend') || lower.includes('ui')) return { icon: 'code', iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)' }
-  if (lower.includes('backend') || lower.includes('db') || lower.includes('api')) return { icon: 'server', iconBg: 'linear-gradient(135deg, #30D158, #34C759)' }
-  if (lower.includes('projekt') || lower.includes('qa') || lower.includes('manager')) return { icon: 'clipboard', iconBg: 'linear-gradient(135deg, #FF9F0A, #FF6B35)' }
-  if (lower.includes('marketing')) return { icon: 'lightbulb', iconBg: 'linear-gradient(135deg, #5AC8FA, #007AFF)' }
-  return { icon: 'robot', iconBg: 'linear-gradient(135deg, #636366, #48484A)' }
-}
-
-function buildMainAgent(sessions: ApiSession[]): AgentEntry {
-  const mainSession = sessions.find(s => s.key === 'agent:main:main')
-  const now = Date.now()
-  const maxCtx = 200000
-  
-  if (mainSession) {
-    const ctxPct = mainSession.contextTokens ? Math.min(100, Math.round((mainSession.contextTokens / maxCtx) * 100)) : 0
-    return {
-      id: 'main',
-      name: 'Maison',
-      role: 'System Orkestrering',
-      directive: 'Leder og koordinerer alle agenter i systemet. Ansvarlig for at delegere opgaver på højeste niveau, sikre kvalitet og levere resultater.',
-      status: now - mainSession.updatedAt < 120000 ? 'online' : 'offline',
-      model: mainSession.model || 'claude-opus-4-6',
-      icon: 'brain',
-      iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-      category: 'main',
-      contextPercent: ctxPct,
-      session: mainSession,
-    }
-  }
-  
-  return {
-    id: 'main',
-    name: 'Maison',
-    role: 'System Orkestrering',
-    directive: 'Leder og koordinerer alle agenter i systemet. Ansvarlig for at delegere opgaver på højeste niveau, sikre kvalitet og levere resultater.',
-    status: 'offline',
-    model: 'claude-opus-4-6',
-    icon: 'brain',
-    iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
-    category: 'main',
-  }
-}
-
-const TEAM_AGENTS = [
-  { id: 'designer', name: 'Designer', role: 'UI/UX Design', directive: 'Wireframes, prototyper, visuelt design. Apple HIG-inspireret dark mode.', model: 'sonnet' },
-  { id: 'frontend', name: 'Frontend', role: 'React Udvikling', directive: 'React + TypeScript + Tailwind CSS implementering.', model: 'sonnet' },
-  { id: 'backend', name: 'Backend', role: 'API & Database', directive: 'Supabase, PostgreSQL, Docker, server-administration.', model: 'sonnet' },
-  { id: 'projektleder', name: 'Projektleder', role: 'Koordinering & QA', directive: 'Prioritering, QA, koordinering mellem agents. Finder fejl FØR Martin.', model: 'sonnet' },
-  { id: 'marketing', name: 'Marketing', role: 'Marketing & Strategi', directive: 'Senior marketing-strateg. OrderFlow restaurant SaaS kontekst.', model: 'sonnet' },
-]
-
-function buildTeamAgents(_agents: AgentApi[], sessions: ApiSession[]): AgentEntry[] {
-  const now = Date.now()
-  return TEAM_AGENTS.map(a => {
-    const { icon, iconBg } = getAgentIcon(a.name)
-    const agentSessions = sessions.filter(s => {
-      const label = (s.label || '').toLowerCase()
-      const display = (s.displayName || '').toLowerCase()
-      return label.includes(a.id) || display.includes(a.id)
-    })
-    const activeSession = agentSessions.find(s => now - s.updatedAt < 120000)
-    const status: AgentStatus = activeSession ? (now - activeSession.updatedAt < 120000 ? 'online' : 'offline') : 'offline'
-    
-    return {
-      id: `agent-${a.id}`,
-      name: a.name,
-      role: a.role,
-      directive: a.directive,
-      status,
-      model: a.model,
-      icon,
-      iconBg,
-      category: 'team',
-      contextPercent: activeSession?.contextTokens ? Math.min(100, Math.round((activeSession.contextTokens / 200000) * 100)) : undefined,
-      session: activeSession,
-    }
-  })
-}
-
-function buildSubAgents(sessions: ApiSession[]): AgentEntry[] {
-  const now = Date.now()
-  return sessions.filter(s => s.key.includes('subagent')).map(s => {
-    const label = s.label || s.key
-    const isActive = now - s.updatedAt < 120000
-    return {
-      id: s.key,
-      name: label,
-      role: 'Sub-agent',
-      directive: `Session: ${s.key}`,
-      status: isActive ? 'working' : 'offline',
-      model: s.model,
-      icon: 'robot',
-      iconBg: 'linear-gradient(135deg, #636366, #48484A)',
-      category: 'sub',
-      contextPercent: s.contextTokens ? Math.min(100, Math.round((s.contextTokens / 200000) * 100)) : undefined,
-      session: s,
-    }
-  })
-}
-
 function statusColor(s: AgentStatus) {
   return { online: '#30D158', offline: '#636366', working: '#007AFF' }[s]
 }
@@ -133,15 +35,133 @@ function statusLabel(s: AgentStatus) {
   return { online: 'Online', offline: 'Offline', working: 'Arbejder' }[s]
 }
 
-function estimatePrice(model: string, totalTokens?: number): number {
-  if (!totalTokens) return 0
-  const pricePerMillion = model.includes('opus') ? 15 : model.includes('sonnet') ? 3 : model.includes('haiku') ? 0.25 : 3
-  return (totalTokens / 1_000_000) * pricePerMillion
+function getAgentStatus(sessions: ApiSession[], agentId: string): { status: AgentStatus; session?: ApiSession; contextPercent?: number } {
+  const now = Date.now()
+  const maxCtx = 200000
+  
+  let agentSession: ApiSession | undefined
+  
+  if (agentId === 'main') {
+    agentSession = sessions.find(s => s.key === 'agent:main:main')
+  } else {
+    agentSession = sessions.find(s => {
+      const label = (s.label || '').toLowerCase()
+      const display = (s.displayName || '').toLowerCase()
+      return label.includes(agentId) || display.includes(agentId) || s.key.includes(agentId)
+    })
+  }
+  
+  if (agentSession) {
+    const isActive = now - agentSession.updatedAt < 120000
+    const ctxPct = agentSession.contextTokens ? Math.min(100, Math.round((agentSession.contextTokens / maxCtx) * 100)) : 0
+    return {
+      status: isActive ? 'online' : 'offline',
+      session: agentSession,
+      contextPercent: ctxPct,
+    }
+  }
+  
+  return { status: 'offline' }
 }
 
-function formatPrice(price: number): string {
-  if (price < 0.01) return '<$0.01'
-  return `$${price.toFixed(2)}`
+/* ── Org Chart Data ──────────────────────────────────────────── */
+function buildOrgChart(sessions: ApiSession[]): OrgAgent {
+  const maisonData = getAgentStatus(sessions, 'main')
+  const elonData = getAgentStatus(sessions, 'elon')
+  const garyData = getAgentStatus(sessions, 'gary')
+  const warrenData = getAgentStatus(sessions, 'warren')
+  
+  // Find sub-agents
+  const subAgents = sessions.filter(s => s.key.includes('subagent'))
+  
+  return {
+    id: 'martin',
+    name: 'Martin',
+    role: 'CEO — Vision & Strategi',
+    icon: 'user',
+    iconBg: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+    children: [
+      {
+        id: 'main',
+        name: 'Maison',
+        role: 'COO — Research, Delegation, Orkestrering',
+        icon: 'brain',
+        iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
+        model: 'Opus 4.6',
+        ...maisonData,
+        children: [
+          {
+            id: 'elon',
+            name: 'Elon',
+            role: 'CTO — Backend, Frontend, DevOps, QA',
+            icon: 'rocket',
+            iconBg: 'linear-gradient(135deg, #FF3B30, #FF6B35)',
+            model: 'Sonnet 4.5',
+            ...elonData,
+            children: [
+              {
+                id: 'frontend-sub',
+                name: 'Frontend',
+                role: 'React Udvikling',
+                icon: 'code',
+                iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)',
+              },
+              {
+                id: 'backend-sub',
+                name: 'Backend',
+                role: 'API & Database',
+                icon: 'server',
+                iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
+              },
+              {
+                id: 'tester-sub',
+                name: 'Tester',
+                role: 'QA & Testing',
+                icon: 'magnifying-glass',
+                iconBg: 'linear-gradient(135deg, #5AC8FA, #007AFF)',
+              },
+            ],
+          },
+          {
+            id: 'gary',
+            name: 'Gary',
+            role: 'CMO — Content, YouTube, Newsletter, Social',
+            icon: 'megaphone',
+            iconBg: 'linear-gradient(135deg, #FF9F0A, #FFCC00)',
+            model: 'Sonnet 4.5',
+            ...garyData,
+            children: [
+              {
+                id: 'content-sub',
+                name: 'Content',
+                role: 'Content Creation',
+                icon: 'doc-text',
+                iconBg: 'linear-gradient(135deg, #FF9F0A, #FFCC00)',
+              },
+            ],
+          },
+          {
+            id: 'warren',
+            name: 'Warren',
+            role: 'CRO — Produkter, Vækst, Community',
+            icon: 'chart-bar',
+            iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
+            model: 'Sonnet 4.5',
+            ...warrenData,
+            children: [
+              {
+                id: 'product-sub',
+                name: 'Product',
+                role: 'Produktudvikling',
+                icon: 'lightbulb',
+                iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }
 }
 
 /* ── Components ──────────────────────────────────────────────── */
@@ -165,119 +185,53 @@ function ProgressBar({ value, color = '#007AFF' }: { value: number; color?: stri
   )
 }
 
-/* ── Hero Card (Maison) ──────────────────────────────────────── */
-function HeroCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void }) {
-  return (
-    <div
-      onClick={onClick}
-      className="rounded-xl p-8 cursor-pointer transition-all duration-300"
-      style={{
-        background: 'linear-gradient(135deg, rgba(0,122,255,0.08), rgba(175,82,222,0.08))',
-        border: '1px solid rgba(0,122,255,0.2)',
-        backdropFilter: 'blur(20px)',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,122,255,0.3)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.boxShadow = 'none'
-      }}
-    >
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-        <div 
-          className="w-24 h-24 rounded-3xl flex items-center justify-center flex-shrink-0"
-          style={{ background: agent.iconBg, boxShadow: '0 8px 24px rgba(0,122,255,0.4)' }}
-        >
-          <Icon name={agent.icon} size={48} className="text-white" />
-        </div>
-        
-        <div className="flex-1 text-center sm:text-left">
-          <StatusBadge status={agent.status} />
-          <h2 className="text-3xl font-bold text-white mt-3 mb-1">{agent.name}</h2>
-          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.role}</p>
-          <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.7)' }}>{agent.directive}</p>
-          
-          {agent.session && (
-            <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-start">
-              <span 
-                className="text-xs px-3 py-1 rounded-full font-medium"
-                style={{ background: 'rgba(0,122,255,0.15)', color: '#5AC8FA' }}
-              >
-                {agent.model.split('/').pop()}
-              </span>
-              {agent.contextPercent !== undefined && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Kontekst</span>
-                  <span className="text-xs font-mono font-semibold" style={{ 
-                    color: agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158' 
-                  }}>
-                    {agent.contextPercent}%
-                  </span>
-                </div>
-              )}
-              {agent.session.totalTokens && (
-                <span className="text-xs font-semibold" style={{ color: '#30D158' }}>
-                  {formatPrice(estimatePrice(agent.model, agent.session.totalTokens))}
-                </span>
-              )}
-            </div>
-          )}
-          
-          {agent.contextPercent !== undefined && (
-            <div className="mt-3">
-              <ProgressBar 
-                value={agent.contextPercent} 
-                color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} 
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
+/* ── Org Chart Node ──────────────────────────────────────────── */
+function OrgNode({ agent, onClick, size = 'normal' }: { agent: OrgAgent; onClick: () => void; size?: 'large' | 'normal' | 'small' }) {
+  const sizeStyles = {
+    large: { width: 'w-64', iconSize: 48, padding: 'p-6' },
+    normal: { width: 'w-44', iconSize: 32, padding: 'p-4' },
+    small: { width: 'w-36', iconSize: 24, padding: 'p-3' },
+  }[size]
 
-/* ── Agent Card ──────────────────────────────────────────────── */
-function AgentCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="rounded-xl p-6 cursor-pointer transition-all duration-300 text-center"
+      className={`${sizeStyles.width} ${sizeStyles.padding} rounded-xl cursor-pointer transition-all duration-300`}
       style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: agent.status ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.1)',
         backdropFilter: 'blur(20px)',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
         e.currentTarget.style.transform = 'translateY(-2px)'
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)'
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,122,255,0.3)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
         e.currentTarget.style.transform = 'translateY(0)'
         e.currentTarget.style.boxShadow = 'none'
       }}
     >
       <div 
-        className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4"
+        className={`${size === 'large' ? 'w-20 h-20' : size === 'normal' ? 'w-16 h-16' : 'w-12 h-12'} rounded-xl flex items-center justify-center mx-auto mb-3`}
         style={{ background: agent.iconBg }}
       >
-        <Icon name={agent.icon} size={28} className="text-white" />
+        <Icon name={agent.icon} size={sizeStyles.iconSize} className="text-white" />
       </div>
       
-      <h3 className="text-base font-bold text-white mb-1">{agent.name}</h3>
-      <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.role}</p>
+      <h3 className={`${size === 'large' ? 'text-lg' : 'text-base'} font-bold text-white text-center mb-1`}>{agent.name}</h3>
+      <p className="text-xs text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.role}</p>
       
-      <StatusBadge status={agent.status} />
+      {agent.status && <div className="flex justify-center"><StatusBadge status={agent.status} /></div>}
+      
+      {agent.model && (
+        <p className="text-xs text-center mt-2 font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.model}</p>
+      )}
       
       {agent.contextPercent !== undefined && agent.contextPercent > 0 && (
-        <div className="mt-4">
+        <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Kontekst</span>
-            <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{agent.contextPercent}%</span>
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Context</span>
+            <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{agent.contextPercent}%</span>
           </div>
           <ProgressBar 
             value={agent.contextPercent} 
@@ -285,18 +239,229 @@ function AgentCard({ agent, onClick }: { agent: AgentEntry; onClick: () => void 
           />
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Org Chart View ──────────────────────────────────────────── */
+function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelectAgent: (agent: OrgAgent) => void }) {
+  return (
+    <div className="flex flex-col items-center gap-8 py-8">
+      {/* Martin (CEO) */}
+      <div className="flex flex-col items-center">
+        <OrgNode agent={orgChart} onClick={() => onSelectAgent(orgChart)} size="normal" />
+        <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.15)' }} />
+      </div>
       
-      {agent.session?.totalTokens && (
-        <p className="text-xs font-mono mt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          {formatPrice(estimatePrice(agent.model, agent.session.totalTokens))}
-        </p>
+      {/* Maison (COO) */}
+      {orgChart.children && orgChart.children.length > 0 && (
+        <div className="flex flex-col items-center">
+          <OrgNode agent={orgChart.children[0]} onClick={() => orgChart.children && onSelectAgent(orgChart.children[0])} size="large" />
+          <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.15)' }} />
+          
+          {/* Horizontal line for department heads */}
+          <div className="relative w-full" style={{ height: '1px', background: 'rgba(255,255,255,0.15)', width: '800px', maxWidth: '90vw' }}>
+            <div className="absolute left-0 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
+            <div className="absolute left-1/2 -translate-x-1/2 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
+            <div className="absolute right-0 w-px h-8" style={{ background: 'rgba(255,255,255,0.15)', top: '0' }} />
+          </div>
+          
+          {/* Department Heads (Elon, Gary, Warren) */}
+          <div className="flex gap-8 mt-8 flex-wrap justify-center">
+            {orgChart.children[0].children && orgChart.children[0].children.map((dept) => (
+              <div key={dept.id} className="flex flex-col items-center">
+                <OrgNode agent={dept} onClick={() => onSelectAgent(dept)} size="normal" />
+                
+                {/* Sub-agents */}
+                {dept.children && dept.children.length > 0 && (
+                  <>
+                    <div className="w-px h-6" style={{ background: 'rgba(255,255,255,0.15)' }} />
+                    <div className="flex gap-3">
+                      {dept.children.map((sub) => (
+                        <OrgNode key={sub.id} agent={sub} onClick={() => onSelectAgent(sub)} size="small" />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
+/* ── Standups View ──────────────────────────────────────────── */
+function StandupsView() {
+  return (
+    <div className="py-8">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white mb-6"
+          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)', cursor: 'not-allowed', opacity: 0.6 }}
+        >
+          <Icon name="chat" size={18} />
+          Start Standup (kommer snart)
+        </div>
+        
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Standup funktion kommer snart - agenter vil kunne holde autonome møder
+        </p>
+      </div>
+      
+      {/* Mock Standup History */}
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-white mb-1">Sprint Planning — Mission Kontrol v2</h3>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                15. februar 2026 · 14:30
+              </p>
+            </div>
+            <Icon name="clock" size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+          </div>
+          
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(0,122,255,0.15)', color: '#5AC8FA' }}>
+              Maison
+            </span>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(255,59,48,0.15)', color: '#FF6B35' }}>
+              Elon
+            </span>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(255,159,10,0.15)', color: '#FF9F0A' }}>
+              Gary
+            </span>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(48,209,88,0.15)', color: '#30D158' }}>
+              Warren
+            </span>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <input type="checkbox" checked readOnly className="rounded" />
+              Implementer org chart view
+            </label>
+            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <input type="checkbox" readOnly className="rounded" />
+              Opret standup automation
+            </label>
+            <label className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <input type="checkbox" readOnly className="rounded" />
+              Launch marketing kampagne
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Workspaces View ──────────────────────────────────────────── */
+function WorkspacesView() {
+  const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const agents = ['main', 'elon', 'gary', 'warren', 'frontend', 'backend', 'designer']
+    
+    Promise.all(
+      agents.map(async (agent) => {
+        try {
+          const result = await invokeToolRaw('exec', { 
+            command: `ls -la /data/.openclaw/workspace-${agent}/ 2>/dev/null | tail -n +4 | awk '{print $9}' | grep -v '^$' | head -20` 
+          }) as { output?: string }
+          const files = result.output ? result.output.trim().split('\n').filter((f: string) => f && f !== '.' && f !== '..') : []
+          return {
+            agent,
+            path: `/data/.openclaw/workspace-${agent}/`,
+            exists: !result.output?.includes('No such file'),
+            files,
+          }
+        } catch {
+          return {
+            agent,
+            path: `/data/.openclaw/workspace-${agent}/`,
+            exists: false,
+            files: [],
+          }
+        }
+      })
+    ).then(results => {
+      setWorkspaces(results)
+      setLoading(false)
+    })
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-8">
+      {workspaces.map((ws) => (
+        <div 
+          key={ws.agent}
+          className="rounded-xl p-5"
+          style={{ 
+            background: ws.exists ? 'rgba(48,209,88,0.05)' : 'rgba(255,255,255,0.03)', 
+            border: `1px solid ${ws.exists ? 'rgba(48,209,88,0.2)' : 'rgba(255,255,255,0.08)'}` 
+          }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ background: ws.exists ? 'rgba(48,209,88,0.15)' : 'rgba(255,255,255,0.06)' }}
+            >
+              <Icon name="folder" size={18} style={{ color: ws.exists ? '#30D158' : 'rgba(255,255,255,0.4)' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-bold text-white capitalize">{ws.agent}</h3>
+              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {ws.exists ? `${ws.files.length} filer` : 'Ikke oprettet'}
+              </p>
+            </div>
+            <div 
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: ws.exists ? '#30D158' : '#636366' }}
+            />
+          </div>
+          
+          <div className="mb-3">
+            <p className="text-[10px] font-mono mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>PATH</p>
+            <p className="text-xs font-mono break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{ws.path}</p>
+          </div>
+          
+          {ws.exists && ws.files.length > 0 && (
+            <div>
+              <p className="text-[10px] font-mono mb-2" style={{ color: 'rgba(255,255,255,0.3)' }}>FILER</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {ws.files.slice(0, 10).map((file, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Icon name="doc" size={10} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    <span className="text-xs font-mono truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{file}</span>
+                  </div>
+                ))}
+                {ws.files.length > 10 && (
+                  <p className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    +{ws.files.length - 10} flere
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ── Detail Panel ────────────────────────────────────────────── */
-function DetailPanel({ agent, onClose }: { agent: AgentEntry; onClose: () => void }) {
+function DetailPanel({ agent, onClose }: { agent: OrgAgent; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
@@ -332,103 +497,63 @@ function DetailPanel({ agent, onClose }: { agent: AgentEntry; onClose: () => voi
           </div>
         </div>
         
-        <StatusBadge status={agent.status} />
+        {agent.status && <StatusBadge status={agent.status} />}
         
-        <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Missions Direktiv
-          </p>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {agent.directive}
-          </p>
-        </div>
+        {agent.model && (
+          <div className="mt-6">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Model
+            </p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              {agent.model}
+            </p>
+          </div>
+        )}
         
         {agent.session && (
-          <>
-            <div className="mt-6 rounded-xl p-4" style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Icon name="zap" size={14} style={{ color: '#007AFF' }} />
-                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    Budget Forbrug
-                  </p>
-                </div>
-                <span className="text-base font-bold text-white">
-                  {formatPrice(estimatePrice(agent.model, agent.session.totalTokens))}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Total Tokens</p>
-                  <p className="font-mono font-semibold text-white">{agent.session.totalTokens?.toLocaleString() || '0'}</p>
-                </div>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Context Tokens</p>
-                  <p className="font-mono font-semibold text-white">{agent.session.contextTokens?.toLocaleString() || '0'}</p>
-                </div>
-              </div>
-              
-              {agent.contextPercent !== undefined && (
-                <div className="mt-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Budget Ramme (200k tokens)</span>
-                    <span className="text-xs font-mono font-semibold" style={{ 
-                      color: agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158' 
-                    }}>
-                      {agent.contextPercent}%
-                    </span>
-                  </div>
-                  <ProgressBar 
-                    value={agent.contextPercent} 
-                    color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} 
-                  />
-                </div>
-              )}
+          <div className="mt-6 rounded-xl p-4" style={{ background: 'rgba(0,122,255,0.04)', border: '1px solid rgba(0,122,255,0.15)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Icon name="zap" size={14} style={{ color: '#007AFF' }} />
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Session Info
+              </p>
             </div>
             
-            <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Model
-                </p>
-                <p className="text-sm text-white">{agent.session.model}</p>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Total Tokens</p>
+                <p className="font-mono font-semibold text-white">{agent.session.totalTokens?.toLocaleString() || '0'}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Kanal
-                </p>
-                <p className="text-sm text-white">{agent.session.lastChannel}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Session ID
-                </p>
-                <p className="text-xs font-mono break-all" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.session.sessionId}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Sidst Opdateret
-                </p>
-                <p className="text-sm text-white">
-                  {new Date(agent.session.updatedAt).toLocaleString('da-DK', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Context Tokens</p>
+                <p className="font-mono font-semibold text-white">{agent.session.contextTokens?.toLocaleString() || '0'}</p>
               </div>
             </div>
-          </>
+            
+            {agent.contextPercent !== undefined && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Context Forbrug</span>
+                  <span className="text-xs font-mono font-semibold" style={{ 
+                    color: agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158' 
+                  }}>
+                    {agent.contextPercent}%
+                  </span>
+                </div>
+                <ProgressBar 
+                  value={agent.contextPercent} 
+                  color={agent.contextPercent > 80 ? '#FF453A' : agent.contextPercent > 50 ? '#FF9F0A' : '#30D158'} 
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
     </>
   )
 }
 
-/* ── Create Modal (simplified) ───────────────────────────────── */
+/* ── Create Modal ────────────────────────────────────────────── */
 function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [name, setName] = useState('')
   const [task, setTask] = useState('')
@@ -438,7 +563,12 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
     if (!name.trim() || !task.trim()) return
     setCreating(true)
     try {
-      await createAgent({ name: name.trim(), task: task.trim(), model: 'sonnet', label: name.trim().toLowerCase().replace(/\s+/g, '-') })
+      await createAgent({ 
+        name: name.trim(), 
+        task: task.trim(), 
+        model: 'sonnet', 
+        label: name.trim().toLowerCase().replace(/\s+/g, '-') 
+      })
       onClose()
       setName('')
       setTask('')
@@ -507,180 +637,20 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   )
 }
 
-/* ── Communication View ──────────────────────────────────────── */
-function CommunicationView() {
-  const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
-  const [selectedSession, setSelectedSession] = useState<TranscriptSession | null>(null)
-  const [messages, setMessages] = useState<DetailedSessionMessage[]>([])
-  const [loadingMessages, setLoadingMessages] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const cached = localStorage.getItem('openclaw-comm-sessions')
-    if (cached) {
-      try { setAllSessions(JSON.parse(cached)); setLoading(false) } catch {}
-    }
-    fetchAllSessions().then(sessions => {
-      const subagentSessions = sessions
-        .filter(s => s.spawnedBy || s.agent !== 'main')
-        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-      setAllSessions(subagentSessions)
-      localStorage.setItem('openclaw-comm-sessions', JSON.stringify(subagentSessions))
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    if (!selectedSession) { setMessages([]); return }
-    setLoadingMessages(true)
-    readTranscriptMessages(selectedSession.agent, selectedSession.sessionId, 100)
-      .then(msgs => setMessages(msgs))
-      .catch(() => setMessages([]))
-      .finally(() => setLoadingMessages(false))
-  }, [selectedSession])
-
-  function timeAgo(ts: number) {
-    const mins = Math.floor((Date.now() - ts) / 60000)
-    if (mins < 1) return 'lige nu'
-    if (mins < 60) return `${mins}m siden`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}t siden`
-    return `${Math.floor(hours / 24)}d siden`
-  }
-
-  if (loading) {
-    return <div className="text-center py-12" style={{ color: 'rgba(255,255,255,0.4)' }}>Henter kommunikation...</div>
-  }
-
-  if (allSessions.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Icon name="chat" size={48} className="mx-auto mb-4 opacity-20" />
-        <p className="text-base font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen agent-kommunikation endnu</p>
-        <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Når agenter får opgaver, vises samtaler her</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: '500px' }}>
-      {/* Session list */}
-      <div className="w-full lg:w-80 flex-shrink-0 space-y-2 overflow-y-auto" style={{ maxHeight: '70vh' }}>
-        {allSessions.map(s => (
-          <div
-            key={s.sessionId}
-            onClick={() => setSelectedSession(s)}
-            className="rounded-xl p-4 cursor-pointer transition-all duration-200"
-            style={{
-              background: selectedSession?.sessionId === s.sessionId ? 'rgba(0,122,255,0.1)' : 'rgba(255,255,255,0.03)',
-              border: selectedSession?.sessionId === s.sessionId ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-            }}
-            onMouseEnter={e => { if (selectedSession?.sessionId !== s.sessionId) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
-            onMouseLeave={e => { if (selectedSession?.sessionId !== s.sessionId) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(175,82,222,0.15)' }}>
-                <Icon name="chat" size={14} style={{ color: '#AF52DE' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{s.label || s.sessionId.slice(0, 8)}</p>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {s.agent} · {s.messageCount} beskeder
-                </p>
-              </div>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0`} style={{ background: s.status === 'active' ? '#30D158' : '#636366' }} />
-            </div>
-            {s.firstMessage && (
-              <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{s.firstMessage}</p>
-            )}
-            <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              {s.updatedAt ? timeAgo(s.updatedAt) : s.startedAt?.slice(0, 10) || ''}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Chat view */}
-      <div className="flex-1 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        {!selectedSession ? (
-          <div className="flex items-center justify-center h-full py-16">
-            <div className="text-center">
-              <Icon name="chat" size={32} className="mx-auto mb-3 opacity-20" />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Vælg en samtale</p>
-            </div>
-          </div>
-        ) : loadingMessages ? (
-          <div className="flex items-center justify-center h-full py-16">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="p-6 overflow-y-auto" style={{ maxHeight: '70vh' }}>
-            <div className="mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <h3 className="text-base font-bold text-white">{selectedSession.label || selectedSession.sessionId.slice(0, 8)}</h3>
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Agent: {selectedSession.agent} · Model: {selectedSession.model || '?'} · {messages.length} beskeder
-              </p>
-            </div>
-            <div className="space-y-4">
-              {messages.map((msg, idx) => {
-                const isUser = msg.role === 'user'
-                const text = msg.text || ''
-                if (!text && (!msg.toolCalls || msg.toolCalls.length === 0)) return null
-                return (
-                  <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%]`}>
-                      <p className={`text-[10px] mb-1 ${isUser ? 'text-right' : 'text-left'}`} style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        {isUser ? 'Maison' : selectedSession.agent}
-                      </p>
-                      {text && (
-                        <div className="rounded-xl px-4 py-2.5" style={{
-                          background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
-                          color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
-                        }}>
-                          <p className="text-sm whitespace-pre-wrap break-words">{text.slice(0, 2000)}{text.length > 2000 ? '...' : ''}</p>
-                        </div>
-                      )}
-                      {msg.toolCalls && msg.toolCalls.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {msg.toolCalls.map((tc, tIdx) => (
-                            <div key={tIdx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,149,0,0.08)' }}>
-                              <Icon name="wrench" size={12} className="text-orange-400" />
-                              <span className="text-xs text-orange-300">{tc.tool}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-              {messages.length === 0 && (
-                <p className="text-center text-sm py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen beskeder i denne samtale</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 /* ── Main Page ──────────────────────────────────────────────── */
 export default function Agents() {
   const { sessions } = useLiveData()
-  const [selectedAgent, setSelectedAgent] = useState<AgentEntry | null>(null)
+  const [activeTab, setActiveTab] = useState<'org' | 'standups' | 'workspaces'>('org')
+  const [selectedAgent, setSelectedAgent] = useState<OrgAgent | null>(null)
   const [showCreate, setShowCreate] = useState(false)
-  const [apiAgents, setApiAgents] = useState<AgentApi[]>([])
-  useEffect(() => {
-    listAgents()
-      .then(agents => setApiAgents(agents))
-      .catch(err => console.error('Failed to fetch agents:', err))
-  }, [])
 
-  const mainAgent = buildMainAgent(sessions)
-  const teamAgents = buildTeamAgents(apiAgents, sessions)
-  const subAgents = buildSubAgents(sessions)
-  const allAgents = [mainAgent, ...teamAgents, ...subAgents]
+  const orgChart = buildOrgChart(sessions)
+
+  const tabs = [
+    { id: 'org' as const, label: 'Org Chart', icon: 'hierarchy' },
+    { id: 'standups' as const, label: 'Standups', icon: 'chat' },
+    { id: 'workspaces' as const, label: 'Workspaces', icon: 'folder' },
+  ]
 
   return (
     <div className="h-full flex flex-col">
@@ -688,7 +658,7 @@ export default function Agents() {
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">Agenter</h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {allAgents.length} agenter · {allAgents.filter(a => a.status === 'online' || a.status === 'working').length} aktive
+            AI-drevne team members med specialiserede roller
           </p>
         </div>
         
@@ -704,32 +674,31 @@ export default function Agents() {
         </button>
       </div>
 
-      {/* Hero Card */}
-      <HeroCard agent={mainAgent} onClick={() => setSelectedAgent(mainAgent)} />
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 overflow-x-auto">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all whitespace-nowrap"
+            style={{
+              background: activeTab === tab.id ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.03)',
+              border: activeTab === tab.id ? '1px solid rgba(0,122,255,0.3)' : '1px solid rgba(255,255,255,0.08)',
+              color: activeTab === tab.id ? '#5AC8FA' : 'rgba(255,255,255,0.5)',
+            }}
+          >
+            <Icon name={tab.icon} size={16} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Team Agents */}
-      {teamAgents.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-white mb-4">Team Agenter</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {teamAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sub Agents */}
-      {subAgents.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-white mb-4">Sub-Agenter</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {subAgents.map(agent => (
-              <AgentCard key={agent.id} agent={agent} onClick={() => setSelectedAgent(agent)} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'org' && <OrgChartView orgChart={orgChart} onSelectAgent={setSelectedAgent} />}
+        {activeTab === 'standups' && <StandupsView />}
+        {activeTab === 'workspaces' && <WorkspacesView />}
+      </div>
 
       {selectedAgent && <DetailPanel agent={selectedAgent} onClose={() => setSelectedAgent(null)} />}
       <CreateModal open={showCreate} onClose={() => setShowCreate(false)} />
