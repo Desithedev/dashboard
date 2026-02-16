@@ -187,7 +187,94 @@ export default function Intelligence() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
-  // Note: Articles are loaded from local cache (see loadCache()) and from searches performed here.
+  // Auto-load analyses from memory files on mount
+  useEffect(() => {
+    if (!isConnected) return
+    loadAnalysesFromMemory()
+  }, [isConnected])
+
+  const loadAnalysesFromMemory = useCallback(async () => {
+    try {
+      const url = localStorage.getItem('openclaw-gateway-url') || 'http://127.0.0.1:63362'
+      const token = localStorage.getItem('openclaw-gateway-token') || ''
+      const resolvedUrl = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && url.includes('ts.net'))
+        ? '/api/gateway' : url
+
+      // List memory files that contain reports/intelligence
+      const listRes = await fetch(`${resolvedUrl}/tools/invoke`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          tool: 'exec',
+          args: { command: 'ls -1 /data/.openclaw/workspace/memory/ | sort -r' }
+        }),
+      })
+      const listData = await listRes.json() as any
+      const allFiles: string[] = (listData?.result?.content?.[0]?.text || '').split('\n').filter((f: string) => f.endsWith('.md'))
+
+      // Load intelligence/research/report files
+      const reportFiles = allFiles.filter((f: string) => 
+        f.includes('intelligence') || f.includes('research') || f.includes('report') || f.includes('analyse')
+      )
+
+      const memoryArticles: Article[] = []
+
+      for (const file of reportFiles.slice(0, 20)) {
+        try {
+          const fileRes = await fetch(`${resolvedUrl}/tools/invoke`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              tool: 'exec',
+              args: { command: `cat /data/.openclaw/workspace/memory/${file}` }
+            }),
+          })
+          const fileData = await fileRes.json() as any
+          const content = fileData?.result?.content?.[0]?.text || ''
+          if (!content) continue
+
+          // Extract title from first heading
+          const titleMatch = content.match(/^#\s+(.+)/m)
+          const title = titleMatch ? titleMatch[1] : file.replace('.md', '')
+
+          // Extract date from filename
+          const dateMatch = file.match(/(\d{4}-\d{2}-\d{2})/)
+          const date = dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString()
+
+          // Get summary (first paragraph after title)
+          const lines = content.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'))
+          const summary = lines.slice(0, 5).join('\n').slice(0, 600)
+
+          // Determine category
+          const category = guessCategory(title + ' ' + summary, '')
+
+          memoryArticles.push({
+            id: `mem-${file}`,
+            title,
+            summary: content.slice(0, 3000), // Store full content for display
+            source: 'Intern Analyse',
+            category,
+            relevance: 'high',
+            timestamp: date,
+            isNew: false,
+          })
+        } catch {}
+      }
+
+      if (memoryArticles.length > 0) {
+        setArticles(prev => {
+          // Merge: memory articles first, then existing (no dupes)
+          const memIds = new Set(memoryArticles.map(a => a.id))
+          const existing = prev.filter(a => !memIds.has(a.id))
+          const merged = [...memoryArticles, ...existing].slice(0, 100)
+          saveCache(merged)
+          return merged
+        })
+      }
+    } catch (err) {
+      console.error('Failed to load analyses:', err)
+    }
+  }, [isConnected])
 
   // Select latest article by default
   useEffect(() => {
@@ -284,6 +371,16 @@ export default function Intelligence() {
             }}
           >
             {isSearching ? 'Søger...' : 'Søg'}
+          </button>
+          <button
+            onClick={() => loadAnalysesFromMemory()}
+            className="px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+            title="Genindlæs analyser fra memory"
+          >
+            <Icon name="arrow-path" size={16} />
           </button>
         </div>
       </div>
@@ -384,9 +481,15 @@ export default function Intelligence() {
               </div>
 
               <div className="prose prose-invert max-w-none">
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  {selectedArticle.summary}
-                </p>
+                {selectedArticle.source === 'Intern Analyse' ? (
+                  <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans" style={{ color: 'rgba(255,255,255,0.7)', background: 'none', border: 'none', padding: 0 }}>
+                    {selectedArticle.summary}
+                  </pre>
+                ) : (
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {selectedArticle.summary}
+                  </p>
+                )}
               </div>
 
               {selectedArticle.url && (
