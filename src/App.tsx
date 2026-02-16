@@ -1,25 +1,29 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
-import Dashboard from './pages/Dashboard'
-import Journal from './pages/Journal'
-import Documents from './pages/Documents'
-import Agents from './pages/Agents'
-import Skills from './pages/Skills'
-import Intelligence from './pages/Intelligence'
-import Tasks from './pages/Tasks'
-import WeeklyRecap from './pages/WeeklyRecap'
-import Clients from './pages/Clients'
-import CronJobs from './pages/CronJobs'
-import ApiUsage from './pages/ApiUsage'
-import Workshop from './pages/Workshop'
-import Index from './pages/Index'
-import Evals from './pages/Evals'
-import Settings from './pages/Settings'
 
-const pages: Record<string, () => JSX.Element> = {
+// Lazy load all pages for better performance
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Communication = lazy(() => import('./pages/Communication'))
+const Journal = lazy(() => import('./pages/Journal'))
+const Documents = lazy(() => import('./pages/Documents'))
+const Agents = lazy(() => import('./pages/Agents'))
+const Skills = lazy(() => import('./pages/Skills'))
+const Intelligence = lazy(() => import('./pages/Intelligence'))
+const Tasks = lazy(() => import('./pages/Tasks'))
+const WeeklyRecap = lazy(() => import('./pages/WeeklyRecap'))
+const Clients = lazy(() => import('./pages/Clients'))
+const CronJobs = lazy(() => import('./pages/CronJobs'))
+const ApiUsage = lazy(() => import('./pages/ApiUsage'))
+const Workshop = lazy(() => import('./pages/Workshop'))
+const Index = lazy(() => import('./pages/Index'))
+const Evals = lazy(() => import('./pages/Evals'))
+const Settings = lazy(() => import('./pages/Settings'))
+
+const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
+  communication: Communication,
   journal: Journal,
   tasks: Tasks,
   documents: Documents,
@@ -36,6 +40,14 @@ const pages: Record<string, () => JSX.Element> = {
   settings: Settings,
 }
 
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-white/50">Indlæser...</p>
+    </div>
+  )
+}
+
 export default function App() {
   const [page, setPage] = useState('dashboard')
   const Page = pages[page] || Dashboard
@@ -44,7 +56,9 @@ export default function App() {
     <LiveDataProvider>
       <UpdateBanner />
       <Layout activePage={page} onNavigate={setPage}>
-        <Page />
+        <Suspense fallback={<LoadingFallback />}>
+          <Page />
+        </Suspense>
       </Layout>
     </LiveDataProvider>
   )
