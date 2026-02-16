@@ -187,6 +187,103 @@ export default function Intelligence() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
 
+  // Auto-load intelligence from memory files and cron results on mount
+  useEffect(() => {
+    async function loadExistingIntelligence() {
+      if (articles.length > 0) return // Already have cached articles
+      setIsSearching(true)
+      try {
+        const { invokeToolRaw } = await import('../api/openclaw')
+        
+        // 1. Load intelligence from memory files
+        const memResult = await invokeToolRaw('exec', { 
+          command: 'cat /data/.openclaw/workspace/memory/2026-02-16-ai-video-research.md 2>/dev/null; echo "---SEPARATOR---"; ls /data/.openclaw/workspace/memory/*.md 2>/dev/null' 
+        }) as any
+        const memText = memResult.result?.content?.[0]?.text || ''
+        
+        // 2. Load recent cron job results (intelligence reports)
+        const cronResult = await invokeToolRaw('sessions_list', { 
+          kinds: ['cron'], messageLimit: 5, limit: 20 
+        }) as any
+        const cronText = cronResult.result?.content?.[0]?.text || ''
+        
+        const allArticles: Article[] = []
+        
+        // Parse cron sessions for intelligence content
+        if (cronText) {
+          try {
+            const parsed = JSON.parse(cronText)
+            const cronSessions = parsed.sessions || []
+            for (const session of cronSessions) {
+              const lastMsgs = session.lastMessages || []
+              for (const msg of lastMsgs) {
+                const content = typeof msg.content === 'string' ? msg.content : msg.content?.[0]?.text || ''
+                if (content.length > 100) {
+                  const parsed = parseArticlesFromResponse(content, session.label || 'Intelligence')
+                  allArticles.push(...parsed)
+                }
+              }
+            }
+          } catch {}
+        }
+        
+        // Parse memory files for research content
+        if (memText) {
+          const parts = memText.split('---SEPARATOR---')
+          const content = parts[0] || ''
+          if (content.length > 100) {
+            const parsed = parseArticlesFromResponse(content, 'AI Video Research')
+            allArticles.push(...parsed)
+          }
+        }
+        
+        // Also try to load from recent sessions with intelligence labels
+        try {
+          const sessResult = await invokeToolRaw('sessions_list', { 
+            messageLimit: 3, limit: 50 
+          }) as any
+          const sessText = sessResult.result?.content?.[0]?.text || ''
+          if (sessText) {
+            const parsed = JSON.parse(sessText)
+            const sessions = parsed.sessions || []
+            for (const session of sessions) {
+              if (session.label && (session.label.includes('intel') || session.label.includes('research') || session.label.includes('analyse'))) {
+                const lastMsgs = session.lastMessages || []
+                for (const msg of lastMsgs) {
+                  const content = typeof msg.content === 'string' ? msg.content : msg.content?.[0]?.text || ''
+                  if (content.length > 200 && msg.role === 'assistant') {
+                    const artParsed = parseArticlesFromResponse(content, session.label)
+                    allArticles.push(...artParsed)
+                  }
+                }
+              }
+            }
+          }
+        } catch {}
+        
+        if (allArticles.length > 0) {
+          // Deduplicate
+          const unique: Article[] = []
+          for (const art of allArticles) {
+            const isDupe = unique.some(u => 
+              u.title.toLowerCase().includes(art.title.toLowerCase().slice(0, 30)) ||
+              art.title.toLowerCase().includes(u.title.toLowerCase().slice(0, 30))
+            )
+            if (!isDupe) unique.push(art)
+          }
+          setArticles(unique.slice(0, 50))
+          saveCache(unique.slice(0, 50))
+          setSelectedArticle(unique[0])
+        }
+      } catch (err) {
+        console.error('Failed to load intelligence:', err)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+    loadExistingIntelligence()
+  }, [])
+
   // Select latest article by default
   useEffect(() => {
     if (articles.length > 0 && !selectedArticle) {
