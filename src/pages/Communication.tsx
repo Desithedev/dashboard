@@ -8,8 +8,6 @@ interface Message {
   content: string
   timestamp: number
   sessionKey: string
-  sessionName: string
-  channel: string
 }
 
 export default function Communication() {
@@ -67,17 +65,11 @@ export default function Communication() {
         const parsed = JSON.parse(text)
         const msgs = parsed.messages || []
         
-        const session = sessions.find(s => s.key === sessionKey)
-        const sessionName = session?.displayName || session?.label || sessionKey
-        const channel = session?.channel || 'unknown'
-        
         setMessages(msgs.map((m: any) => ({
           role: m.role,
           content: typeof m.content === 'string' ? m.content : m.content?.[0]?.text || m.text || '',
           timestamp: m.timestamp || Date.now(),
-          sessionKey,
-          sessionName,
-          channel,
+          sessionKey
         })))
       }
     } catch (error) {
@@ -90,9 +82,6 @@ export default function Communication() {
     
     setSending(true)
     try {
-      const session = sessions.find(s => s.key === selectedSession)
-      const channel = session?.channel || 'telegram'
-      
       // Send message into the selected session (agent turn)
       await invokeToolRaw('sessions_send', {
         sessionKey: selectedSession,

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "code-review",
+    "name": "Code Review Kvalitet",
+    "prompt": "Gennemgå følgende TypeScript kode og giv konstruktiv feedback på læsbarhed, performance og best practices:\n\n```typescript\nfunction fibonacci(n: number): number {\n  if (n <= 1) return n;\n  return fibonacci(n - 1) + fibonacci(n - 2);\n}\n```\n\nVurder svar på: Konstruktiv tone, korrekt analyse, anvendelige forslag.",
+    "category": "Kodekvalitet"
+  },
+  {
+    "id": "research",
+    "name": "Research Dybde",
+    "prompt": "Lav et research om AI agents i restaurant industrien. Find mindst 3 konkrete use cases med kilder.\n\nVurder svar på: Antal kilder, relevans, dybde af analyse.",
+    "category": "Research"
+  },
+  {
+    "id": "dansk-tone",
+    "name": "Dansk Tone & Sprog",
+    "prompt": "Forklar hvad en REST API er på dansk til en ikke-teknisk person.\n\nVurder svar på: Korrekt dansk, forståelig tone, ingen teknisk jargon.",
+    "category": "Kommunikation"
+  }
+]
