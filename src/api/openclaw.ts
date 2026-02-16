@@ -304,56 +304,52 @@ export interface SkillInfo {
 
 export async function fetchInstalledSkills(): Promise<SkillInfo[]> {
   try {
-    // Call clawhub list to get installed skills
-    const listData = await invokeToolRaw('exec', { command: 'clawhub list' }) as any
-    const listText = listData.result?.content?.[0]?.text || ''
+    // Read skill directories and parse SKILL.md descriptions
+    const scanCmd = `
+      for dir in /data/.openclaw/workspace/skills/*/SKILL.md /usr/local/lib/node_modules/openclaw/skills/*/SKILL.md; do
+        [ -f "$dir" ] || continue
+        parent=$(dirname "$dir")
+        name=$(basename "$parent")
+        loc="system"
+        echo "$parent" | grep -q "workspace" && loc="workspace"
+        desc=$(grep -m1 "^description:" "$dir" 2>/dev/null | sed 's/^description: *//')
+        [ -z "$desc" ] && desc=$(sed -n '2p' "$dir" 2>/dev/null | sed 's/^# *//')
+        echo "SKILL|$name|$desc|$loc"
+      done
+    `
+    const result = await invokeToolRaw('exec', { command: scanCmd }) as any
+    const text = result.result?.content?.[0]?.text || ''
     
     const skills: SkillInfo[] = []
-    const lines = listText.trim().split('\n').filter(Boolean)
-    
-    for (const line of lines) {
-      // Parse "skill-name  version" format
-      const match = line.trim().match(/^(\S+)\s+(\S+)$/)
-      if (!match) continue
+    for (const line of text.split('\n')) {
+      if (!line.startsWith('SKILL|')) continue
+      const [, name, description, location] = line.split('|')
+      if (!name) continue
       
-      const [, name, version] = match
-      
-      // Get description from clawhub inspect
-      let description = 'No description available'
       let category = 'Andet'
-      
-      try {
-        const inspectData = await invokeToolRaw('exec', { command: `clawhub inspect ${name}` }) as any
-        const inspectText = inspectData.result?.content?.[0]?.text || ''
-        
-        // Parse "Summary: ..." line
-        const summaryMatch = inspectText.match(/Summary:\s*(.+)/i)
-        if (summaryMatch) {
-          description = summaryMatch[1].trim()
-        }
-      } catch {
-        // If inspect fails, use generic description
-        description = `${name} v${version}`
-      }
-      
-      // Detect category from name
-      if (name.includes('github') || name.includes('git')) category = 'Udvikling'
-      else if (name.includes('browser') || name.includes('web')) category = 'Automation'
-      else if (name.includes('perplexity') || name.includes('search')) category = 'Søgning'
-      else if (name.includes('youtube') || name.includes('video') || name.includes('media')) category = 'Medier'
-      else if (name.includes('newsletter') || name.includes('mail')) category = 'Kommunikation'
-      else if (name.includes('summarize') || name.includes('summary')) category = 'AI / Tekst'
-      else if (name.includes('review') || name.includes('pr-')) category = 'Udvikling'
+      const n = name.toLowerCase()
+      if (n.includes('github') || n.includes('git') || n.includes('coding') || n.includes('pr-')) category = 'Udvikling'
+      else if (n.includes('browser') || n.includes('web')) category = 'Automation'
+      else if (n.includes('perplexity') || n.includes('search') || n.includes('oracle')) category = 'Søgning'
+      else if (n.includes('youtube') || n.includes('video') || n.includes('media') || n.includes('image') || n.includes('whisper') || n.includes('tts') || n.includes('voice') || n.includes('camera')) category = 'Medier'
+      else if (n.includes('newsletter') || n.includes('mail') || n.includes('slack') || n.includes('discord') || n.includes('notion') || n.includes('trello')) category = 'Kommunikation'
+      else if (n.includes('summarize') || n.includes('summary') || n.includes('gemini') || n.includes('openai')) category = 'AI / Tekst'
+      else if (n.includes('weather') || n.includes('food') || n.includes('places') || n.includes('spotify')) category = 'Livsstil'
+      else if (n.includes('health') || n.includes('1password')) category = 'Sikkerhed'
       
       skills.push({
         name,
-        description,
-        location: 'workspace', // All clawhub-installed skills are workspace
+        description: description || name,
+        location: (location === 'workspace' ? 'workspace' : 'system') as 'workspace' | 'system',
         category,
       })
     }
     
-    return skills
+    return skills.sort((a, b) => {
+      if (a.location === 'workspace' && b.location !== 'workspace') return -1
+      if (b.location === 'workspace' && a.location !== 'workspace') return 1
+      return a.name.localeCompare(b.name)
+    })
   } catch (e) {
     console.error('Failed to fetch installed skills:', e)
     return []
