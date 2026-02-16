@@ -59,9 +59,18 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
       <div className="px-4 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <div 
+            role="button"
+            aria-label="Åbn Maison kontrolpanel"
+            tabIndex={0}
             className="flex items-center gap-3 flex-1 cursor-pointer rounded-xl px-3 py-3 transition-all duration-200 hover:bg-white/[0.04]"
             style={{ background: 'rgba(255,255,255,0.02)' }}
             onClick={onMaisonClick}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onMaisonClick()
+              }
+            }}
           >
             <div 
               className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -94,6 +103,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
           {/* Close button - mobile only */}
           <button
             onClick={onClose}
+            aria-label="Luk menu"
             className="lg:hidden ml-2"
             style={{ padding: 8 }}
           >
@@ -102,7 +112,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
         </div>
       </div>
 
-      <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
+      <nav role="navigation" aria-label="Hovednavigation" className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         {nav.map(item => (
           <a
             key={item.id}
@@ -111,6 +121,7 @@ export default function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonC
               e.preventDefault()
               onNavigate(item.id)
             }}
+            aria-current={active === item.id ? 'page' : undefined}
             className={`sidebar-item ${active === item.id ? 'active' : ''}`}
             style={{ position: 'relative', textDecoration: 'none', display: 'flex' }}
           >

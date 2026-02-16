@@ -106,6 +106,9 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Kommandopalet"
         style={{
           width: '100%', maxWidth: 520,
           background: 'rgba(20,20,30,0.85)',
@@ -138,7 +141,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
         </div>
 
         {/* Results */}
-        <div style={{ maxHeight: 360, overflowY: 'auto', padding: '6px 0' }}>
+        <div role="listbox" style={{ maxHeight: 360, overflowY: 'auto', padding: '6px 0' }}>
           {filtered.length === 0 && (
             <div style={{ padding: '24px 18px', textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>
               Ingen resultater
@@ -149,6 +152,8 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
             return (
               <div
                 key={item.id}
+                role="option"
+                aria-selected={i === selected}
                 onClick={() => go(item.id)}
                 onMouseEnter={() => setSelected(i)}
                 style={{

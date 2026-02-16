@@ -25,6 +25,32 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
       minHeight: '100vh',
       position: 'relative'
     }}>
+      {/* Skip to content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        style={{
+          position: 'absolute',
+          top: -40,
+          left: 8,
+          zIndex: 100,
+          padding: '8px 16px',
+          background: '#007AFF',
+          color: 'white',
+          borderRadius: 4,
+          textDecoration: 'none',
+          fontSize: 14,
+          fontWeight: 500,
+          transition: 'top 200ms ease-in-out',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.top = '8px'
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.top = '-40px'
+        }}
+      >
+        Spring til indhold
+      </a>
       {/* Ambient glow effects */}
       <div style={{
         position: 'fixed',
@@ -114,7 +140,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           <NotificationCenter />
         </div>
 
-        <main className="p-4 sm:p-6 lg:p-8 w-full">
+        <main id="main-content" className="p-4 sm:p-6 lg:p-8 w-full">
           {children}
         </main>
       </div>

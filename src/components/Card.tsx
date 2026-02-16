@@ -11,8 +11,22 @@ interface CardProps {
 }
 
 export default function Card({ children, className = '', title, subtitle, action, style, onClick }: CardProps) {
+  const isClickable = !!onClick
+  
   return (
-    <div className={`card animate-card-in ${className}`} style={style} onClick={onClick}>
+    <div 
+      className={`card animate-card-in ${className}`} 
+      style={style} 
+      onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault()
+          onClick(e as any)
+        }
+      } : undefined}
+    >
       {(title || action) && (
         <div className="flex items-center justify-between mb-4">
           <div>

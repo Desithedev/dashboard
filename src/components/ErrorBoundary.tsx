@@ -46,6 +46,8 @@ export default class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <div
+            role="alert"
+            aria-live="assertive"
             style={{
               maxWidth: '560px',
               width: '100%',
