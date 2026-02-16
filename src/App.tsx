@@ -20,8 +20,6 @@ const Workshop = lazy(() => import('./pages/Workshop'))
 const Index = lazy(() => import('./pages/Index'))
 const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
-const AgentChat = lazy(() => import('./pages/AgentChat'))
-
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
   communication: Communication,
@@ -39,7 +37,6 @@ const pages: Record<string, React.ComponentType> = {
   index: Index,
   evals: Evals,
   settings: Settings,
-  'agent-chat': AgentChat,
 }
 
 function LoadingFallback() {
