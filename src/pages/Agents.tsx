@@ -10,6 +10,7 @@ interface OrgAgent {
   id: string
   name: string
   role: string
+  description?: string
   icon: string
   iconBg: string
   model?: string
@@ -77,14 +78,16 @@ function buildOrgChart(sessions: ApiSession[]): OrgAgent {
   return {
     id: 'martin',
     name: 'Martin',
-    role: 'CEO — Vision & Strategi',
+    role: 'CEO',
+    description: 'Vision, strategi og alle endelige beslutninger. Kommunikerer via Telegram.',
     icon: 'user',
     iconBg: 'linear-gradient(135deg, #FFD700, #FF8C00)',
     children: [
       {
         id: 'main',
         name: 'Maison',
-        role: 'COO — Research, Delegation, Orkestrering',
+        role: 'COO',
+        description: 'Research, delegation, orkestrering. Koordinerer alle agenter, spawner sub-tasks, rapporterer til Martin. Kører 24/7 med proaktive cyklusser.',
         icon: 'brain',
         iconBg: 'linear-gradient(135deg, #007AFF, #AF52DE)',
         model: 'Opus 4.6',
@@ -93,57 +96,68 @@ function buildOrgChart(sessions: ApiSession[]): OrgAgent {
           {
             id: 'elon',
             name: 'Elon',
-            role: 'CTO — Backend, Frontend, DevOps, QA',
+            role: 'CTO',
+            description: 'Backend, Frontend, DevOps, QA. Bygger og vedligeholder al kode i Mission Kontrol og FLOW. Inspireret af Elon Musk — move fast, break nothing.',
             icon: 'rocket',
             iconBg: 'linear-gradient(135deg, #FF3B30, #FF6B35)',
-            model: 'Sonnet 4.5',
+            model: 'GPT 5.2',
             ...elonData,
             children: [
               {
                 id: 'frontend-sub',
                 name: 'Frontend',
                 role: 'React Udvikling',
+                description: 'Implementerer UI-komponenter i React + TypeScript + Tailwind.',
                 icon: 'code',
                 iconBg: 'linear-gradient(135deg, #FF6B35, #FF3B30)',
+                model: 'Opus 4.6',
               },
               {
                 id: 'backend-sub',
                 name: 'Backend',
                 role: 'API & Database',
+                description: 'Supabase, PostgreSQL, API-endpoints og datahåndtering.',
                 icon: 'server',
                 iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
+                model: 'GPT 5.2',
               },
               {
                 id: 'tester-sub',
                 name: 'Tester',
                 role: 'QA & Testing',
+                description: 'Build-validering, smoke tests, regression checks.',
                 icon: 'magnifying-glass',
                 iconBg: 'linear-gradient(135deg, #5AC8FA, #007AFF)',
+                model: 'GPT 5.2',
               },
             ],
           },
           {
             id: 'gary',
             name: 'Gary',
-            role: 'CMO — Content, YouTube, Newsletter, Social',
+            role: 'CMO',
+            description: 'Content, YouTube, Newsletter, Social Media. Styrer al ekstern kommunikation og content pipeline. Inspireret af Gary Vaynerchuk — document, don\'t create.',
             icon: 'megaphone',
             iconBg: 'linear-gradient(135deg, #FF9F0A, #FFCC00)',
-            model: 'Sonnet 4.5',
+            model: 'Opus 4.6',
             ...garyData,
             children: [
               {
                 id: 'content-sub',
                 name: 'Content',
                 role: 'Content Creation',
+                description: 'Skriver blogposts, social media content, nyhedsbreve.',
                 icon: 'doc-text',
                 iconBg: 'linear-gradient(135deg, #FF9F0A, #FFCC00)',
+                model: 'Opus 4.6',
               },
             ],
           },
           {
             id: 'warren',
             name: 'Warren',
-            role: 'CRO — Produkter, Vækst, Community',
+            role: 'CRO',
+            description: 'Produkter, Vækst, Community. Markedsanalyse, konkurrentintelligence, pricing og vækststrategi. Inspireret af Warren Buffett — data-drevet, langsigtet.',
             icon: 'chart-bar',
             iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
             model: 'Sonnet 4.5',
@@ -153,8 +167,10 @@ function buildOrgChart(sessions: ApiSession[]): OrgAgent {
                 id: 'product-sub',
                 name: 'Product',
                 role: 'Produktudvikling',
+                description: 'Feature-prioritering, roadmap, brugerresearch.',
                 icon: 'lightbulb',
                 iconBg: 'linear-gradient(135deg, #30D158, #34C759)',
+                model: 'Sonnet 4.5',
               },
             ],
           },
@@ -188,8 +204,8 @@ function ProgressBar({ value, color = '#007AFF' }: { value: number; color?: stri
 /* ── Org Chart Node ──────────────────────────────────────────── */
 function OrgNode({ agent, onClick, size = 'normal' }: { agent: OrgAgent; onClick: () => void; size?: 'large' | 'normal' | 'small' }) {
   const sizeStyles = {
-    large: { width: 'w-64', iconSize: 48, padding: 'p-6' },
-    normal: { width: 'w-44', iconSize: 32, padding: 'p-4' },
+    large: { width: 'w-72', iconSize: 48, padding: 'p-6' },
+    normal: { width: 'w-52', iconSize: 32, padding: 'p-4' },
     small: { width: 'w-36', iconSize: 24, padding: 'p-3' },
   }[size]
 
@@ -218,14 +234,23 @@ function OrgNode({ agent, onClick, size = 'normal' }: { agent: OrgAgent; onClick
         <Icon name={agent.icon} size={sizeStyles.iconSize} className="text-white" />
       </div>
       
-      <h3 className={`${size === 'large' ? 'text-lg' : 'text-base'} font-bold text-white text-center mb-1`}>{agent.name}</h3>
-      <p className="text-xs text-center mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>{agent.role}</p>
+      <h3 className={`${size === 'large' ? 'text-lg' : 'text-base'} font-bold text-white text-center mb-0.5`}>{agent.name}</h3>
+      <p className={`${size === 'small' ? 'text-[10px]' : 'text-xs'} text-center font-semibold mb-1`} style={{ color: 'rgba(255,255,255,0.6)' }}>{agent.role}</p>
       
-      {agent.status && <div className="flex justify-center"><StatusBadge status={agent.status} /></div>}
-      
-      {agent.model && (
-        <p className="text-xs text-center mt-2 font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.model}</p>
+      {agent.description && size !== 'small' && (
+        <p className="text-[10px] text-center mb-2 leading-snug" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          {agent.description.length > (size === 'large' ? 120 : 80) ? agent.description.slice(0, size === 'large' ? 120 : 80) + '...' : agent.description}
+        </p>
       )}
+      
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        {agent.status && <StatusBadge status={agent.status} />}
+        {agent.model && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(175,82,222,0.15)', color: '#AF52DE' }}>
+            {agent.model}
+          </span>
+        )}
+      </div>
       
       {agent.contextPercent !== undefined && agent.contextPercent > 0 && (
         <div className="mt-3">
