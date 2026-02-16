@@ -46,7 +46,24 @@ export default function WeeklyRecap() {
     // Session status
     const activeCount = recentSessions.filter(s => new Date(s.updatedAt).getTime() > Date.now() - 300000).length
     const completedCount = recentSessions.filter(s => new Date(s.updatedAt).getTime() <= Date.now() - 300000).length
-    const errorCount = recentSessions.filter(s => false).length
+    const errorCount = recentSessions.filter(s => (s.totalTokens || 0) === 0).length
+
+    // Daglig aktivitet (sidste 7 dage)
+    const dailyActivity = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(now - (6 - i) * 24 * 60 * 60 * 1000)
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+      const dayEnd = dayStart + 24 * 60 * 60 * 1000
+      const count = sessions.filter(s => {
+        const updated = new Date(s.updatedAt).getTime()
+        return updated >= dayStart && updated < dayEnd
+      }).length
+      return {
+        date,
+        label: date.toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' }),
+        count
+      }
+    })
+    const maxDailyCount = Math.max(...dailyActivity.map(d => d.count), 1)
 
     return {
       recentSessions: recentSessions.length,
@@ -57,7 +74,9 @@ export default function WeeklyRecap() {
       totalCronJobs,
       lastActivity,
       estimatedCost,
-      totalTokens
+      totalTokens,
+      dailyActivity,
+      maxDailyCount
     }
   }, [sessions, cronJobs])
 
@@ -150,6 +169,33 @@ export default function WeeklyRecap() {
         </Card>
       </div>
 
+      <Card title="Daglig Aktivitet" className="mb-6">
+        <div className="space-y-4">
+          {metrics.dailyActivity.map((day, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-20 text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {day.label}
+              </div>
+              <div className="flex-1 flex items-center gap-2">
+                <div 
+                  className="h-8 rounded transition-all"
+                  style={{
+                    width: `${(day.count / metrics.maxDailyCount) * 100}%`,
+                    minWidth: day.count > 0 ? '2rem' : '0',
+                    background: day.count > 0 
+                      ? 'linear-gradient(90deg, rgba(10,132,255,0.6), rgba(10,132,255,0.3))'
+                      : 'rgba(255,255,255,0.05)'
+                  }}
+                />
+                <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  {day.count}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <Card title="Seneste Sessions">
         {sessions.length === 0 ? (
           <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen sessions</p>
@@ -158,9 +204,9 @@ export default function WeeklyRecap() {
             {sessions.slice(0, 8).map((s) => (
               <div key={s.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 glass-row">
                 <div>
-                  <p className="text-sm font-medium font-mono break-all">{s.key}</p>
+                  <p className="text-sm font-medium">{s.label || 'Ingen label'}</p>
                   <p className="caption">
-                    {s.label || 'Ingen label'} · {new Date(s.updatedAt).toLocaleString('da-DK', { 
+                    <span className="font-mono">{s.key}</span> · {new Date(s.updatedAt).toLocaleString('da-DK', { 
                       day: 'numeric', 
                       month: 'short', 
                       hour: '2-digit', 
@@ -175,32 +221,17 @@ export default function WeeklyRecap() {
                   <span 
                     className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap" 
                     style={{ 
-                      background: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'rgba(52,199,89,0.1)' : 
-                                 false ? 'rgba(255,59,48,0.1)' : 
-                                 'rgba(255,255,255,0.06)', 
-                      color: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? '#34C759' : 
-                             false ? '#FF3B30' : 
-                             'rgba(255,255,255,0.4)' 
+                      background: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)', 
+                      color: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? '#34C759' : 'rgba(255,255,255,0.4)' 
                     }}
                   >
-                    {'Live'}
+                    {new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'Live' : 'Afsluttet'}
                   </span>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </Card>
-
-      <Card title="Notater" className="mt-4">
-        <div className="text-sm space-y-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-          <p>• Live data vises fra Gateway API</p>
-          <p>• Tokens og omkostninger er estimater baseret på session data</p>
-          <p>• Sessions grupperes efter opdateringstidspunkt (sidst 7 dage)</p>
-          {metrics.recentSessions === 0 && (
-            <p className="text-[#FF9500]">• Ingen aktivitet registreret i den seneste uge</p>
-          )}
-        </div>
       </Card>
     </div>
   )
