@@ -34,6 +34,7 @@ const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Upload = lazy(() => import('./pages/Upload'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -102,7 +103,7 @@ export default function App() {
   const [page, setPage] = useHashRouter('dashboard')
   const [cmdOpen, setCmdOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
-  const Page = pages[page] || Dashboard
+  const Page = pages[page] || NotFound
 
   // Global keyboard shortcuts
   useKeyboardShortcuts({
