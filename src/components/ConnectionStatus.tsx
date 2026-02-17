@@ -1,27 +1,26 @@
-import { useState, useEffect } from 'react'
-import { useConnectionStatus, ConnectionStatus as Status } from '../hooks/useConnectionStatus'
+import { useState } from 'react'
+import { useLiveData } from '../api/LiveDataContext'
+import { useRelativeTime } from '../hooks/useRelativeTime'
 
 export default function ConnectionStatus() {
-  const { status, latency } = useConnectionStatus()
+  const { lastUpdated, consecutiveErrors, isConnected } = useLiveData()
   const [showTooltip, setShowTooltip] = useState(false)
+  const relativeTime = useRelativeTime(lastUpdated)
 
-  const colors: Record<Status, string> = {
-    connected: '#30D158',
-    slow: '#FFD60A',
-    disconnected: '#FF453A',
-  }
+  // Grøn=0 fejl, Gul=1-2, Rød=3+
+  const color = !isConnected || consecutiveErrors >= 3
+    ? '#FF453A'
+    : consecutiveErrors >= 1
+    ? '#FFD60A'
+    : '#30D158'
 
-  const labels: Record<Status, string> = {
-    connected: 'Forbundet',
-    slow: 'Langsom forbindelse',
-    disconnected: 'Afbrudt',
-  }
-
-  const formatLatency = (ms: number | null): string => {
-    if (ms === null) return ''
-    if (ms < 1000) return `${Math.round(ms)}ms`
-    return `${(ms / 1000).toFixed(1)}s`
-  }
+  const label = !isConnected
+    ? 'Afbrudt'
+    : consecutiveErrors >= 3
+    ? 'Ustabil forbindelse'
+    : consecutiveErrors >= 1
+    ? 'Langsom forbindelse'
+    : 'Forbundet'
 
   return (
     <div
@@ -40,11 +39,18 @@ export default function ConnectionStatus() {
           width: 8,
           height: 8,
           borderRadius: '50%',
-          backgroundColor: colors[status],
-          boxShadow: `0 0 8px ${colors[status]}60`,
+          backgroundColor: color,
+          boxShadow: `0 0 8px ${color}60`,
           transition: 'background-color 300ms ease, box-shadow 300ms ease',
         }}
       />
+
+      {/* Last updated text */}
+      {lastUpdated && (
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>
+          {relativeTime || 'lige nu'}
+        </span>
+      )}
 
       {/* Tooltip */}
       {showTooltip && (
@@ -68,16 +74,14 @@ export default function ConnectionStatus() {
             fontWeight: 500,
             zIndex: 1000,
             pointerEvents: 'none',
-            animation: 'tooltipFadeIn 150ms ease-out',
           }}
         >
-          {labels[status]}
-          {latency !== null && status !== 'disconnected' && (
+          {label}
+          {lastUpdated && (
             <span style={{ color: 'rgba(255, 255, 255, 0.5)', marginLeft: 4 }}>
-              ({formatLatency(latency)})
+              — Sidst opdateret: {relativeTime || 'lige nu'}
             </span>
           )}
-          {/* Tooltip arrow */}
           <div
             style={{
               position: 'absolute',
@@ -93,20 +97,6 @@ export default function ConnectionStatus() {
           />
         </div>
       )}
-
-      {/* Add animation keyframes to document head if not already present */}
-      <style>{`
-        @keyframes tooltipFadeIn {
-          from {
-            opacity: 0;
-            transform: translateX(-50%) translateY(4px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }

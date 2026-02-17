@@ -9,6 +9,7 @@ import { Status } from '../types'
 import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useRelativeTime, formatRelativeTime } from '../hooks/useRelativeTime'
+import ConnectionStatus from '../components/ConnectionStatus'
 
 interface SystemInfo {
   host?: string
@@ -77,7 +78,7 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
 export default function Dashboard() {
   usePageTitle('Dashboard')
   
-  const { isConnected, isLoading, isRefreshing, error, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
+  const { isConnected, isLoading, isRefreshing, error, lastUpdated, consecutiveErrors, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
 
   useEffect(() => {
@@ -176,6 +177,7 @@ export default function Dashboard() {
     <div>
       <div className="flex items-center gap-3 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Oversigt</h1>
+        <ConnectionStatus />
         {!isConnected && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400" style={{ background: 'rgba(255,149,0,0.1)' }}>
             Ikke forbundet

@@ -7,6 +7,7 @@ interface LiveData {
   isRefreshing: boolean
   error: string | null
   lastUpdated: Date | null
+  consecutiveErrors: number
   sessions: ApiSession[]
   statusText: string | null
   cronJobs: CronJobApi[]
@@ -20,6 +21,7 @@ const LiveDataContext = createContext<LiveData>({
   isRefreshing: false,
   error: null,
   lastUpdated: null,
+  consecutiveErrors: 0,
   sessions: [],
   statusText: null,
   cronJobs: [],
@@ -58,6 +60,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const [statusText, setStatusText] = useState<string | null>(cached.current.statusText)
   const [cronJobs, setCronJobs] = useState<CronJobApi[]>(cached.current.cronJobs)
   const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(cached.current.gatewayConfig)
+  const [consecutiveErrors, setConsecutiveErrors] = useState(0)
   
   // Track previous data hash to only update when data actually changes
   const prevSessionsHash = useRef<string>('')
@@ -89,6 +92,7 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
         setIsConnected(true)
         setError(null)
         setLastUpdated(new Date())
+        setConsecutiveErrors(0)
         
         // Only update state if data has actually changed (using hash)
         if (sessionsData) {
@@ -141,10 +145,12 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       } else {
         setIsConnected(false)
         setError('Kunne ikke oprette forbindelse til Gateway')
+        setConsecutiveErrors(prev => prev + 1)
       }
     } catch {
       setIsConnected(false)
       setError('Kunne ikke oprette forbindelse til Gateway')
+      setConsecutiveErrors(prev => prev + 1)
     } finally {
       setIsRefreshing(false)
     }
@@ -188,7 +194,8 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
       isLoading,
       isRefreshing,
       error,
-      lastUpdated, 
+      lastUpdated,
+      consecutiveErrors,
       sessions, 
       statusText, 
       cronJobs, 
