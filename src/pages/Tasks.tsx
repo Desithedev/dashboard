@@ -730,24 +730,12 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 function ArchiveModal({ open, onClose, tasks, onSelectTask }: { 
   open: boolean; onClose: () => void; tasks: Task[]; onSelectTask: (t: Task) => void 
 }) {
-  const [searchArchive, setSearchArchive] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'queued' | 'active' | 'completed'>('all')
 
   const filteredTasks = useMemo(() => {
-    let filtered = tasks
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(t => t.status === filterStatus)
-    }
-    if (searchArchive.trim()) {
-      const q = searchArchive.toLowerCase()
-      filtered = filtered.filter(t => 
-        t.title.toLowerCase().includes(q) || 
-        t.agent.toLowerCase().includes(q) || 
-        (t.firstMessage || '').toLowerCase().includes(q)
-      )
-    }
-    return filtered
-  }, [tasks, filterStatus, searchArchive])
+    if (filterStatus === 'all') return tasks
+    return tasks.filter(t => t.status === filterStatus)
+  }, [tasks, filterStatus])
 
   if (!open) return null
 
@@ -776,40 +764,26 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
             </button>
           </div>
 
-          {/* Search + Filters */}
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Icon name="magnifying-glass" size={14} className="absolute left-3 top-1/2 -translate-y-1/2" 
-                    style={{ color: 'rgba(255,255,255,0.3)' }} />
-              <input
-                type="text"
-                value={searchArchive}
-                onChange={e => setSearchArchive(e.target.value)}
-                placeholder="Søg i arkiv..."
-                className="w-full pl-10 pr-3 py-2 rounded-lg text-sm text-white placeholder-white/20"
-                style={{ background: 'rgba(255,255,255,0.04)', border: 'none', outline: 'none' }}
-              />
-            </div>
-            <div className="flex gap-2">
-              {[
-                { id: 'all', label: 'Alle', color: '#8E8E93' },
-                { id: 'queued', label: 'I Kø', color: '#FF9F0A' },
-                { id: 'active', label: 'Aktive', color: '#007AFF' },
-                { id: 'completed', label: 'Afsluttet', color: '#30D158' },
-              ].map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setFilterStatus(f.id as any)}
-                  className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                  style={{ 
-                    background: filterStatus === f.id ? `${f.color}20` : 'rgba(255,255,255,0.04)',
-                    color: filterStatus === f.id ? f.color : 'rgba(255,255,255,0.4)',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+          {/* Status Filters */}
+          <div className="flex gap-2">
+            {[
+              { id: 'all', label: 'Alle', color: '#8E8E93' },
+              { id: 'queued', label: 'I Kø', color: '#FF9F0A' },
+              { id: 'active', label: 'Aktive', color: '#007AFF' },
+              { id: 'completed', label: 'Afsluttet', color: '#30D158' },
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilterStatus(f.id as any)}
+                className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                style={{ 
+                  background: filterStatus === f.id ? `${f.color}20` : 'rgba(255,255,255,0.04)',
+                  color: filterStatus === f.id ? f.color : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -825,6 +799,8 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
               <Table
                 data={filteredTasks}
                 onRowClick={(t) => { onClose(); onSelectTask(t) }}
+                searchable={true}
+                searchKeys={['title', 'status', 'priority', 'updated']}
                 columns={[
                   {
                     key: 'title',

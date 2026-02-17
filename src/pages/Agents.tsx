@@ -348,6 +348,8 @@ function AgentOverviewTable({ orgChart, onSelectAgent }: { orgChart: OrgAgent; o
         const a = byId.get(r.id)
         if (a) onSelectAgent(a)
       }}
+      searchable={true}
+      searchKeys={['name', 'status']}
       columns={[
         {
           key: 'name',
