@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
 import ErrorBoundary from './components/ErrorBoundary'
+import PageErrorBoundary from './components/PageErrorBoundary'
 import PageTransition from './components/PageTransition'
 import { useHashRouter } from './hooks/useHashRouter'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -29,6 +30,7 @@ const Index = lazy(() => import('./pages/Index'))
 const Evals = lazy(() => import('./pages/Evals'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Notifications = lazy(() => import('./pages/Notifications'))
+
 const pages: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
   communication: Communication,
@@ -47,6 +49,26 @@ const pages: Record<string, React.ComponentType> = {
   evals: Evals,
   settings: Settings,
   notifications: Notifications,
+}
+
+const pageNames: Record<string, string> = {
+  dashboard: 'Dashboard',
+  communication: 'Kommunikation',
+  journal: 'Journal',
+  tasks: 'Opgaver',
+  documents: 'Dokumenter',
+  agents: 'Agenter',
+  skills: 'Skills',
+  intelligence: 'Intelligence',
+  weekly: 'Ugentlig Recap',
+  clients: 'Klienter',
+  cron: 'Cron Jobs',
+  api: 'API Forbrug',
+  workshop: 'Workshop',
+  index: 'Index',
+  evals: 'Evaluering',
+  settings: 'Indstillinger',
+  notifications: 'Notifikationer',
 }
 
 function LoadingFallback() {
@@ -94,7 +116,9 @@ export default function App() {
             <Suspense fallback={<LoadingFallback />}>
               <ErrorBoundary>
                 <PageTransition key={page}>
-                  <Page />
+                  <PageErrorBoundary key={page} pageName={pageNames[page] || page}>
+                    <Page />
+                  </PageErrorBoundary>
                 </PageTransition>
               </ErrorBoundary>
             </Suspense>
