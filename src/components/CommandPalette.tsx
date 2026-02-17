@@ -191,11 +191,13 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
         aria-modal="true"
         aria-label="Kommandopalet"
         style={{
-          width: '100%', maxWidth: 520,
-          background: 'rgba(20,20,30,0.85)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 16,
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          width: '100%', maxWidth: 540,
+          background: 'rgba(14,14,22,0.92)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 18,
+          boxShadow: '0 32px 96px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           overflow: 'hidden',
         }}
         onClick={e => e.stopPropagation()}
@@ -208,7 +210,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Søg efter side eller handling..."
+            placeholder="Søg..."
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: 16, fontFamily: 'inherit',
@@ -222,7 +224,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
         </div>
 
         {/* Results */}
-        <div role="listbox" style={{ maxHeight: 420, overflowY: 'auto', padding: '6px 0' }}>
+        <div role="listbox" style={{ maxHeight: 380, overflowY: 'auto', padding: '6px 0' }}>
           {totalCount === 0 && (
             <div style={{ padding: '24px 18px', textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>
               Ingen resultater
@@ -329,6 +331,41 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
               })}
             </>
           )}
+        </div>
+
+        {/* Keyboard hints footer */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '8px 18px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.02)',
+        }}>
+          {[
+            { keys: ['↑', '↓'], label: 'naviger' },
+            { keys: ['↵'], label: 'vælg' },
+            { keys: ['Esc'], label: 'luk' },
+          ].map(hint => (
+            <div key={hint.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {hint.keys.map(k => (
+                <kbd key={k} style={{
+                  padding: '1px 6px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                  background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                }}>{k}</kbd>
+              ))}
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{hint.label}</span>
+            </div>
+          ))}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <kbd style={{
+              padding: '1px 6px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            }}>⌘K</kbd>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>for at åbne</span>
+          </div>
         </div>
       </div>
     </div>
