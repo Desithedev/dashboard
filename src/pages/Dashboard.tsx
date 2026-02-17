@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useRelativeTime, formatRelativeTime } from '../hooks/useRelativeTime'
 import ConnectionStatus from '../components/ConnectionStatus'
+import DataFreshness from '../components/DataFreshness'
 import { useToast } from '../hooks/useToast'
 
 interface SystemInfo {
@@ -233,6 +234,7 @@ export default function Dashboard() {
             Ikke forbundet
           </span>
         )}
+        <DataFreshness className="ml-auto" />
       </div>
       <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>Driftsoverblik — {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
 

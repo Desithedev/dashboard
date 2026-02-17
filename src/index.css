@@ -379,3 +379,15 @@ select.input option {
   border-radius: var(--glass-radius);
   animation: skeletonPulse 1.5s ease-in-out infinite;
 }
+
+/* DataFreshness animations */
+@keyframes df-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+@keyframes df-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.df-dot-pulse { animation: df-pulse 2s ease-in-out infinite; }
+.df-spin { animation: df-spin 0.8s linear infinite; }

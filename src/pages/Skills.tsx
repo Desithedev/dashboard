@@ -4,6 +4,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard, shimmerStyle } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 interface Skill extends SkillInfo {
   path?: string
@@ -206,20 +207,23 @@ export default function Skills() {
     <div className="relative">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-1">
         <h1 className="text-xl sm:text-2xl font-bold text-white">Færdigheder</h1>
-        <div className="overflow-x-auto w-full sm:w-auto">
-          <div className="flex items-center gap-1 p-1 rounded-xl min-w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {(['installed', 'recommended', 'browse'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
-                style={{
-                  background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
-                  color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
-                  border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
-                  minHeight: '44px',
-                }}>
-                {t === 'installed' ? `Installeret (${installedSkills.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
-              </button>
-            ))}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <DataFreshness />
+          <div className="overflow-x-auto flex-1 sm:flex-none">
+            <div className="flex items-center gap-1 p-1 rounded-xl min-w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              {(['installed', 'recommended', 'browse'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+                  style={{
+                    background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
+                    color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
+                    border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                    minHeight: '44px',
+                  }}>
+                  {t === 'installed' ? `Installeret (${installedSkills.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

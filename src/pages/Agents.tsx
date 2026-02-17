@@ -6,6 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard, SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
+import DataFreshness from '../components/DataFreshness'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
@@ -1311,16 +1312,19 @@ export default function Agents() {
           </p>
         </div>
         
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
-          style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <Icon name="user-plus" size={16} />
-          Opret Agent
-        </button>
+        <div className="flex items-center gap-3">
+          <DataFreshness />
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
+            style={{ background: 'linear-gradient(135deg, #007AFF, #AF52DE)' }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,122,255,0.4)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <Icon name="user-plus" size={16} />
+            Opret Agent
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

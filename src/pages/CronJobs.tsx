@@ -8,6 +8,7 @@ import { fetchCronRuns } from '../api/openclaw'
 import { useToast } from '../components/Toast'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import DataFreshness from '../components/DataFreshness'
 import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 
 interface CronRun {
@@ -67,6 +68,7 @@ export default function CronJobs() {
             Offline
           </span>
         )}
+        <DataFreshness className="ml-auto" />
       </div>
       <p className="caption mb-6">
         {isLoading ? 'Indlæser...' : `${cronJobs.length} ${cronJobs.length === 1 ? 'job' : 'jobs'}`}

@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import DataFreshness from '../components/DataFreshness'
 import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 import Table from '../components/Table'
 import { 
@@ -1078,6 +1079,7 @@ export default function Tasks() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <DataFreshness />
           <button
             onClick={() => setAllExpanded(!allExpanded)}
             style={{
