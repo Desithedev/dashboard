@@ -270,6 +270,86 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          {/* Systemhelbred */}
+          <Card title="Systemhelbred" subtitle="Server- og forbindelsesstatus" className="mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Gateway Uptime */}
+              <div className="flex items-start gap-3">
+                <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: 'rgba(48,209,88,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="server" size={16} style={{ color: '#34C759' }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="caption text-xs">Gateway Oppetid</p>
+                  <p className="text-sm font-semibold text-white truncate">
+                    {systemInfo.uptime || 'Ukendt'}
+                  </p>
+                </div>
+              </div>
+
+              {/* RAM */}
+              {(() => {
+                const ramPct = systemInfo.ramUsed && systemInfo.ramTotal
+                  ? Math.round((parseFloat(systemInfo.ramUsed) / parseFloat(systemInfo.ramTotal)) * 100)
+                  : null
+                const ramColor = ramPct === null ? '#8E8E93' : ramPct > 90 ? '#FF3B30' : ramPct > 70 ? '#FF9F0A' : '#34C759'
+                return (
+                  <div className="flex items-start gap-3">
+                    <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: `${ramColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="gauge" size={16} style={{ color: ramColor }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="caption text-xs">Hukommelse</p>
+                      <p className="text-sm font-semibold text-white truncate">
+                        {ramPct !== null ? `${ramPct}%` : 'N/A'}
+                      </p>
+                      <p className="caption text-xs truncate">{systemInfo.ramUsed && systemInfo.ramTotal ? `${systemInfo.ramUsed} / ${systemInfo.ramTotal}` : ''}</p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Disk */}
+              {(() => {
+                const diskPct = systemInfo.diskPercent ?? null
+                const diskColor = diskPct === null ? '#8E8E93' : diskPct > 90 ? '#FF3B30' : diskPct > 70 ? '#FF9F0A' : '#34C759'
+                return (
+                  <div className="flex items-start gap-3">
+                    <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: `${diskColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="folder" size={16} style={{ color: diskColor }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="caption text-xs">Disk</p>
+                      <p className="text-sm font-semibold text-white truncate">
+                        {diskPct !== null ? `${diskPct}%` : 'N/A'}
+                      </p>
+                      <p className="caption text-xs truncate">{systemInfo.diskUsed && systemInfo.diskTotal ? `${systemInfo.diskUsed} / ${systemInfo.diskTotal}` : ''}</p>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Connectivity */}
+              {(() => {
+                const score = consecutiveErrors === 0 ? 100 : Math.max(0, 100 - consecutiveErrors * 20)
+                const connColor = score >= 80 ? '#34C759' : score >= 50 ? '#FF9F0A' : '#FF3B30'
+                return (
+                  <div className="flex items-start gap-3">
+                    <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, background: `${connColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name="zap" size={16} style={{ color: connColor }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="caption text-xs">Forbindelse</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: connColor }}>
+                        {score}%
+                      </p>
+                      <p className="caption text-xs truncate">{consecutiveErrors === 0 ? 'Stabil' : `${consecutiveErrors} fejl i træk`}</p>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
             <Card title="System">
               <div className="space-y-2 text-sm min-w-0">
