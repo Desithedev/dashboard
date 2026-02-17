@@ -286,21 +286,29 @@ function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelec
         <>
           <OrgNode agent={orgChart.children[0]} onClick={() => orgChart.children && onSelectAgent(orgChart.children[0])} size="large" />
           
-          {/* Department Heads — stacked vertically, sub-agents horizontal */}
-          {orgChart.children[0].children && orgChart.children[0].children.map((dept, idx) => (
-            <div key={dept.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-              {/* Vertical connector line */}
-              <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.15)' }} />
-              
-              {/* Department head row: head + sub-agents horizontal */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {/* Vertical line from Maison to department heads */}
+          <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.15)' }} />
+          
+          {/* Horizontal line connecting all 3 departments */}
+          {orgChart.children[0].children && orgChart.children[0].children.length > 1 && (
+            <div style={{ width: '60%', maxWidth: '700px', height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+          )}
+          
+          {/* Department Heads — side by side, each with sub-agents below */}
+          <div style={{ display: 'flex', gap: '32px', justifyContent: 'center', flexWrap: 'wrap', width: '100%' }}>
+            {orgChart.children[0].children && orgChart.children[0].children.map((dept) => (
+              <div key={dept.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {/* Vertical connector from horizontal line */}
+                <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
+                
+                {/* Department head */}
                 <OrgNode agent={dept} onClick={() => onSelectAgent(dept)} size="normal" />
                 
+                {/* Sub-agents below */}
                 {dept.children && dept.children.length > 0 && (
                   <>
-                    {/* Horizontal connector */}
-                    <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.15)' }} />
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.15)' }} />
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                       {dept.children.map((sub) => (
                         <OrgNode key={sub.id} agent={sub} onClick={() => onSelectAgent(sub)} size="small" />
                       ))}
@@ -308,8 +316,8 @@ function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelec
                   </>
                 )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </>
       )}
     </div>
