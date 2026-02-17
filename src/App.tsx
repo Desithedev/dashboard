@@ -11,6 +11,7 @@ import PageErrorBoundary from './components/PageErrorBoundary'
 import PageTransition from './components/PageTransition'
 import { useHashRouter } from './hooks/useHashRouter'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useFaviconBadge } from './hooks/useFaviconBadge'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -71,6 +72,12 @@ const pageNames: Record<string, string> = {
   notifications: 'Notifikationer',
 }
 
+/** Intern komponent der aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
+function FaviconBadge() {
+  useFaviconBadge()
+  return null
+}
+
 function LoadingFallback() {
   return (
     <div className="space-y-4 p-2">
@@ -108,6 +115,7 @@ export default function App() {
   return (
     <LiveDataProvider>
       <NotificationProvider>
+        <FaviconBadge />
         <ToastProvider>
           <ConnectionToast />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
