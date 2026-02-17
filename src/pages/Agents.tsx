@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { SkeletonCard, SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
@@ -632,8 +633,9 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
       {/* Standup Cards */}
       <div className="max-w-3xl mx-auto space-y-4">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="max-w-3xl mx-auto space-y-4">
+            <style>{shimmerStyle}</style>
+            {[1, 2, 3].map(i => <SkeletonCard key={i} lines={2} />)}
           </div>
         ) : standups.length === 0 ? (
           <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -833,8 +835,9 @@ function WorkspacesView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-8">
+        <style>{shimmerStyle}</style>
+        {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} lines={3} />)}
       </div>
     )
   }
@@ -1156,8 +1159,12 @@ function AgentChatView() {
           <input type="text" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Søg sessioner..." className="w-full px-3 py-2 rounded-lg text-xs text-white placeholder-white/30" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', outline: 'none' }} />
         </div>
         <div className="flex-1 overflow-y-auto">
-          {loading ? <div className="flex items-center justify-center py-12"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
-          : filteredSessions.length === 0 ? <p className="text-center py-8 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen sessioner</p>
+          {loading ? (
+            <div className="p-3">
+              <style>{shimmerStyle}</style>
+              {[1, 2, 3, 4].map(i => <SkeletonRow key={i} />)}
+            </div>
+          ) : filteredSessions.length === 0 ? <p className="text-center py-8 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen sessioner</p>
           : filteredSessions.map(s => (
             <div key={s.key} onClick={() => { setSelectedKey(s.key); fetchMessages(s.key) }} className="px-3 py-3 cursor-pointer transition-all" style={{ background: selectedKey === s.key ? 'rgba(0,122,255,0.12)' : 'transparent', borderLeft: selectedKey === s.key ? '2px solid #007AFF' : '2px solid transparent', borderBottom: '1px solid rgba(255,255,255,0.04)' }} onMouseEnter={e => { if (selectedKey !== s.key) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }} onMouseLeave={e => { if (selectedKey !== s.key) e.currentTarget.style.background = 'transparent' }}>
               <div className="flex items-center gap-2.5">

@@ -3,6 +3,7 @@ import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { SkeletonCard, shimmerStyle } from '../components/SkeletonLoader'
 
 interface Skill extends SkillInfo {
   path?: string
@@ -238,8 +239,9 @@ export default function Skills() {
           </div>
 
           {loadingInstalled ? (
-            <div className="text-center py-12">
-              <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henter installerede skills...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <style>{shimmerStyle}</style>
+              {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} lines={2} />)}
             </div>
           ) : installedSkills.length === 0 ? (
             <div className="text-center py-12">

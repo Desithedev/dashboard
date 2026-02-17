@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 import { 
   createAgent, 
   invokeToolRaw,
@@ -1085,7 +1086,12 @@ export default function Tasks() {
             </span>
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {queuedFiltered.length === 0 ? (
+            {loading && tasks.length === 0 ? (
+              <>
+                <style>{shimmerStyle}</style>
+                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+              </>
+            ) : queuedFiltered.length === 0 ? (
               <div className="text-center py-8">
                 <Icon name="clock" size={24} className="mx-auto mb-2" style={{ color: 'rgba(255,159,10,0.2)' }} />
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen i kø</p>
@@ -1108,7 +1114,11 @@ export default function Tasks() {
             </span>
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {activeFiltered.length === 0 ? (
+            {loading && tasks.length === 0 ? (
+              <>
+                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+              </>
+            ) : activeFiltered.length === 0 ? (
               <div className="text-center py-8">
                 <Icon name="bolt" size={24} className="mx-auto mb-2" style={{ color: 'rgba(0,122,255,0.2)' }} />
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen aktive</p>
@@ -1131,7 +1141,11 @@ export default function Tasks() {
             </span>
           </div>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {completedFiltered.length === 0 ? (
+            {loading && tasks.length === 0 ? (
+              <>
+                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+              </>
+            ) : completedFiltered.length === 0 ? (
               <div className="text-center py-8">
                 <Icon name="checkmark-circle" size={24} className="mx-auto mb-2" style={{ color: 'rgba(48,209,88,0.2)' }} />
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen afsluttede</p>

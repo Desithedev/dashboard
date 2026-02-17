@@ -3,6 +3,7 @@ import Icon from '../components/Icon'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 
 /* ── Types ───────────────────────────────────── */
 interface DayData {
@@ -528,15 +529,14 @@ export default function Journal() {
 
   if (loading && memoryFiles.length === 0 && allSessions.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <div 
-            className="w-12 h-12 border-2 rounded-full animate-spin mx-auto mb-4" 
-            style={{ borderColor: '#007AFF', borderTopColor: 'transparent' }} 
-          />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Indlæser journal...
-          </p>
+      <div className="h-full">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Indlæser...</p>
+        </div>
+        <style>{shimmerStyle}</style>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonRow key={i} />)}
         </div>
       </div>
     )

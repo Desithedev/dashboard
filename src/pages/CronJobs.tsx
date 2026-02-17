@@ -8,6 +8,7 @@ import { fetchCronRuns } from '../api/openclaw'
 import { useToast } from '../components/Toast'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 
 interface CronRun {
   timestamp: string
@@ -89,11 +90,9 @@ export default function CronJobs() {
 
       {isLoading ? (
         <Card>
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin text-white/30 mb-3">
-              <Icon name="arrow-path" size={32} />
-            </div>
-            <p className="caption">Indlæser planlagte jobs...</p>
+          <style>{shimmerStyle}</style>
+          <div className="space-y-1">
+            {[1, 2, 3, 4, 5].map(i => <SkeletonRow key={i} />)}
           </div>
         </Card>
       ) : cronJobs.length === 0 ? (

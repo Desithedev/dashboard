@@ -3,7 +3,7 @@
  * Dark mode glassmorphism style.
  */
 
-const shimmerStyle = `
+export const shimmerStyle = `
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
