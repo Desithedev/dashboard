@@ -3,6 +3,7 @@ import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { invokeToolRaw, ApiSession } from '../api/openclaw'
+import { CommunicationSkeleton } from '../components/SkeletonLoader'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -103,11 +104,7 @@ export default function Communication() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-white/50">Henter sessioner...</p>
-      </div>
-    )
+    return <CommunicationSkeleton />
   }
 
   const selectedSessionData = sessions.find(s => s.key === selectedSession)

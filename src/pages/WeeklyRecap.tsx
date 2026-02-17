@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import Card from '../components/Card'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { WeeklyRecapSkeleton } from '../components/SkeletonLoader'
 
 export default function WeeklyRecap() {
   usePageTitle('Ugeoversigt')
@@ -90,15 +91,7 @@ export default function WeeklyRecap() {
   }, [])
 
   if (isLoading) {
-    return (
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">Ugerapport</h1>
-        <p className="caption mb-6">Indlæser...</p>
-        <Card>
-          <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser data...</p>
-        </Card>
-      </div>
-    )
+    return <WeeklyRecapSkeleton />
   }
 
   return (

@@ -3,6 +3,7 @@ import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { EvalsSkeleton } from '../components/SkeletonLoader'
 
 interface Eval {
   id: string
@@ -154,11 +155,7 @@ export default function Evals() {
         </button>
       </div>
 
-      {isLoadingEvals && (
-        <div className="text-center py-12">
-          <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henter evalueringer...</p>
-        </div>
-      )}
+      {isLoadingEvals && <EvalsSkeleton />}
 
       {evalsError && (
         <Card>

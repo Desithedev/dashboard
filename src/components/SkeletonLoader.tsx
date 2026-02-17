@@ -130,4 +130,271 @@ export function IntelligenceSkeleton() {
   )
 }
 
+export function ApiUsageSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={140} height={28} className="mb-2" />
+      <Bone width={280} height={14} className="mb-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[1, 2, 3, 4].map(i => <SkeletonCard key={i} lines={2} />)}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[1, 2].map(i => (
+          <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="40%" height={14} className="mb-4" />
+            <Bone width="100%" height={160} radius={8} />
+          </div>
+        ))}
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+        <Bone width="30%" height={14} className="mb-4" />
+        {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+      </div>
+    </div>
+  )
+}
+
+export function ClientsSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={120} height={28} className="mb-2" />
+      <Bone width={240} height={14} className="mb-6" />
+      <Bone width="100%" height={44} radius={12} className="mb-6" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Bone width={48} height={48} radius={12} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Bone width="40%" height={16} />
+                  <Bone width={60} height={20} radius={10} />
+                </div>
+                <Bone width="70%" height={12} className="mb-2" />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <Bone width={56} height={18} radius={4} />
+                  <Bone width={56} height={18} radius={4} />
+                  <Bone width={56} height={18} radius={4} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function CommunicationSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={160} height={28} className="mb-2" />
+      <Bone width={260} height={14} className="mb-8" />
+      <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ width: 240, flexShrink: 0, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 16 }}>
+          <Bone width="60%" height={14} className="mb-4" />
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} style={{ padding: '8px', marginBottom: 8, background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Bone width={8} height={8} radius={4} />
+                <Bone width="70%" height={12} />
+              </div>
+              <Bone width="40%" height={10} />
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
+          <Bone width="50%" height={14} className="mb-4" />
+          <div style={{ flex: 1 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ marginBottom: 12, display: 'flex', justifyContent: i % 2 === 0 ? 'flex-end' : 'flex-start' }}>
+                <Bone width="55%" height={56} radius={12} />
+              </div>
+            ))}
+          </div>
+          <Bone width="100%" height={44} radius={10} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function DocumentsSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={140} height={28} className="mb-2" />
+      <Bone width={240} height={14} className="mb-6" />
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+        <div style={{ flex: 1 }}><Bone height={44} radius={12} /></div>
+        <Bone width={160} height={44} radius={12} />
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <Bone width={14} height={14} radius={4} />
+            <div style={{ flex: 2 }}><Bone width="75%" height={14} /></div>
+            <div style={{ flex: 1 }}><Bone width="55%" height={12} /></div>
+            <div style={{ flex: 1 }}><Bone width="50%" height={12} /></div>
+            <div style={{ flex: 1 }}><Bone width="60%" height={12} /></div>
+            <div style={{ flex: 2 }}><Bone width="65%" height={12} /></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function EvalsSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={160} height={28} className="mb-2" />
+      <Bone width={240} height={14} className="mb-6" />
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+        <Bone width={160} height={44} radius={12} />
+        <Bone width={120} height={44} radius={12} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Bone width={40} height={40} radius={8} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <Bone width="35%" height={14} />
+                  <Bone width={60} height={18} radius={4} />
+                </div>
+                <Bone width="80%" height={12} className="mb-1" />
+                <Bone width="55%" height={12} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function SettingsSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {[1, 2, 3, 4].map(i => <Bone key={i} width={120} height={44} radius={12} />)}
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+        <Bone width="30%" height={16} className="mb-4" />
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <Bone width="30%" height={12} />
+            <Bone width="20%" height={12} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function UploadSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={120} height={28} className="mb-2" />
+      <Bone width={280} height={14} className="mb-6" />
+      <Bone width="100%" height={180} radius={12} className="mb-6" />
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Bone width="30%" height={14} />
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <Bone width={16} height={16} radius={4} />
+            <div style={{ flex: 1 }}>
+              <Bone width="50%" height={12} className="mb-1" />
+              <Bone width="30%" height={10} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function WeeklyRecapSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={140} height={28} className="mb-2" />
+      <Bone width={200} height={14} className="mb-8" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[1, 2, 3, 4].map(i => <SkeletonCard key={i} lines={2} />)}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {[1, 2].map(i => (
+          <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="40%" height={14} className="mb-4" />
+            {[1, 2, 3, 4].map(j => <SkeletonRow key={j} />)}
+          </div>
+        ))}
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+        <Bone width="30%" height={14} className="mb-4" />
+        {[1, 2, 3, 4, 5, 6, 7].map(i => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <Bone width={80} height={12} />
+            <div style={{ flex: 1 }}>
+              <Bone width={`${Math.min(20 + i * 12, 90)}%`} height={28} radius={4} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function WorkshopSkeleton() {
+  return (
+    <div>
+      <style>{shimmerStyle}</style>
+      <Bone width={120} height={28} className="mb-2" />
+      <Bone width={240} height={14} className="mb-6" />
+      <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="30%" height={14} className="mb-4" />
+            <Bone width="100%" height={200} radius={8} className="mb-4" />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Bone width={120} height={44} radius={12} />
+              <Bone width={160} height={44} radius={12} />
+              <Bone width={100} height={44} radius={12} />
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="20%" height={14} className="mb-4" />
+            <Bone width="100%" height={120} radius={8} />
+          </div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="50%" height={14} className="mb-4" />
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <Bone width="100%" height={60} radius={8} />
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 20 }}>
+            <Bone width="60%" height={14} className="mb-4" />
+            {[1, 2].map(i => <SkeletonRow key={i} />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default Bone

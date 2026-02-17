@@ -5,6 +5,7 @@ import Modal from '../components/Modal'
 import Icon from '../components/Icon'
 import { fetchProjects, type Project } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { ClientsSkeleton } from '../components/SkeletonLoader'
 
 const statusLabels: Record<string, string> = {
   active: 'Aktiv',
@@ -65,16 +66,7 @@ export default function Clients() {
         </div>
       </div>
 
-      {loading && (
-        <Card>
-          <div className="text-center py-16 px-4">
-            <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Henter projekter...
-            </p>
-          </div>
-        </Card>
-      )}
+      {loading && <ClientsSkeleton />}
 
       {!loading && (
         <div className="space-y-3">

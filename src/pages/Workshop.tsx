@@ -3,6 +3,7 @@ import Card from '../components/Card'
 import { useLiveData } from '../api/LiveDataContext'
 import { runPrompt } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { WorkshopSkeleton } from '../components/SkeletonLoader'
 
 export default function Workshop() {
   usePageTitle('Værksted')
@@ -75,15 +76,7 @@ export default function Workshop() {
   ]
 
   if (isLoading) {
-    return (
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1" style={{ color: 'rgba(255,255,255,0.92)' }}>Værksted</h1>
-        <p className="mb-6" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Indlæser...</p>
-        <Card>
-          <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser data...</p>
-        </Card>
-      </div>
-    )
+    return <WorkshopSkeleton />
   }
 
   return (

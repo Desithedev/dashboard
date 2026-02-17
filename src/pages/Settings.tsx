@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getGatewayUrl, getGatewayToken, setGatewayUrl, setGatewayToken, testConnection, fetchSystemInfo } from '../api/openclaw'
+import { SettingsSkeleton } from '../components/SkeletonLoader'
 
 interface SystemInfo {
   host?: string
@@ -207,9 +208,7 @@ export default function Settings() {
               </div>
             </Card>
           ) : loadingSystem ? (
-            <Card>
-              <div className="text-center py-8 text-white/50">Henter systeminformation...</div>
-            </Card>
+            <SettingsSkeleton />
           ) : (
             <>
               <Card title="Systeminformation">

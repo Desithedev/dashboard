@@ -4,6 +4,7 @@ import { BarChart, MiniLineChart } from '../components/Chart'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
+import { ApiUsageSkeleton } from '../components/SkeletonLoader'
 
 export default function ApiUsage() {
   usePageTitle('API Forbrug')
@@ -87,15 +88,7 @@ export default function ApiUsage() {
   }, [gatewayConfig])
 
   if (isLoading) {
-    return (
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">API Forbrug</h1>
-        <p className="caption mb-6">Tokenforbrug og omkostningssporing</p>
-        <Card>
-          <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser data...</p>
-        </Card>
-      </div>
-    )
+    return <ApiUsageSkeleton />
   }
 
   return (

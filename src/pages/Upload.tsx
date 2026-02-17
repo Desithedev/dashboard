@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import Icon from '../components/Icon'
 import { invokeToolRaw } from '../api/openclaw'
+import { UploadSkeleton } from '../components/SkeletonLoader'
 
 interface UploadedFile {
   name: string
@@ -17,6 +18,7 @@ function formatSize(bytes: number): string {
 const MAX_SIZE = 100 * 1024 * 1024
 
 export default function Upload() {
+  const [isLoading, setIsLoading] = useState(true)
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -25,6 +27,13 @@ export default function Upload() {
   const [success, setSuccess] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Tjek for tidligere uploadede filer ved mount
+  useEffect(() => {
+    invokeToolRaw('files_list', { path: '/data/.openclaw/workspace/uploads/' })
+      .catch(() => null)
+      .finally(() => setIsLoading(false))
+  }, [])
 
   const handleFile = useCallback(async (file: File) => {
     if (file.size > MAX_SIZE) {
@@ -101,6 +110,10 @@ export default function Upload() {
     if (file) handleFile(file)
     if (inputRef.current) inputRef.current.value = ''
   }, [handleFile])
+
+  if (isLoading) {
+    return <UploadSkeleton />
+  }
 
   return (
     <div className="h-full flex flex-col">

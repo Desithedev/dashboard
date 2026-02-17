@@ -8,6 +8,7 @@ import { fetchWorkspaceFiles, readFileContent, downloadFile } from '../api/openc
 import { useLiveData } from '../api/LiveDataContext'
 import { useToast } from '../components/Toast'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { DocumentsSkeleton } from '../components/SkeletonLoader'
 
 interface WorkspaceFile {
   id: string
@@ -61,15 +62,7 @@ export default function Documents() {
   )
 
   if (loading) {
-    return (
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">Dokumenter</h1>
-        <p className="caption mb-6">Videnbase og filhåndtering</p>
-        <Card>
-          <div className="text-center py-8 text-white/50">Henter filer...</div>
-        </Card>
-      </div>
-    )
+    return <DocumentsSkeleton />
   }
 
   if (!isConnected) {
