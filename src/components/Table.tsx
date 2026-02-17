@@ -8,6 +8,7 @@ export interface Column<T> {
   className?: string
   sortable?: boolean
   sortKey?: (item: T) => string | number | Date | null | undefined
+  exportValue?: (item: T) => string | number | null | undefined
 }
 
 interface TableProps<T> {
@@ -18,6 +19,8 @@ interface TableProps<T> {
   searchKeys?: string[]
   filterFn?: (item: T, query: string) => boolean
   pageSize?: number
+  exportable?: boolean
+  exportFilename?: string
 }
 
 type SortDirection = 'asc' | 'desc'
@@ -76,6 +79,15 @@ function extractText(node: ReactNode): string {
   return ''
 }
 
+/** Escape a single CSV field value */
+function escapeCSVField(value: string): string {
+  const s = String(value)
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
 /** Generate page number array with ellipsis markers (-1) */
 function buildPageRange(current: number, total: number): number[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i)
@@ -103,6 +115,8 @@ export default function Table<T extends { id: string }>({
   searchKeys,
   filterFn,
   pageSize = 20,
+  exportable,
+  exportFilename,
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection | null>(null)
@@ -264,6 +278,36 @@ export default function Table<T extends { id: string }>({
   const isFiltering = searchable && query.trim().length > 0
   const pageRange = buildPageRange(safePage, totalPages)
 
+  const handleExportCsv = useCallback(() => {
+    const headerRow = columns.map(col => escapeCSVField(col.header)).join(',')
+    const dataRows = sortedData.map(item =>
+      columns.map(col => {
+        let val: string
+        if (col.exportValue) {
+          val = String(col.exportValue(item) ?? '')
+        } else if (col.sortKey) {
+          const v = col.sortKey(item)
+          val = v != null ? String(v) : ''
+        } else {
+          const raw = (item as Record<string, unknown>)?.[col.key]
+          val = raw != null ? String(raw) : ''
+        }
+        return escapeCSVField(val)
+      }).join(',')
+    ).join('\n')
+
+    const csv = '\uFEFF' + headerRow + '\n' + dataRows
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${exportFilename ?? 'eksport'}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [columns, sortedData, exportFilename])
+
   const paginationBtnBase: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -297,78 +341,119 @@ export default function Table<T extends { id: string }>({
 
   return (
     <div>
-      {searchable && (
+      {(searchable || exportable) && (
         <div style={{ padding: '12px 16px 6px' }}>
-          {/* Search input */}
-          <div style={{ position: 'relative' }}>
-            <span
-              style={{
-                position: 'absolute',
-                left: '11px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'rgba(255,255,255,0.28)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              <Icon name="magnifying-glass" size={14} />
-            </span>
-            <input
-              ref={searchRef}
-              type="text"
-              value={rawQuery}
-              onChange={handleSearchChange}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Søg..."
-              className="w-full placeholder-white/20"
-              style={{
-                paddingLeft: '34px',
-                paddingRight: rawQuery ? '32px' : '12px',
-                paddingTop: '7px',
-                paddingBottom: '7px',
-                borderRadius: '10px',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                outline: 'none',
-                color: '#fff',
-                fontSize: '13px',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
-              onFocus={e => {
-                e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
-              }}
-              onBlur={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            />
-            {/* Clear button */}
-            {rawQuery && (
+          {/* Search + Export row */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Search input */}
+            {searchable && (
+              <div style={{ flex: 1, position: 'relative' }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '11px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'rgba(255,255,255,0.28)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Icon name="magnifying-glass" size={14} />
+                </span>
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={rawQuery}
+                  onChange={handleSearchChange}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Søg..."
+                  className="w-full placeholder-white/20"
+                  style={{
+                    paddingLeft: '34px',
+                    paddingRight: rawQuery ? '32px' : '12px',
+                    paddingTop: '7px',
+                    paddingBottom: '7px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    outline: 'none',
+                    color: '#fff',
+                    fontSize: '13px',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.10)'
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                />
+                {/* Clear button */}
+                {rawQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'rgba(255,255,255,0.08)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.5)',
+                      padding: 0,
+                    }}
+                  >
+                    <Icon name="xmark" size={10} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* CSV Export button */}
+            {exportable && (
               <button
                 type="button"
-                onClick={clearSearch}
+                onClick={handleExportCsv}
                 style={{
-                  position: 'absolute',
-                  right: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '18px',
-                  height: '18px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '13px',
                   cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.5)',
-                  padding: 0,
+                  whiteSpace: 'nowrap',
+                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                  flexShrink: 0,
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
                 }}
               >
-                <Icon name="xmark" size={10} />
+                <Icon name="download" size={14} />
+                Eksportér CSV
               </button>
             )}
           </div>

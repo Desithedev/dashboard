@@ -801,11 +801,14 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                 onRowClick={(t) => { onClose(); onSelectTask(t) }}
                 searchable={true}
                 searchKeys={['title', 'status', 'priority', 'updated']}
+                exportable={true}
+                exportFilename="opgaver"
                 columns={[
                   {
                     key: 'title',
                     header: 'Titel',
                     sortable: false,
+                    exportValue: (t) => t.title,
                     render: (t) => (
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">{t.title}</p>
@@ -818,6 +821,7 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                     header: 'Status',
                     sortable: true,
                     sortKey: (t) => ({ active: 3, queued: 2, completed: 1 } as any)[t.status] || 0,
+                    exportValue: (t) => t.status === 'active' ? 'Aktiv' : t.status === 'queued' ? 'I kø' : 'Afsluttet',
                     render: (t) => (
                       <span
                         className="text-xs font-semibold px-2.5 py-1 rounded-full"
@@ -853,6 +857,10 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                       if (c === 'research') return 1
                       return 0
                     },
+                    exportValue: (t) => {
+                      const c = (t.category || 'other') as string
+                      return c === 'deep-work' ? 'Høj' : c === 'building' || c === 'maintenance' || c === 'review' ? 'Mellem' : 'Lav'
+                    },
                     render: (t) => {
                       const c = (t.category || 'other') as string
                       const label = c === 'deep-work' ? 'Høj' : c === 'building' || c === 'maintenance' || c === 'review' ? 'Mellem' : 'Lav'
@@ -869,12 +877,22 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                     header: 'Dato',
                     sortable: true,
                     sortKey: (t) => t.updated,
+                    exportValue: (t) => t.updated.toLocaleDateString('da-DK', { day: '2-digit', month: 'short', year: 'numeric' }),
                     render: (t) => (
                       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
                         {t.updated.toLocaleDateString('da-DK', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     ),
                     className: 'whitespace-nowrap',
+                  },
+                  {
+                    key: 'agent',
+                    header: 'Agent',
+                    sortable: false,
+                    exportValue: (t) => t.agent,
+                    render: (t) => (
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.agent}</span>
+                    ),
                   },
                 ]}
               />
