@@ -5,6 +5,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
 import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
+import Table from '../components/Table'
 import { 
   createAgent, 
   invokeToolRaw,
@@ -812,20 +813,95 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
         </div>
 
         {/* Task List */}
-        <div className="p-4 overflow-y-auto space-y-2" style={{ maxHeight: 'calc(85vh - 160px)' }}>
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 160px)' }}>
           {filteredTasks.length === 0 ? (
             <div className="text-center py-12">
               <Icon name="doc-text" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen opgaver fundet</p>
             </div>
           ) : (
-            filteredTasks.map(t => (
-              <TaskMiniCard 
-                key={t.id} 
-                task={t} 
-                onSelect={() => { onClose(); onSelectTask(t) }} 
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
+              <Table
+                data={filteredTasks}
+                onRowClick={(t) => { onClose(); onSelectTask(t) }}
+                columns={[
+                  {
+                    key: 'title',
+                    header: 'Titel',
+                    sortable: false,
+                    render: (t) => (
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{t.agent}</p>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    sortable: true,
+                    sortKey: (t) => ({ active: 3, queued: 2, completed: 1 } as any)[t.status] || 0,
+                    render: (t) => (
+                      <span
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                        style={{
+                          background:
+                            t.status === 'active' ? 'rgba(0,122,255,0.15)' :
+                            t.status === 'queued' ? 'rgba(255,159,10,0.15)' :
+                            'rgba(48,209,88,0.15)',
+                          color:
+                            t.status === 'active' ? '#5AC8FA' :
+                            t.status === 'queued' ? '#FF9F0A' :
+                            '#30D158',
+                          border:
+                            t.status === 'active' ? '1px solid rgba(0,122,255,0.25)' :
+                            t.status === 'queued' ? '1px solid rgba(255,159,10,0.25)' :
+                            '1px solid rgba(48,209,88,0.25)',
+                        }}
+                      >
+                        {t.status === 'active' ? 'Aktiv' : t.status === 'queued' ? 'I kø' : 'Afsluttet'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'priority',
+                    header: 'Prioritet',
+                    sortable: true,
+                    sortKey: (t) => {
+                      const c = (t.category || 'other') as string
+                      if (c === 'deep-work') return 3
+                      if (c === 'building') return 2
+                      if (c === 'maintenance') return 2
+                      if (c === 'review') return 2
+                      if (c === 'research') return 1
+                      return 0
+                    },
+                    render: (t) => {
+                      const c = (t.category || 'other') as string
+                      const label = c === 'deep-work' ? 'Høj' : c === 'building' || c === 'maintenance' || c === 'review' ? 'Mellem' : 'Lav'
+                      const color = label === 'Høj' ? '#FF453A' : label === 'Mellem' ? '#FF9F0A' : '#8E8E93'
+                      return (
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}>
+                          {label}
+                        </span>
+                      )
+                    },
+                  },
+                  {
+                    key: 'updated',
+                    header: 'Dato',
+                    sortable: true,
+                    sortKey: (t) => t.updated,
+                    render: (t) => (
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                        {t.updated.toLocaleDateString('da-DK', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    ),
+                    className: 'whitespace-nowrap',
+                  },
+                ]}
               />
-            ))
+            </div>
           )}
         </div>
       </div>

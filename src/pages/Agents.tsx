@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Icon from '../components/Icon'
+import Table from '../components/Table'
 import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
@@ -311,6 +312,72 @@ function OrgChartView({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelec
         </>
       )}
     </div>
+  )
+}
+
+function AgentOverviewTable({ orgChart, onSelectAgent }: { orgChart: OrgAgent; onSelectAgent: (agent: OrgAgent) => void }) {
+  const { rows, byId } = useMemo(() => {
+    const list: OrgAgent[] = []
+    const map = new Map<string, OrgAgent>()
+
+    const walk = (a: OrgAgent) => {
+      list.push(a)
+      map.set(a.id, a)
+      a.children?.forEach(walk)
+    }
+    walk(orgChart)
+
+    // Skip the root "Martin" in overview table (org chart already shows it)
+    const sliced = list.filter(a => a.id !== 'martin')
+
+    const toRow = (a: OrgAgent) => ({
+      id: a.id,
+      name: a.name,
+      role: a.role,
+      status: (a.status || 'offline') as AgentStatus,
+    })
+
+    return { rows: sliced.map(toRow), byId: map }
+  }, [orgChart])
+
+  return (
+    <Table
+      data={rows}
+      onRowClick={(r) => {
+        const a = byId.get(r.id)
+        if (a) onSelectAgent(a)
+      }}
+      columns={[
+        {
+          key: 'name',
+          header: 'Navn',
+          sortable: true,
+          sortKey: (r) => r.name,
+          render: (r) => (
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{r.name}</p>
+              <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{r.role}</p>
+            </div>
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          sortable: true,
+          sortKey: (r) => ({ working: 3, online: 2, offline: 1 } as any)[r.status] || 0,
+          render: (r) => {
+            const color = statusColor(r.status)
+            return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: `${color}20`, border: `1px solid ${color}40` }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                <span className="text-xs font-semibold" style={{ color }}>{statusLabel(r.status)}</span>
+              </span>
+            )
+          },
+          className: 'whitespace-nowrap',
+        },
+      ]}
+    />
   )
 }
 
@@ -1277,7 +1344,22 @@ export default function Agents() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'org' && <OrgChartView orgChart={orgChart} onSelectAgent={setSelectedAgent} />}
+        {activeTab === 'org' && (
+          <div>
+            <OrgChartView orgChart={orgChart} onSelectAgent={setSelectedAgent} />
+
+            <div className="max-w-4xl mx-auto px-4 pb-10">
+              <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
+                <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <h3 className="text-sm font-bold text-white">Agent oversigt</h3>
+                  <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Klik på kolonner for at sortere</p>
+                </div>
+
+                <AgentOverviewTable orgChart={orgChart} onSelectAgent={setSelectedAgent} />
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === 'chat' && <AgentChatView />}
         {activeTab === 'standups' && <StandupsView />}
         {activeTab === 'workspaces' && <WorkspacesView />}
