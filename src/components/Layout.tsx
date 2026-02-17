@@ -1,8 +1,9 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect, useRef } from 'react'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
 import NotificationCenter from './NotificationCenter'
+import ScrollToTop from './ScrollToTop'
 
 interface LayoutProps {
   children: ReactNode
@@ -13,6 +14,15 @@ interface LayoutProps {
 export default function Layout({ children, activePage, onNavigate }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [maisonOpen, setMaisonOpen] = useState(false)
+
+  // Scroll restoration: scroll til top når siden skifter
+  const prevPageRef = useRef(activePage)
+  useEffect(() => {
+    if (prevPageRef.current !== activePage) {
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      prevPageRef.current = activePage
+    }
+  }, [activePage])
 
   const handleNavigate = (page: string) => {
     onNavigate(page)
@@ -110,6 +120,9 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           } as React.CSSProperties}
         />
       )}
+
+      {/* Floating scroll-to-top knap — vises på alle sider */}
+      <ScrollToTop />
 
       {/* Main content - offset by sidebar width on desktop only */}
       <div className="lg:pl-60" style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
