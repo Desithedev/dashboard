@@ -43,7 +43,7 @@ describe('Toast System', () => {
       fireEvent.click(screen.getByText('Vis toast'))
       
       await act(async () => {
-        await vi.runAllTimersAsync()
+        vi.advanceTimersByTime(50)
       })
       
       expect(screen.getByText('Hello toast')).toBeInTheDocument()

@@ -4,6 +4,10 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import './mocks'
 import Table, { Column } from '../components/Table'
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 interface TestItem {
   id: string
   name: string
@@ -225,38 +229,41 @@ describe('Table', () => {
     })
 
     it('trigger CSV download ved klik', () => {
-      // Mock URL og createElement
+      // Render FØRST — herefter sætter vi mocks op
+      render(<Table data={testData} columns={columns} exportable exportFilename="test-eksport" />)
+
+      const clickMock = vi.fn()
       const createObjectURLMock = vi.fn(() => 'blob:mock')
       const revokeObjectURLMock = vi.fn()
-      const appendChildMock = vi.fn()
-      const removeChildMock = vi.fn()
-      const clickMock = vi.fn()
 
+      // Mock URL API
       Object.defineProperty(globalThis, 'URL', {
         value: { createObjectURL: createObjectURLMock, revokeObjectURL: revokeObjectURLMock },
         writable: true,
+        configurable: true,
       })
 
+      // Mock createElement så <a> får en click-spy
       const origCreate = document.createElement.bind(document)
       vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = origCreate(tag)
         if (tag === 'a') {
-          const el = origCreate(tag)
-          Object.defineProperty(el, 'click', { value: clickMock })
-          return el
+          Object.defineProperty(el, 'click', { value: clickMock, configurable: true })
         }
-        return origCreate(tag)
+        return el
       })
-      vi.spyOn(document.body, 'appendChild').mockImplementation(appendChildMock)
-      vi.spyOn(document.body, 'removeChild').mockImplementation(removeChildMock)
 
-      render(<Table data={testData} columns={columns} exportable exportFilename="test-eksport" />)
+      // Spy på appendChild/removeChild uden at ændre adfærd
+      const appendSpy = vi.spyOn(document.body, 'appendChild')
+      const removeSpy = vi.spyOn(document.body, 'removeChild')
+
       fireEvent.click(screen.getByText(/eksportér csv/i))
 
       expect(createObjectURLMock).toHaveBeenCalled()
       expect(clickMock).toHaveBeenCalled()
       expect(revokeObjectURLMock).toHaveBeenCalled()
-
-      vi.restoreAllMocks()
+      expect(appendSpy).toHaveBeenCalled()
+      expect(removeSpy).toHaveBeenCalled()
     })
   })
 

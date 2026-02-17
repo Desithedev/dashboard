@@ -51,6 +51,13 @@ export function useKeyboardShortcuts({
         return
       }
 
+      // Ctrl+/ → Vis shortcuts overlay
+      if (e.ctrlKey && e.key === '/') {
+        e.preventDefault()
+        onHelp()
+        return
+      }
+
       // ? → Toggle keyboard shortcuts oversigt (kun når intet input-felt er fokuseret)
       // Browser sender typisk e.key === '?' (Shift + /)
       if (!isInputFocused && !isCommandPaletteOpen && e.key === '?') {

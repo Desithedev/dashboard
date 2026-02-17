@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, useCallback, memo } from 'react'
+import { lazy, Suspense } from 'react'
 import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
@@ -6,13 +6,11 @@ import ConnectionToast from './components/ConnectionToast'
 import ConnectionBanner from './components/ConnectionBanner'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
-import CommandPalette from './components/CommandPalette'
-import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp'
+import { KeyboardShortcutsProvider } from './components/KeyboardShortcuts'
 import ErrorBoundary from './components/ErrorBoundary'
 import PageErrorBoundary from './components/PageErrorBoundary'
 import PageTransition from './components/PageTransition'
 import { useHashRouter } from './hooks/useHashRouter'
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useFaviconBadge } from './hooks/useFaviconBadge'
 
 // Lazy load all pages for better performance
@@ -78,13 +76,13 @@ const pageNames: Record<string, string> = {
   upload: 'Upload',
 }
 
-/** Intern komponent der aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
-const FaviconBadge = memo(function FaviconBadge() {
+/** Aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
+function FaviconBadge() {
   useFaviconBadge()
   return null
-})
+}
 
-const LoadingFallback = memo(function LoadingFallback() {
+function LoadingFallback() {
   return (
     <div className="space-y-4 p-2">
       <div className="skeleton-pulse h-8 w-48" />
@@ -97,45 +95,11 @@ const LoadingFallback = memo(function LoadingFallback() {
       <div className="skeleton-pulse h-64 mt-4" />
     </div>
   )
-})
+}
 
 export default function App() {
   const [page, setPage] = useHashRouter('dashboard')
-  const [cmdOpen, setCmdOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
   const Page = pages[page] || NotFound
-
-  const handleCommandK = useCallback(() => {
-    setCmdOpen(o => !o)
-    setHelpOpen(false)
-  }, [])
-
-  const handleHelp = useCallback(() => {
-    setHelpOpen(o => !o)
-    setCmdOpen(false)
-  }, [])
-
-  const handleEscape = useCallback(() => {
-    if (cmdOpen) {
-      setCmdOpen(false)
-    } else if (helpOpen) {
-      setHelpOpen(false)
-    } else {
-      window.dispatchEvent(new CustomEvent('modal-close'))
-    }
-  }, [cmdOpen, helpOpen])
-
-  const handleCmdClose = useCallback(() => setCmdOpen(false), [])
-  const handleHelpClose = useCallback(() => setHelpOpen(false), [])
-
-  // Global keyboard shortcuts
-  useKeyboardShortcuts({
-    onCommandK: handleCommandK,
-    onHelp: handleHelp,
-    onEscape: handleEscape,
-    onNavigate: setPage,
-    isCommandPaletteOpen: cmdOpen,
-  })
 
   return (
     <LiveDataProvider>
@@ -144,20 +108,29 @@ export default function App() {
         <ToastProvider>
           <ConnectionToast />
           <ConnectionBanner />
-          <CommandPalette open={cmdOpen} onClose={handleCmdClose} onNavigate={setPage} />
-          <KeyboardShortcutsHelp open={helpOpen} onClose={handleHelpClose} />
-          <UpdateBanner />
-          <Layout activePage={page} onNavigate={setPage}>
-            <Suspense fallback={<LoadingFallback />}>
-              <ErrorBoundary>
-                <PageTransition key={page}>
-                  <PageErrorBoundary key={page} pageName={pageNames[page] || page}>
-                    <Page />
-                  </PageErrorBoundary>
-                </PageTransition>
-              </ErrorBoundary>
-            </Suspense>
-          </Layout>
+          {/*
+           * KeyboardShortcutsProvider håndterer:
+           *   Ctrl+K / Cmd+K  → kommandopalet
+           *   Ctrl+/          → shortcuts overlay
+           *   ?               → shortcuts overlay
+           *   1–9             → sidenavigation
+           *   Escape          → luk overlays
+           * Den renderer selv CommandPalette + KeyboardShortcutsHelp.
+           */}
+          <KeyboardShortcutsProvider onNavigate={setPage}>
+            <UpdateBanner />
+            <Layout activePage={page} onNavigate={setPage}>
+              <Suspense fallback={<LoadingFallback />}>
+                <ErrorBoundary>
+                  <PageTransition key={page}>
+                    <PageErrorBoundary key={page} pageName={pageNames[page] || page}>
+                      <Page />
+                    </PageErrorBoundary>
+                  </PageTransition>
+                </ErrorBoundary>
+              </Suspense>
+            </Layout>
+          </KeyboardShortcutsProvider>
         </ToastProvider>
       </NotificationProvider>
     </LiveDataProvider>
