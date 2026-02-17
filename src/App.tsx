@@ -3,6 +3,7 @@ import { LiveDataProvider } from './api/LiveDataContext'
 import { NotificationProvider } from './api/NotificationContext'
 import { ToastProvider } from './components/Toast'
 import ConnectionToast from './components/ConnectionToast'
+import ConnectionBanner from './components/ConnectionBanner'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
@@ -132,6 +133,7 @@ export default function App() {
         <FaviconBadge />
         <ToastProvider>
           <ConnectionToast />
+          <ConnectionBanner />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
           <KeyboardShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
           <UpdateBanner />
