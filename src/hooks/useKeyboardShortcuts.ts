@@ -4,6 +4,7 @@ interface KeyboardShortcutsOptions {
   onCommandK: () => void
   onEscape: () => void
   onNavigate: (page: string) => void
+  onHelp: () => void
   isCommandPaletteOpen: boolean
 }
 
@@ -24,6 +25,7 @@ export function useKeyboardShortcuts({
   onCommandK,
   onEscape,
   onNavigate,
+  onHelp,
   isCommandPaletteOpen,
 }: KeyboardShortcutsOptions) {
   useEffect(() => {
@@ -49,6 +51,14 @@ export function useKeyboardShortcuts({
         return
       }
 
+      // ? → Toggle keyboard shortcuts oversigt (kun når intet input-felt er fokuseret)
+      // Browser sender typisk e.key === '?' (Shift + /)
+      if (!isInputFocused && !isCommandPaletteOpen && e.key === '?') {
+        e.preventDefault()
+        onHelp()
+        return
+      }
+
       // Numeriske shortcuts (1-9) - KUN når intet input-felt er fokuseret
       if (!isInputFocused && !isCommandPaletteOpen) {
         const page = NUMBER_SHORTCUTS[e.key]
@@ -61,7 +71,7 @@ export function useKeyboardShortcuts({
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onCommandK, onEscape, onNavigate, isCommandPaletteOpen])
+  }, [onCommandK, onEscape, onNavigate, onHelp, isCommandPaletteOpen])
 }
 
 // Eksporter shortcut map så CommandPalette kan vise dem

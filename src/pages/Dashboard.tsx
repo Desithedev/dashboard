@@ -137,6 +137,55 @@ export default function Dashboard() {
     [cronJobs]
   )
 
+  // Estimeret dagligt forbrug baseret på sessions
+  const dailySpend = useMemo(() => {
+    const today = new Date()
+    const isSameLocalDay = (ts: number) => {
+      const d = new Date(ts)
+      return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()
+    }
+
+    const extractInOut = (s: any): { input: number; output: number } | null => {
+      // Understøt flere mulige feltnavne fra API'er
+      const directIn = s?.inputTokens ?? s?.promptTokens ?? s?.tokensIn ?? s?.inTokens
+      const directOut = s?.outputTokens ?? s?.completionTokens ?? s?.tokensOut ?? s?.outTokens
+
+      if (Number.isFinite(directIn) && Number.isFinite(directOut)) {
+        return { input: Number(directIn), output: Number(directOut) }
+      }
+
+      const usage = s?.usage
+      const usageIn = usage?.input_tokens ?? usage?.prompt_tokens ?? usage?.inputTokens
+      const usageOut = usage?.output_tokens ?? usage?.completion_tokens ?? usage?.outputTokens
+      if (Number.isFinite(usageIn) && Number.isFinite(usageOut)) {
+        return { input: Number(usageIn), output: Number(usageOut) }
+      }
+
+      return null
+    }
+
+    let totalInput = 0
+    let totalOutput = 0
+    let rowsWithTokens = 0
+
+    for (const s of sessions as any[]) {
+      if (!s?.updatedAt || !isSameLocalDay(s.updatedAt)) continue
+      const io = extractInOut(s)
+      if (!io) continue
+      rowsWithTokens++
+      totalInput += io.input
+      totalOutput += io.output
+    }
+
+    if (rowsWithTokens === 0) {
+      return { hasData: false, dkk: 0, inputTokens: 0, outputTokens: 0 }
+    }
+
+    const usd = (totalInput / 1_000_000 * 15) + (totalOutput / 1_000_000 * 75)
+    const dkk = usd * 7
+    return { hasData: true, dkk, inputTokens: totalInput, outputTokens: totalOutput }
+  }, [sessions])
+
   // Memoize token parsing and cost calculation
   const { tokensValue, formattedCost, tokensIn, tokensOut, costUSD } = useMemo(() => {
     const tokensText = parsedStatus.tokens || '0 in / 0 out'
@@ -195,7 +244,7 @@ export default function Dashboard() {
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Card style={{ 
               position: 'relative',
               overflow: 'visible'
@@ -232,6 +281,31 @@ export default function Dashboard() {
               <p className="text-2xl font-bold mt-1">{tokensValue}</p>
               <p className="caption mt-1">{parsedStatus.tokens || 'Ingen data'}</p>
             </Card>
+
+            <Card style={{ 
+              position: 'relative',
+              overflow: 'visible'
+            }}>
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '20%',
+                right: '20%',
+                height: '40px',
+                background: 'radial-gradient(ellipse, rgba(255, 159, 10, 0.22) 0%, transparent 70%)',
+                filter: 'blur(20px)',
+                zIndex: -1
+              }} />
+              <div className="flex items-center justify-between">
+                <p className="caption">Dagligt Forbrug</p>
+                <Icon name="zap" size={14} style={{ color: 'rgba(255,255,255,0.45)' }} />
+              </div>
+              <p className="text-2xl font-bold mt-1">
+                {dailySpend.hasData ? `~${Math.round(dailySpend.dkk)} kr` : 'Ingen data'}
+              </p>
+              <p className="caption mt-1">i dag</p>
+            </Card>
+
             <Card style={{ 
               position: 'relative',
               overflow: 'visible'

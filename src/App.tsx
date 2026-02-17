@@ -6,6 +6,7 @@ import ConnectionToast from './components/ConnectionToast'
 import Layout from './components/Layout'
 import UpdateBanner from './components/UpdateBanner'
 import CommandPalette from './components/CommandPalette'
+import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp'
 import ErrorBoundary from './components/ErrorBoundary'
 import PageErrorBoundary from './components/PageErrorBoundary'
 import PageTransition from './components/PageTransition'
@@ -96,14 +97,24 @@ function LoadingFallback() {
 export default function App() {
   const [page, setPage] = useHashRouter('dashboard')
   const [cmdOpen, setCmdOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
   const Page = pages[page] || Dashboard
 
   // Global keyboard shortcuts
   useKeyboardShortcuts({
-    onCommandK: () => setCmdOpen(o => !o),
+    onCommandK: () => {
+      setCmdOpen(o => !o)
+      setHelpOpen(false)
+    },
+    onHelp: () => {
+      setHelpOpen(o => !o)
+      setCmdOpen(false)
+    },
     onEscape: () => {
       if (cmdOpen) {
         setCmdOpen(false)
+      } else if (helpOpen) {
+        setHelpOpen(false)
       } else {
         window.dispatchEvent(new CustomEvent('modal-close'))
       }
@@ -119,6 +130,7 @@ export default function App() {
         <ToastProvider>
           <ConnectionToast />
           <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={setPage} />
+          <KeyboardShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
           <UpdateBanner />
           <Layout activePage={page} onNavigate={setPage}>
             <Suspense fallback={<LoadingFallback />}>
