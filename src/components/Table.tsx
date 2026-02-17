@@ -17,6 +17,7 @@ interface TableProps<T> {
   searchable?: boolean
   searchKeys?: string[]
   filterFn?: (item: T, query: string) => boolean
+  pageSize?: number
 }
 
 type SortDirection = 'asc' | 'desc'
@@ -75,6 +76,25 @@ function extractText(node: ReactNode): string {
   return ''
 }
 
+/** Generate page number array with ellipsis markers (-1) */
+function buildPageRange(current: number, total: number): number[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i)
+  const pages: number[] = []
+  // Always show first and last
+  const delta = 2
+  const left = current - delta
+  const right = current + delta
+
+  for (let i = 0; i < total; i++) {
+    if (i === 0 || i === total - 1 || (i >= left && i <= right)) {
+      pages.push(i)
+    } else if (pages[pages.length - 1] !== -1) {
+      pages.push(-1) // ellipsis
+    }
+  }
+  return pages
+}
+
 export default function Table<T extends { id: string }>({
   data,
   columns,
@@ -82,10 +102,12 @@ export default function Table<T extends { id: string }>({
   searchable,
   searchKeys,
   filterFn,
+  pageSize = 20,
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection | null>(null)
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
 
   // Search state: rawQuery mirrors the input, query is debounced
   const [rawQuery, setRawQuery] = useState('')
@@ -124,6 +146,12 @@ export default function Table<T extends { id: string }>({
   useEffect(() => {
     setActiveRowIndex(null)
   }, [data, query])
+
+  // Reset to first page when search or sort changes
+  useEffect(() => {
+    setCurrentPage(0)
+    setActiveRowIndex(null)
+  }, [query, sortKey, sortDir])
 
   // Columns to search in: searchKeys ▸ all columns
   const searchCols = useMemo(() => {
@@ -165,8 +193,40 @@ export default function Table<T extends { id: string }>({
     return next
   }, [filteredData, columns, sortKey, sortDir])
 
+  // Pagination
+  const totalItems = sortedData.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const showPagination = totalItems > pageSize
+
+  // Clamp currentPage if data shrinks
+  const safePage = Math.min(currentPage, Math.max(0, totalPages - 1))
+
+  const startIdx = safePage * pageSize
+  const endIdx = Math.min(startIdx + pageSize, totalItems)
+  const paginatedData = sortedData.slice(startIdx, endIdx)
+
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(Math.max(0, Math.min(page, totalPages - 1)))
+    setActiveRowIndex(null)
+  }, [totalPages])
+
   const handleTableKeyDown = useCallback((e: React.KeyboardEvent<HTMLTableElement>) => {
-    const rowCount = sortedData.length
+    const rowCount = paginatedData.length
+
+    // PageDown / PageUp — pagination
+    if (e.key === 'PageDown') {
+      e.preventDefault()
+      setCurrentPage(prev => Math.min(prev + 1, totalPages - 1))
+      setActiveRowIndex(null)
+      return
+    }
+    if (e.key === 'PageUp') {
+      e.preventDefault()
+      setCurrentPage(prev => Math.max(prev - 1, 0))
+      setActiveRowIndex(null)
+      return
+    }
+
     if (rowCount === 0) return
 
     if (e.key === 'ArrowDown') {
@@ -177,12 +237,12 @@ export default function Table<T extends { id: string }>({
       setActiveRowIndex(prev => prev === null ? 0 : Math.max(prev - 1, 0))
     } else if (e.key === 'Enter' && activeRowIndex !== null && onRowClick) {
       e.preventDefault()
-      onRowClick(sortedData[activeRowIndex])
+      onRowClick(paginatedData[activeRowIndex])
     } else if (e.key === 'Escape') {
       setActiveRowIndex(null)
       tableRef.current?.blur()
     }
-  }, [sortedData, activeRowIndex, onRowClick])
+  }, [paginatedData, activeRowIndex, onRowClick, totalPages])
 
   const toggleSort = (col: Column<T>) => {
     if (!col.sortable) return
@@ -202,6 +262,38 @@ export default function Table<T extends { id: string }>({
   }
 
   const isFiltering = searchable && query.trim().length > 0
+  const pageRange = buildPageRange(safePage, totalPages)
+
+  const paginationBtnBase: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '32px',
+    height: '32px',
+    padding: '0 6px',
+    borderRadius: '8px',
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(255,255,255,0.04)',
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: '13px',
+    cursor: 'pointer',
+    transition: 'background 0.13s, border-color 0.13s, color 0.13s',
+    userSelect: 'none',
+  }
+
+  const paginationBtnActive: React.CSSProperties = {
+    ...paginationBtnBase,
+    background: 'rgba(99,102,241,0.18)',
+    borderColor: 'rgba(99,102,241,0.4)',
+    color: 'rgba(255,255,255,0.95)',
+    fontWeight: 600,
+  }
+
+  const paginationBtnDisabled: React.CSSProperties = {
+    ...paginationBtnBase,
+    opacity: 0.3,
+    cursor: 'not-allowed',
+  }
 
   return (
     <div>
@@ -349,7 +441,7 @@ export default function Table<T extends { id: string }>({
             </tr>
           </thead>
           <tbody>
-            {sortedData.map((item, idx) => {
+            {paginatedData.map((item, idx) => {
               const isActive = activeRowIndex === idx
               const baseBg = isActive ? 'rgba(255,255,255,0.04)' : 'transparent'
               return (
@@ -391,6 +483,120 @@ export default function Table<T extends { id: string }>({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination footer */}
+      {showPagination && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px 12px',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {/* "Viser X-Y af Z" */}
+          <span
+            style={{
+              fontSize: '12px',
+              color: 'rgba(255,255,255,0.35)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Viser {startIdx + 1}–{endIdx} af {totalItems}
+          </span>
+
+          {/* Page controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {/* Forrige */}
+            <button
+              type="button"
+              aria-label="Forrige side"
+              disabled={safePage === 0}
+              onClick={() => goToPage(safePage - 1)}
+              style={safePage === 0 ? paginationBtnDisabled : paginationBtnBase}
+              onMouseOver={e => {
+                if (safePage !== 0) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                }
+              }}
+              onMouseOut={e => {
+                if (safePage !== 0) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                }
+              }}
+            >
+              <Icon name="chevron-left" size={14} />
+              <span style={{ marginLeft: '2px', fontSize: '12px' }}>Forrige</span>
+            </button>
+
+            {/* Page numbers */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {pageRange.map((page, i) =>
+                page === -1 ? (
+                  <span
+                    key={`ellipsis-${i}`}
+                    style={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', padding: '0 2px' }}
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    type="button"
+                    aria-label={`Side ${page + 1}`}
+                    aria-current={page === safePage ? 'page' : undefined}
+                    onClick={() => goToPage(page)}
+                    style={page === safePage ? paginationBtnActive : paginationBtnBase}
+                    onMouseOver={e => {
+                      if (page !== safePage) {
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                        ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                      }
+                    }}
+                    onMouseOut={e => {
+                      if (page !== safePage) {
+                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
+                        ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                      }
+                    }}
+                  >
+                    {page + 1}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Næste */}
+            <button
+              type="button"
+              aria-label="Næste side"
+              disabled={safePage >= totalPages - 1}
+              onClick={() => goToPage(safePage + 1)}
+              style={safePage >= totalPages - 1 ? paginationBtnDisabled : paginationBtnBase}
+              onMouseOver={e => {
+                if (safePage < totalPages - 1) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                }
+              }}
+              onMouseOut={e => {
+                if (safePage < totalPages - 1) {
+                  (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
+                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                }
+              }}
+            >
+              <span style={{ marginRight: '2px', fontSize: '12px' }}>Næste</span>
+              <Icon name="chevron-right" size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
