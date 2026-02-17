@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Icon from '../components/Icon'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -165,6 +165,115 @@ function renderMarkdown(content: string): JSX.Element {
   flushTable()
 
   return <div style={{ maxWidth: '100%' }}>{elements}</div>
+}
+
+/* ── Journal Freshness ───────────────────────── */
+function JournalFreshness({
+  lastRefreshed,
+  isRefreshing,
+  onRefresh,
+}: {
+  lastRefreshed: Date | null
+  isRefreshing: boolean
+  onRefresh: () => void
+}) {
+  const [secondsAgo, setSecondsAgo] = useState<number | null>(null)
+
+  useEffect(() => {
+    const update = () => {
+      if (lastRefreshed) {
+        setSecondsAgo(Math.floor((Date.now() - lastRefreshed.getTime()) / 1000))
+      }
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [lastRefreshed])
+
+  const text =
+    secondsAgo === null
+      ? 'Aldrig opdateret'
+      : secondsAgo < 5
+      ? 'Opdateret lige nu'
+      : secondsAgo < 60
+      ? `Opdateret for ${secondsAgo} sek. siden`
+      : `Opdateret for ${Math.floor(secondsAgo / 60)} min. siden`
+
+  const dotColor =
+    secondsAgo === null ? '#636366'
+    : secondsAgo < 60 ? '#30D158'
+    : secondsAgo < 120 ? '#FF9F0A'
+    : '#FF3B30'
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 10px',
+        borderRadius: '10px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(10px)',
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: dotColor,
+          flexShrink: 0,
+          display: 'inline-block',
+        }}
+      />
+      <Icon name="clock" size={11} style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }} />
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
+        {text}
+      </span>
+      <button
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        title="Genindlæs journal"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 20,
+          height: 20,
+          borderRadius: 6,
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          cursor: isRefreshing ? 'wait' : 'pointer',
+          color: 'rgba(255,255,255,0.5)',
+          padding: 0,
+          flexShrink: 0,
+          transition: 'background 0.2s ease',
+        }}
+        onMouseEnter={e => {
+          if (!isRefreshing) {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
+            e.currentTarget.style.color = 'rgba(255,255,255,0.9)'
+          }
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+          e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            transition: 'transform 0.4s ease',
+            animation: isRefreshing ? 'journal-spin 0.8s linear infinite' : 'none',
+          }}
+        >
+          <Icon name="refresh" size={11} />
+        </span>
+      </button>
+    </div>
+  )
 }
 
 /* ── Session Card ────────────────────────────── */
@@ -399,6 +508,78 @@ export default function Journal() {
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
 
+  // Auto-refresh state
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  const [pendingMemory, setPendingMemory] = useState<MemoryEntry[] | null>(null)
+  const [pendingSessions, setPendingSessions] = useState<TranscriptSession[] | null>(null)
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false)
+
+  // Refs til at undgå stale closures i polling
+  const isRefreshingRef = useRef(false)
+  const memoryCountRef = useRef(0)
+  const sessionsCountRef = useRef(0)
+
+  // Hold refs synkrone
+  useEffect(() => { memoryCountRef.current = memoryFiles.length }, [memoryFiles.length])
+  useEffect(() => { sessionsCountRef.current = allSessions.length }, [allSessions.length])
+
+  // Ny data tilgængelig?
+  const hasNewData = pendingMemory !== null || pendingSessions !== null
+
+  const applyPendingData = useCallback(() => {
+    if (pendingMemory) setMemoryFiles(pendingMemory)
+    if (pendingSessions) setAllSessions(pendingSessions)
+    setPendingMemory(null)
+    setPendingSessions(null)
+  }, [pendingMemory, pendingSessions])
+
+  // Background refresh funktion
+  const backgroundRefresh = useCallback(async () => {
+    if (isRefreshingRef.current) return
+    isRefreshingRef.current = true
+    setIsBackgroundRefreshing(true)
+    try {
+      const [memory, sessions] = await Promise.all([
+        fetchMemoryFiles(),
+        fetchAllSessions(),
+      ])
+      setLastRefreshed(new Date())
+      localStorage.setItem(CACHE_KEY_MEMORY, JSON.stringify(memory))
+      localStorage.setItem(CACHE_KEY_SESSIONS, JSON.stringify(sessions))
+
+      // Vis kun "Nye opdateringer" hvis der faktisk er ny data
+      const memChanged = memory.length !== memoryCountRef.current
+      const sessChanged = sessions.length !== sessionsCountRef.current
+      if (memChanged || sessChanged) {
+        if (memChanged) setPendingMemory(memory)
+        if (sessChanged) setPendingSessions(sessions)
+      }
+    } catch (err) {
+      console.error('Journal background refresh fejlede:', err)
+    } finally {
+      isRefreshingRef.current = false
+      setIsBackgroundRefreshing(false)
+    }
+  }, [])
+
+  // Polling hvert 30 sekunder
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        backgroundRefresh()
+      }
+    }, 30000)
+    // Refresh også når siden bliver synlig igen
+    const handleVisibility = () => {
+      if (!document.hidden) backgroundRefresh()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [backgroundRefresh])
+
   // Hent data ved mount
   useEffect(() => {
     // Prøv cache først
@@ -430,6 +611,7 @@ export default function Journal() {
       .then(([memory, sessions]) => {
         setMemoryFiles(memory)
         setAllSessions(sessions)
+        setLastRefreshed(new Date())
         localStorage.setItem(CACHE_KEY_MEMORY, JSON.stringify(memory))
         localStorage.setItem(CACHE_KEY_SESSIONS, JSON.stringify(sessions))
         
@@ -545,29 +727,46 @@ export default function Journal() {
   if (sortedDates.length === 0) {
     return (
       <div className="h-full flex flex-col">
+        <style>{`
+          @keyframes journal-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @keyframes journal-fadein {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
         <div className="mb-6">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
-            <button
-              onClick={() => setAllExpanded(!allExpanded)}
-              style={{
-                background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
-                backdropFilter: 'blur(20px)',
-                color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-              {allExpanded ? 'Fold sammen' : 'Udvid alle'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <JournalFreshness
+                lastRefreshed={lastRefreshed}
+                isRefreshing={isBackgroundRefreshing}
+                onRefresh={backgroundRefresh}
+              />
+              <button
+                onClick={() => setAllExpanded(!allExpanded)}
+                style={{
+                  background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                  backdropFilter: 'blur(20px)',
+                  color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+                {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+              </button>
+            </div>
           </div>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
             Kronologisk dagbog over sessions og noter
@@ -684,33 +883,106 @@ export default function Journal() {
 
   return (
     <div className="h-full flex flex-col">
+      <style>{`
+        @keyframes journal-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes journal-fadein {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <div className="mb-6">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
           <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
-          <button
-            onClick={() => setAllExpanded(!allExpanded)}
-            style={{
-              background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
-              border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
-              backdropFilter: 'blur(20px)',
-              color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-            {allExpanded ? 'Fold sammen' : 'Udvid alle'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <JournalFreshness
+              lastRefreshed={lastRefreshed}
+              isRefreshing={isBackgroundRefreshing}
+              onRefresh={backgroundRefresh}
+            />
+            <button
+              onClick={() => setAllExpanded(!allExpanded)}
+              style={{
+                background: allExpanded ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${allExpanded ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.1)'}`,
+                backdropFilter: 'blur(20px)',
+                color: allExpanded ? '#5AC8FA' : 'rgba(255,255,255,0.7)',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
+              {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+            </button>
+          </div>
         </div>
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
           {sortedDates.length} dage · {allSessions.length} sessions · {memoryFiles.length} noter
         </p>
+
+        {/* Nye opdateringer banner */}
+        {hasNewData && (
+          <div
+            style={{
+              marginTop: '10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 14px',
+              borderRadius: '12px',
+              background: 'rgba(0,122,255,0.12)',
+              border: '1px solid rgba(0,122,255,0.25)',
+              backdropFilter: 'blur(12px)',
+              animation: 'journal-fadein 0.3s ease',
+            }}
+          >
+            <Icon name="arrow-path" size={13} style={{ color: '#5AC8FA' }} />
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
+              Nye opdateringer tilgængelige
+            </span>
+            <button
+              onClick={applyPendingData}
+              style={{
+                background: 'rgba(0,122,255,0.25)',
+                border: '1px solid rgba(0,122,255,0.4)',
+                borderRadius: '8px',
+                color: '#5AC8FA',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '4px 12px',
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.35)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.25)' }}
+            >
+              Indlæs
+            </button>
+            <button
+              onClick={() => { setPendingMemory(null); setPendingSessions(null) }}
+              title="Afvis"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px',
+                color: 'rgba(255,255,255,0.35)',
+              }}
+            >
+              <Icon name="xmark" size={13} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Søgefelt */}
