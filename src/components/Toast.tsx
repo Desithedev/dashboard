@@ -101,6 +101,9 @@ function ToastContainer({
 }) {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-relevant="additions"
       style={{
         position: 'fixed',
         bottom: '24px',
