@@ -78,11 +78,33 @@ function deriveChannelsFromConfig(config: Record<string, any>): Array<{ name: st
   return channels
 }
 
+function getTimeGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return 'God morgen'
+  if (hour >= 12 && hour < 18) return 'God eftermiddag'
+  if (hour >= 18 && hour < 24) return 'God aften'
+  return 'God nat'
+}
+
 export default function Dashboard() {
   usePageTitle('Dashboard')
   
   const { isConnected, isLoading, isRefreshing, error, lastUpdated, consecutiveErrors, sessions, statusText, cronJobs, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
+  const [minuteTick, setMinuteTick] = useState(() => Math.floor(Date.now() / 60000))
+
+  useEffect(() => {
+    const now = Date.now()
+    const msToNextMinute = 60000 - (now % 60000)
+    let intervalId: ReturnType<typeof setInterval>
+    const timeoutId = setTimeout(() => {
+      setMinuteTick(Math.floor(Date.now() / 60000))
+      intervalId = setInterval(() => setMinuteTick(Math.floor(Date.now() / 60000)), 60000)
+    }, msToNextMinute)
+    return () => { clearTimeout(timeoutId); clearInterval(intervalId) }
+  }, [])
+
+  const greeting = useMemo(() => getTimeGreeting(), [minuteTick])
 
   useEffect(() => {
     if (isConnected) {
@@ -239,7 +261,7 @@ export default function Dashboard() {
   return (
     <div>
       <div className="flex items-center gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Oversigt</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{greeting}</h1>
         <ConnectionStatus />
         {!isConnected && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400" style={{ background: 'rgba(255,149,0,0.1)' }}>
@@ -248,7 +270,7 @@ export default function Dashboard() {
         )}
         <DataFreshness className="ml-auto" />
       </div>
-      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>Driftsoverblik — {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>Oversigt — {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
       {!isConnected ? (
         <Card>

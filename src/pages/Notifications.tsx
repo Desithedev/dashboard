@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import PageHeader from '../components/PageHeader'
@@ -19,6 +19,22 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
+type DateGroup = 'I dag' | 'I går' | 'Denne uge' | 'Ældre'
+
+function getDateGroup(ts: number): DateGroup {
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const yesterdayStart = todayStart - 86400000
+  const weekStart = todayStart - 6 * 86400000
+
+  if (ts >= todayStart) return 'I dag'
+  if (ts >= yesterdayStart) return 'I går'
+  if (ts >= weekStart) return 'Denne uge'
+  return 'Ældre'
+}
+
+const DATE_GROUP_ORDER: DateGroup[] = ['I dag', 'I går', 'Denne uge', 'Ældre']
+
 export default function Notifications() {
   usePageTitle('Notifikationer')
   
@@ -35,6 +51,14 @@ export default function Notifications() {
   const filtered = filter === 'all' ? notifications : notifications.filter(n => n.type === filter)
   const errorCount = notifications.filter(n => n.type === 'error').length
   const warningCount = notifications.filter(n => n.type === 'warning').length
+
+  const groupedNotifications = useMemo(() => {
+    const groups: Record<DateGroup, typeof filtered> = { 'I dag': [], 'I går': [], 'Denne uge': [], 'Ældre': [] }
+    for (const n of filtered) {
+      groups[getDateGroup(n.timestamp)].push(n)
+    }
+    return groups
+  }, [filtered])
 
   const filters: { id: Filter; label: string; count?: number }[] = [
     { id: 'all', label: 'Alle', count: notifications.length },
@@ -140,35 +164,58 @@ export default function Notifications() {
           </div>
         ) : (
           <div>
-            {filtered.map(n => {
-              const config = typeConfig[n.type]
+            {DATE_GROUP_ORDER.map(group => {
+              const items = groupedNotifications[group]
+              if (items.length === 0) return null
               return (
-                <div key={n.id} onClick={() => !n.read && markAsRead(n.id)} style={{
-                  padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  cursor: n.read ? 'default' : 'pointer', display: 'flex', gap: 14, alignItems: 'flex-start', opacity: n.read ? 0.7 : 1,
-                }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: config.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name={config.icon} size={18} style={{ color: config.color }} />
+                <div key={group}>
+                  <div style={{
+                    padding: '8px 12px',
+                    margin: '8px -16px',
+                    background: 'rgba(255,255,255,0.03)',
+                    backdropFilter: 'blur(8px)',
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase' as const,
+                    color: 'rgba(255,255,255,0.35)',
+                  }}>
+                    {group}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 13, fontWeight: n.read ? 500 : 600, color: n.read ? 'rgba(255,255,255,0.6)' : '#fff' }}>{n.title}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{formatTime(n.timestamp)}</span>
-                        <button onClick={(e) => { e.stopPropagation(); dismissNotification(n.id) }} style={{
-                          background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '2px 6px', fontSize: 16,
-                        }}>×</button>
+                  {items.map(n => {
+                    const config = typeConfig[n.type]
+                    return (
+                      <div key={n.id} onClick={() => !n.read && markAsRead(n.id)} style={{
+                        padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        cursor: n.read ? 'default' : 'pointer', display: 'flex', gap: 14, alignItems: 'flex-start', opacity: n.read ? 0.7 : 1,
+                      }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: config.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name={config.icon} size={18} style={{ color: config.color }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 13, fontWeight: n.read ? 500 : 600, color: n.read ? 'rgba(255,255,255,0.6)' : '#fff' }}>{n.title}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{formatTime(n.timestamp)}</span>
+                              <button onClick={(e) => { e.stopPropagation(); dismissNotification(n.id) }} style={{
+                                background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '2px 6px', fontSize: 16,
+                              }}>×</button>
+                            </div>
+                          </div>
+                          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3, lineHeight: 1.5 }}>{n.message}</p>
+                          <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                            {n.source && (
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 4 }}>{n.source}</span>
+                            )}
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: config.bg, color: config.color }}>{config.label}</span>
+                            {!n.read && <span style={{ width: 6, height: 6, borderRadius: 3, background: '#007AFF' }} />}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 3, lineHeight: 1.5 }}>{n.message}</p>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
-                      {n.source && (
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 4 }}>{n.source}</span>
-                      )}
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 4, background: config.bg, color: config.color }}>{config.label}</span>
-                      {!n.read && <span style={{ width: 6, height: 6, borderRadius: 3, background: '#007AFF' }} />}
-                    </div>
-                  </div>
+                    )
+                  })}
                 </div>
               )
             })}

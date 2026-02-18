@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import Card from '../components/Card'
+import PageHeader from '../components/PageHeader'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { WeeklyRecapSkeleton } from '../components/SkeletonLoader'
@@ -96,8 +97,11 @@ export default function WeeklyRecap() {
 
   return (
     <div>
-      <h1 className="text-xl sm:text-2xl font-bold mb-1">Ugerapport</h1>
-      <p className="caption mb-6">{weekRange}</p>
+      <PageHeader
+        title="Ugerapport"
+        description={weekRange}
+        breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Ugerapport' }]}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
