@@ -392,6 +392,13 @@ select.input option {
 .df-dot-pulse { animation: df-pulse 2s ease-in-out infinite; }
 .df-spin { animation: df-spin 0.8s linear infinite; }
 
+/* System Puls — pulserende statusprik */
+@keyframes sys-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--pulse-color, #30D158); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+}
+.sys-pulse-dot { animation: sys-pulse 2s ease-in-out infinite; }
+
 /* Modal fade + scale animation */
 @keyframes modalFadeIn {
   from { opacity: 0; }
