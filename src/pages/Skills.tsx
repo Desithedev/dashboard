@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from '../components/Icon'
 import EmptyState from '../components/EmptyState'
+import ErrorState from '../components/ErrorState'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -75,6 +76,7 @@ export default function Skills() {
   const [installing, setInstalling] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState('')
   const [loadingInstalled, setLoadingInstalled] = useState(true)
+  const [installedError, setInstalledError] = useState<string | null>(null)
   const [loadingRecommended, setLoadingRecommended] = useState(false)
   const [browseQuery, setBrowseQuery] = useState('')
   const [browseResults, setBrowseResults] = useState<ClawHubSkill[]>([])
@@ -84,6 +86,7 @@ export default function Skills() {
   const fetchInstalledSkillsData = useCallback(async () => {
     if (!isConnected) { setLoadingInstalled(false); return }
     setLoadingInstalled(true)
+    setInstalledError(null)
     try {
       const skillsData = await fetchInstalledSkills()
       const skills: Skill[] = skillsData.map(s => ({
@@ -95,6 +98,7 @@ export default function Skills() {
       setInstalledSkills(skills)
     } catch (err) {
       console.error('Failed to fetch skills:', err)
+      setInstalledError('Færdigheder kunne ikke hentes. Tjek Gateway-forbindelsen.')
     } finally {
       setLoadingInstalled(false)
     }
@@ -248,6 +252,12 @@ export default function Skills() {
               <style>{shimmerStyle}</style>
               {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} lines={2} />)}
             </div>
+          ) : installedError ? (
+            <ErrorState
+              title="Færdigheder kunne ikke hentes"
+              message={installedError}
+              onRetry={fetchInstalledSkillsData}
+            />
           ) : installedSkills.length === 0 ? (
             <EmptyState
               icon="sparkle"

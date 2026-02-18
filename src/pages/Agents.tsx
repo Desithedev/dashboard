@@ -7,6 +7,7 @@ import { createAgent, ApiSession, invokeToolRaw } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard, SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
 import DataFreshness from '../components/DataFreshness'
+import ErrorState from '../components/ErrorState'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AgentStatus = 'online' | 'offline' | 'working'
@@ -464,6 +465,8 @@ function StandupsView() {
   const [submitting, setSubmitting] = useState(false)
   const [standups, setStandups] = useState<StandupSession[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [standupTexts, setStandupTexts] = useState<Record<string, string>>({})
   const [standupActions, setStandupActions] = useState<Record<string, ActionItem[]>>({})
@@ -485,6 +488,7 @@ function StandupsView() {
   useEffect(() => {
     const fetchStandups = async () => {
       try {
+        setFetchError(null)
         const data = await invokeToolRaw('sessions_list', { messageLimit: 5, limit: 20 }) as any
         const text = data.result?.content?.[0]?.text
         let raw: any[] = []
@@ -508,6 +512,7 @@ function StandupsView() {
         setStandups(standupSessions)
       } catch (e) {
         console.error('Fejl ved hentning af standups:', e)
+        setFetchError('Standups kunne ikke hentes fra serveren.')
       } finally {
         setLoading(false)
       }
@@ -515,7 +520,7 @@ function StandupsView() {
     fetchStandups()
     const interval = setInterval(fetchStandups, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [refetchTrigger])
 
   // Start standup
   const handleStartStandup = async () => {
@@ -715,6 +720,12 @@ Hold moedet kort og fokuseret. Alle tekster paa dansk.`
             <style>{shimmerStyle}</style>
             {[1, 2, 3].map(i => <SkeletonCard key={i} lines={2} />)}
           </div>
+        ) : fetchError ? (
+          <ErrorState
+            title="Standups kunne ikke hentes"
+            message={fetchError}
+            onRetry={() => { setLoading(true); setRefetchTrigger(n => n + 1) }}
+          />
         ) : standups.length === 0 ? (
           <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Ingen standups endnu. Start det foerste standup ovenfor.
