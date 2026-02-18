@@ -4,6 +4,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { SkeletonCard } from '../components/SkeletonLoader'
 import DataFreshness from '../components/DataFreshness'
+import { timeAgo } from '../utils/timeAgo'
 
 /* ── Types ──────────────────────────────────── */
 interface Article {
@@ -124,15 +125,6 @@ function renderMarkdown(text: string): string {
 }
 
 /* ── Helpers ─────────────────────────────────── */
-function timeAgo(dateStr: string): string {
-  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
-  if (mins < 1) return 'lige nu'
-  if (mins < 60) return `${mins}m siden`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}t siden`
-  return `${Math.floor(hours / 24)}d siden`
-}
-
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
   const now = new Date()

@@ -55,10 +55,6 @@ const CATEGORIES: { id: TaskCategory; label: string; color: string; icon: string
 /* ── Helpers ─────────────────────────────────── */
 const CACHE_KEY_SESSIONS = 'openclaw-all-sessions'
 
-function timeAgo(date: Date): string {
-  return formatRelativeTime(date)
-}
-
 function transcriptToTask(s: TranscriptSession): Task {
   const updatedAt = s.updatedAt ? new Date(s.updatedAt) : new Date()
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
@@ -193,7 +189,7 @@ function TaskMiniCard({ task, onSelect, onStart, expanded }: { task: Task; onSel
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{timeAgo(task.updated)}</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatRelativeTime(task.updated)}</span>
           {task.status === 'queued' && onStart && (
             <button
               onClick={e => { e.stopPropagation(); onStart() }}
@@ -358,7 +354,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ background: color }} />
                   <span className="text-xs font-semibold" style={{ color }}>{statusLabels[task.status]}</span>
-                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>· {task.agent} · {timeAgo(task.updated)}</span>
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>· {task.agent} · {formatRelativeTime(task.updated)}</span>
                 </div>
               </div>
             </div>

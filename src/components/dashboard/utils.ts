@@ -56,10 +56,4 @@ export function getTimeGreeting(): string {
   return 'God nat'
 }
 
-export function formatTimeAgo(timestamp: number): string {
-  const diff = Date.now() - timestamp
-  if (diff < 60000) return 'lige nu'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} min siden`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}t siden`
-  return `${Math.floor(diff / 86400000)}d siden`
-}
+export { formatTimeAgo } from '../../utils/timeAgo'
