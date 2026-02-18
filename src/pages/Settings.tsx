@@ -26,6 +26,45 @@ interface SystemInfo {
   gatewayMode?: string
 }
 
+function parseMemoryGB(str?: string): number {
+  if (!str) return 0
+  const match = str.match(/([\d.]+)\s*([KMGT]?i?B)/i)
+  if (!match) return 0
+  const val = parseFloat(match[1])
+  const unit = match[2].toUpperCase()
+  if (unit.startsWith('T')) return val * 1024
+  if (unit.startsWith('G')) return val
+  if (unit.startsWith('M')) return val / 1024
+  if (unit.startsWith('K')) return val / (1024 * 1024)
+  return val
+}
+
+function healthColor(pct: number): string {
+  if (pct >= 90) return '#FF3B30'
+  if (pct >= 70) return '#FF9500'
+  return '#34C759'
+}
+
+function ResourceBar({ label, pct, leftLabel, rightLabel }: { label: string; pct: number; leftLabel: string; rightLabel: string }) {
+  const color = healthColor(pct)
+  const clampedPct = Math.min(100, Math.max(0, pct))
+  return (
+    <div className="py-3 glass-row">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span className="caption" style={{ fontSize: '13px' }}>{label}</span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color }}>{clampedPct}%</span>
+      </div>
+      <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '9999px', height: '8px', overflow: 'hidden' }}>
+        <div style={{ width: `${clampedPct}%`, height: '100%', background: color, borderRadius: '9999px', transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>{leftLabel}</span>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)' }}>{rightLabel}</span>
+      </div>
+    </div>
+  )
+}
+
 function ApiConnectionSection() {
   const { isConnected, lastUpdated } = useLiveData()
   const { showToast } = useToast()
@@ -223,8 +262,20 @@ export default function Settings() {
                     {systemInfo.host && <div className="flex justify-between py-2 glass-row"><span className="caption">Vært</span><span className="font-medium">{systemInfo.host} {systemInfo.hostType && `(${systemInfo.hostType})`}</span></div>}
                     {systemInfo.os && <div className="flex justify-between py-2 glass-row"><span className="caption">OS</span><span className="font-medium">{systemInfo.os} {systemInfo.kernel && `— ${systemInfo.kernel}`}</span></div>}
                     {systemInfo.cpu && <div className="flex justify-between py-2 glass-row"><span className="caption">CPU</span><span className="font-medium">{systemInfo.cpu}</span></div>}
-                    {systemInfo.ramTotal && <div className="flex justify-between py-2 glass-row"><span className="caption">RAM</span><span className="font-medium">{systemInfo.ramTotal} total{systemInfo.ramUsed && `, ${systemInfo.ramUsed} brugt`}{systemInfo.ramAvailable && `, ${systemInfo.ramAvailable} tilgængelig`}</span></div>}
-                    {systemInfo.diskTotal && <div className="flex justify-between py-2 glass-row"><span className="caption">Disk</span><span className="font-medium">{systemInfo.diskTotal} total{systemInfo.diskUsed && `, ${systemInfo.diskUsed} brugt`}{systemInfo.diskPercent && ` (${systemInfo.diskPercent}%)`}</span></div>}
+                    {systemInfo.ramTotal && (() => {
+                      const totalGB = parseMemoryGB(systemInfo.ramTotal)
+                      const usedGB = parseMemoryGB(systemInfo.ramUsed)
+                      const pct = totalGB > 0 ? Math.round((usedGB / totalGB) * 100) : 0
+                      const leftLabel = systemInfo.ramUsed ? `${systemInfo.ramUsed} brugt` : ''
+                      const rightLabel = [systemInfo.ramTotal && `${systemInfo.ramTotal} total`, systemInfo.ramAvailable && `${systemInfo.ramAvailable} fri`].filter(Boolean).join(' · ')
+                      return <ResourceBar key="ram" label="RAM" pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
+                    })()}
+                    {systemInfo.diskTotal && (() => {
+                      const pct = systemInfo.diskPercent ?? 0
+                      const leftLabel = systemInfo.diskUsed ? `${systemInfo.diskUsed} brugt` : ''
+                      const rightLabel = `${systemInfo.diskTotal} total`
+                      return <ResourceBar key="disk" label="Disk" pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
+                    })()}
                     {systemInfo.nodeVersion && <div className="flex justify-between py-2 glass-row"><span className="caption">Node.js</span><span className="font-medium">{systemInfo.nodeVersion}</span></div>}
                     {systemInfo.uptime && <div className="flex justify-between py-2 glass-row"><span className="caption">Oppetid</span><span className="font-medium">{systemInfo.uptime}</span></div>}
                     {systemInfo.openclawVersion && <div className="flex justify-between py-2 glass-row"><span className="caption">OpenClaw Version</span><span className="font-medium">{systemInfo.openclawVersion}</span></div>}
