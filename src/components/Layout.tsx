@@ -1,10 +1,11 @@
-import { ReactNode, useState, useEffect, useRef, useCallback } from 'react'
+import { ReactNode, useState, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
 import NotificationCenter from './NotificationCenter'
 import ScrollToTop from './ScrollToTop'
 import OfflineBanner from './OfflineBanner'
+import { useScrollToTop } from '../hooks/useScrollToTop'
 
 interface LayoutProps {
   children: ReactNode
@@ -17,13 +18,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
   const [maisonOpen, setMaisonOpen] = useState(false)
 
   // Scroll restoration: scroll til top når siden skifter
-  const prevPageRef = useRef(activePage)
-  useEffect(() => {
-    if (prevPageRef.current !== activePage) {
-      window.scrollTo({ top: 0, behavior: 'instant' })
-      prevPageRef.current = activePage
-    }
-  }, [activePage])
+  useScrollToTop(activePage)
 
   const handleNavigate = useCallback((page: string) => {
     onNavigate(page)
