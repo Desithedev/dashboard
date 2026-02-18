@@ -12,21 +12,14 @@ interface PageTransitionProps {
  *   - Subtle slide-up: translateY(8px) → translateY(0)
  *   - Varighed: 200ms med ease-out kurve
  *
- * Skal bruges med `key={page}` i App.tsx, så React unmounter og
- * remounter komponenten ved hvert sideskift, hvilket trigger animationen.
+ * Animationen er defineret via `.animate-page-in` i index.css.
  *
- * CSS-klassen `.animate-page-in` er defineret i index.css.
+ * Brug `key={page}` i App.tsx, så React unmounter og remounter
+ * komponenten ved hvert sideskift, hvilket trigger animationen forfra.
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   return (
-    <div
-      className="animate-page-in"
-      style={{
-        // Fortæller browseren at opacity og transform vil ændre sig
-        // — muliggør GPU-acceleration for flydende animation
-        willChange: 'opacity, transform',
-      }}
-    >
+    <div className="animate-page-in">
       {children}
     </div>
   )
