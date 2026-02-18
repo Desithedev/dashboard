@@ -4,7 +4,7 @@ import EmptyState from '../components/EmptyState'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
-import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
+import { SkeletonRow, shimmerStyle, JournalSkeleton } from '../components/SkeletonLoader'
 
 /* ── Types ───────────────────────────────────── */
 interface DayData {
@@ -710,18 +710,7 @@ export default function Journal() {
   const currentDayData = selectedDate ? dayDataMap.get(selectedDate) : null
 
   if (loading && memoryFiles.length === 0 && allSessions.length === 0) {
-    return (
-      <div className="h-full">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Indlæser...</p>
-        </div>
-        <style>{shimmerStyle}</style>
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <SkeletonRow key={i} />)}
-        </div>
-      </div>
-    )
+    return <JournalSkeleton />
   }
 
   if (sortedDates.length === 0) {

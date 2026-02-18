@@ -6,7 +6,7 @@ import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatRelativeTime } from '../hooks/useRelativeTime'
 import DataFreshness from '../components/DataFreshness'
-import { SkeletonRow, shimmerStyle } from '../components/SkeletonLoader'
+import { SkeletonRow, shimmerStyle, TasksSkeleton } from '../components/SkeletonLoader'
 import Table from '../components/Table'
 import { 
   createAgent, 
@@ -1067,6 +1067,10 @@ export default function Tasks() {
 
   const totalFiltered = queuedFiltered.length + activeFiltered.length + completedFiltered.length
   const hasActiveSearch = debouncedSearch.trim().length > 0
+
+  if (loading && tasks.length === 0) {
+    return <TasksSkeleton />
+  }
 
   return (
     <div className="h-full flex flex-col animate-page-in">

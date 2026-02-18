@@ -5,7 +5,7 @@ import ErrorState from '../components/ErrorState'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchInstalledSkills, installSkill, searchSkills, SkillInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { SkeletonCard, shimmerStyle } from '../components/SkeletonLoader'
+import { SkeletonCard, shimmerStyle, SkillsSkeleton } from '../components/SkeletonLoader'
 import DataFreshness from '../components/DataFreshness'
 
 interface Skill extends SkillInfo {
@@ -206,6 +206,10 @@ export default function Skills() {
   const CategoryBadge = ({ category }: { category: string }) => {
     const c = categoryColors[category] || { text: 'text-white/50', bg: 'rgba(255,255,255,0.05)' }
     return <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.text}`} style={{ background: c.bg }}>{category}</span>
+  }
+
+  if (loadingInstalled && installedSkills.length === 0) {
+    return <SkillsSkeleton />
   }
 
   return (
