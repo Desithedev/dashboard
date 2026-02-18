@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import Icon from './Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import ConnectionStatus from './ConnectionStatus'
+import { useKeyboardShortcutsContext } from './KeyboardShortcuts'
 
 interface SidebarProps {
   active: string
@@ -97,6 +98,7 @@ const Badge = memo(function Badge({ count }: { count: number }) {
 
 const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
   const { isConnected, lastUpdated, isRefreshing, sessions, cronJobs } = useLiveData()
+  const { openCmd } = useKeyboardShortcutsContext()
   const [pulse, setPulse] = useState(true)
 
   // Calculate badge counts
@@ -238,7 +240,43 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-white/10 space-y-2">
+      <div className="px-4 py-4 border-t border-white/10 space-y-2">
+        {/* ⌘K kommandopalet-genvej */}
+        <button
+          onClick={openCmd}
+          aria-label="Åbn kommandopalet (⌘K)"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '7px 8px',
+            borderRadius: 10,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+        >
+          <Icon name="command" size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <span style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'left' }}>
+            Kommandopalet
+          </span>
+          <kbd style={{
+            padding: '1px 5px',
+            borderRadius: 5,
+            fontSize: 10,
+            fontWeight: 600,
+            background: 'rgba(255,255,255,0.07)',
+            color: 'rgba(255,255,255,0.3)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            letterSpacing: '-0.02em',
+          }}>⌘K</kbd>
+        </button>
+
         <div className="flex items-center gap-2">
           <ConnectionStatus />
           <span className="text-[11px] text-white/50">
