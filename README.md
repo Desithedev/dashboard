@@ -2,6 +2,8 @@
 
 OpenClaw Mission Control — dashboard til styring og overvågning af AI agents.
 
+# dashboard
+
 ## Koncept
 
 En visuel kommandocentral til OpenClaw agents med:
