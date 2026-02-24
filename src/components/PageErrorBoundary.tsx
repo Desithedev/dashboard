@@ -1,7 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { withTranslation, WithTranslation } from 'react-i18next'
 import Icon from './Icon'
 
-interface Props {
+interface Props extends WithTranslation {
   children: ReactNode
   pageName: string
 }
@@ -11,7 +12,7 @@ interface State {
   error: Error | null
 }
 
-export default class PageErrorBoundary extends Component<Props, State> {
+class PageErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -93,7 +94,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
                 letterSpacing: '-0.02em',
               }}
             >
-              Siden kunne ikke indlæses
+              {this.props.t('common.errors.pageLoad', 'The page could not be loaded')}
             </h2>
 
             <p
@@ -104,7 +105,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
                 lineHeight: '1.6',
               }}
             >
-              {this.state.error?.message || 'Der opstod en uventet fejl på denne side.'}
+              {this.state.error?.message || this.props.t('common.errors.unexpected', 'An unexpected error occurred on this page.')}
             </p>
 
             <p
@@ -115,7 +116,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
                 fontFamily: 'monospace',
               }}
             >
-              Resten af appen kører stadig normalt.
+              {this.props.t('common.errors.appRunning', 'The rest of the app is still running normally.')}
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -148,7 +149,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
                 }}
               >
                 <Icon name="arrow-path" size={14} />
-                Prøv igen
+                {this.props.t('common.retry', 'Try again')}
               </button>
 
               <button
@@ -183,7 +184,7 @@ export default class PageErrorBoundary extends Component<Props, State> {
                 }}
               >
                 <Icon name="grid" size={14} />
-                Ga til Dashboard
+                {this.props.t('common.backToDashboard', 'Back to Dashboard')}
               </button>
             </div>
           </div>
@@ -194,3 +195,5 @@ export default class PageErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
+
+export default withTranslation()(PageErrorBoundary)

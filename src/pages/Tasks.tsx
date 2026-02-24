@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from '../components/Icon'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
@@ -8,15 +9,15 @@ import { formatRelativeTime } from '../hooks/useRelativeTime'
 import DataFreshness from '../components/DataFreshness'
 import { SkeletonRow, shimmerStyle, TasksSkeleton } from '../components/SkeletonLoader'
 import Table from '../components/Table'
-import { 
-  createAgent, 
+import {
+  createAgent,
   invokeToolRaw,
-  ApiSession, 
-  fetchAllSessions, 
-  readTranscriptMessages, 
+  ApiSession,
+  fetchAllSessions,
+  readTranscriptMessages,
   TranscriptSession,
-  DetailedSessionMessage, 
-  ToolCall 
+  DetailedSessionMessage,
+  ToolCall
 } from '../api/openclaw'
 
 /* ── Types ───────────────────────────────────── */
@@ -43,13 +44,13 @@ interface Task {
 
 type TaskCategory = 'building' | 'deep-work' | 'research' | 'maintenance' | 'review' | 'other'
 
-const CATEGORIES: { id: TaskCategory; label: string; color: string; icon: string }[] = [
-  { id: 'building', label: 'Building', color: '#007AFF', icon: 'wrench' },
-  { id: 'deep-work', label: 'Deep Work', color: '#AF52DE', icon: 'brain' },
-  { id: 'research', label: 'Research', color: '#30D158', icon: 'magnifying-glass' },
-  { id: 'maintenance', label: 'Vedligehold', color: '#FF9F0A', icon: 'gear' },
-  { id: 'review', label: 'Review', color: '#FF375F', icon: 'doc-text' },
-  { id: 'other', label: 'Andet', color: '#8E8E93', icon: 'sparkle' },
+const CATEGORIES: { id: TaskCategory; color: string; icon: string }[] = [
+  { id: 'building', color: '#007AFF', icon: 'wrench' },
+  { id: 'deep-work', color: '#AF52DE', icon: 'brain' },
+  { id: 'research', color: '#30D158', icon: 'magnifying-glass' },
+  { id: 'maintenance', color: '#FF9F0A', icon: '#gear' },
+  { id: 'review', color: '#FF375F', icon: 'doc-text' },
+  { id: 'other', color: '#8E8E93', icon: 'sparkle' },
 ]
 
 /* ── Helpers ─────────────────────────────────── */
@@ -58,7 +59,7 @@ const CACHE_KEY_SESSIONS = 'openclaw-all-sessions'
 function transcriptToTask(s: TranscriptSession): Task {
   const updatedAt = s.updatedAt ? new Date(s.updatedAt) : new Date()
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
-  
+
   let status: 'queued' | 'active' | 'completed' = 'completed'
   if (s.messageCount === 0) {
     status = 'queued'
@@ -83,10 +84,10 @@ function transcriptToTask(s: TranscriptSession): Task {
   }
 }
 
-function liveSessionToTask(s: ApiSession): Task {
+function liveSessionToTask(s: ApiSession, t: any): Task {
   const updatedAt = new Date(s.updatedAt)
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000)
-  
+
   let status: 'queued' | 'active' | 'completed' = 'completed'
   if (s.kind === 'subagent') {
     const hasActivity = s.lastMessages && s.lastMessages.length > 0
@@ -98,7 +99,7 @@ function liveSessionToTask(s: ApiSession): Task {
 
   return {
     id: s.sessionId,
-    title: s.label || s.displayName || (s.kind === 'main' ? 'Hovedsession' : 'Unavngiven'),
+    title: s.label || s.displayName || (s.kind === 'main' ? t('tasks.mainSession') : t('tasks.unnamed')),
     status,
     kind: s.kind,
     agent: s.kind,
@@ -110,7 +111,7 @@ function liveSessionToTask(s: ApiSession): Task {
     contextTokens: s.contextTokens,
     totalTokens: s.totalTokens,
     messageCount: s.lastMessages?.length || 0,
-    firstMessage: typeof (s.lastMessages?.[0]?.text || s.lastMessages?.[0]?.content) === 'string' 
+    firstMessage: typeof (s.lastMessages?.[0]?.text || s.lastMessages?.[0]?.content) === 'string'
       ? (s.lastMessages?.[0]?.text || s.lastMessages?.[0]?.content) as string : '',
     label: s.label,
   }
@@ -129,11 +130,11 @@ function getAgentIcon(kind: string): string {
 }
 
 /* ── Stat Box ────────────────────────────────── */
-function StatBox({ label, value, color, icon, onClick }: { 
-  label: string; value: number; color: string; icon: string; onClick?: () => void 
+function StatBox({ label, value, color, icon, onClick }: {
+  label: string; value: number; color: string; icon: string; onClick?: () => void
 }) {
   return (
-    <div 
+    <div
       className="rounded-xl p-5 cursor-pointer transition-all duration-200"
       style={{ background: 'rgba(255,255,255,0.03)' }}
       onClick={onClick}
@@ -161,10 +162,11 @@ function StatBox({ label, value, color, icon, onClick }: {
 
 /* ── Task Mini Card (in popup list) ──────────── */
 function TaskMiniCard({ task, onSelect, onStart, expanded }: { task: Task; onSelect: () => void; onStart?: () => void; expanded?: boolean }) {
+  const { t } = useTranslation()
   const catInfo = CATEGORIES.find(c => c.id === task.category) || CATEGORIES[5]
-  
+
   return (
-    <div 
+    <div
       className="rounded-xl p-4 cursor-pointer transition-all duration-200"
       style={{ background: 'rgba(255,255,255,0.03)' }}
       onClick={onSelect}
@@ -172,8 +174,8 @@ function TaskMiniCard({ task, onSelect, onStart, expanded }: { task: Task; onSel
       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
     >
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" 
-             style={{ background: `${getKindColor(task.kind)}15` }}>
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${getKindColor(task.kind)}15` }}>
           <Icon name={getAgentIcon(task.kind)} size={14} style={{ color: getKindColor(task.kind) }} />
         </div>
         <div className="flex-1 min-w-0">
@@ -194,28 +196,28 @@ function TaskMiniCard({ task, onSelect, onStart, expanded }: { task: Task; onSel
             <button
               onClick={e => { e.stopPropagation(); onStart() }}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all"
-              style={{ background: '#007AFF' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#0066DD' }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#007AFF' }}
+              style={{ background: '#007AFF', border: 'none' }}
             >
-              Start
+              {t('common.startNow')}
             </button>
           )}
         </div>
       </div>
-      {expanded && task.firstMessage && (
-        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
-            {task.firstMessage.slice(0, 500)}
-          </p>
-          <div style={{ marginTop: '6px', display: 'flex', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
-            <span>Model: {task.model}</span>
-            <span>Kanal: {task.channel}</span>
-            <span>Beskeder: {task.messageCount}</span>
+      {
+        expanded && task.firstMessage && (
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+              {task.firstMessage.slice(0, 500)}
+            </p>
+            <div style={{ marginTop: '6px', display: 'flex', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>
+              <span>{t('common.model')}: {task.model}</span>
+              <span>{t('common.channel')}: {task.channel}</span>
+              <span>{t('common.messages')}: {task.messageCount}</span>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }
 
@@ -248,15 +250,16 @@ function ToolCallCard({ toolCall }: { toolCall: ToolCall }) {
 }
 
 /* ── Status List Popup ───────────────────────── */
-function StatusListPopup({ 
-  title, tasks, color, onClose, onSelectTask, onStartTask 
-}: { 
-  title: string; tasks: Task[]; color: string; onClose: () => void; onSelectTask: (t: Task) => void; onStartTask?: (t: Task) => void 
+function StatusListPopup({
+  title, tasks, color, onClose, onSelectTask, onStartTask
+}: {
+  title: string; tasks: Task[]; color: string; onClose: () => void; onSelectTask: (t: Task) => void; onStartTask?: (t: Task) => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
-      <div 
+      <div
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg z-50 rounded-xl overflow-hidden"
         style={{ background: 'rgba(15,15,20,0.98)', maxHeight: '80vh' }}
       >
@@ -274,13 +277,13 @@ function StatusListPopup({
         </div>
         <div className="p-4 overflow-y-auto space-y-2" style={{ maxHeight: 'calc(80vh - 80px)' }}>
           {tasks.length === 0 ? (
-            <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen opgaver</p>
+            <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('tasks.noTasks')}</p>
           ) : (
             tasks.map(t => (
-              <TaskMiniCard 
-                key={t.id} 
-                task={t} 
-                onSelect={() => { onClose(); onSelectTask(t) }} 
+              <TaskMiniCard
+                key={t.id}
+                task={t}
+                onSelect={() => { onClose(); onSelectTask(t) }}
                 onStart={onStartTask ? () => { onStartTask(t) } : undefined}
               />
             ))
@@ -293,6 +296,8 @@ function StatusListPopup({
 
 /* ── Detail Panel (completed tasks show changelog) ── */
 function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
+  const { t } = useTranslation()
+  const { showToast } = useToast()
   const [sessionHistory, setSessionHistory] = useState<DetailedSessionMessage[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
@@ -305,7 +310,11 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
   }, [task.agent, task.sessionId])
 
   const statusColors: Record<string, string> = { queued: '#FF9F0A', active: '#007AFF', completed: '#30D158' }
-  const statusLabels: Record<string, string> = { queued: 'I Kø', active: 'Aktiv', completed: 'Afsluttet' }
+  const statusLabels: Record<string, string> = {
+    queued: t('tasks.status.queued'),
+    active: t('tasks.status.active'),
+    completed: t('tasks.status.completed')
+  }
   const color = statusColors[task.status] || '#8E8E93'
 
   // Extract changes from completed tasks (look for tool calls with file edits)
@@ -316,16 +325,16 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
       if (msg.toolCalls) {
         for (const tc of msg.toolCalls) {
           if (tc.tool === 'Edit' || tc.tool === 'edit') {
-            const file = (tc.args as any)?.file_path || (tc.args as any)?.path || 'ukendt fil'
-            edits.push({ file: String(file), action: 'Redigeret' })
+            const file = (tc.args as any)?.file_path || (tc.args as any)?.path || t('tasks.unknownFile')
+            edits.push({ file: String(file), action: t('tasks.action.edited') })
           } else if (tc.tool === 'Write' || tc.tool === 'write') {
-            const file = (tc.args as any)?.file_path || (tc.args as any)?.path || 'ukendt fil'
-            edits.push({ file: String(file), action: 'Oprettet/overskrevet' })
+            const file = (tc.args as any)?.file_path || (tc.args as any)?.path || t('tasks.unknownFile')
+            edits.push({ file: String(file), action: t('tasks.action.created') })
           } else if (tc.tool === 'exec') {
             const cmd = String((tc.args as any)?.command || '')
             if (cmd.includes('git commit')) {
               const match = cmd.match(/-m\s+"([^"]+)"/)
-              if (match) edits.push({ file: match[1], action: 'Git commit' })
+              if (match) edits.push({ file: match[1], action: t('tasks.action.gitCommit') })
             }
           }
         }
@@ -337,7 +346,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
-      <div 
+      <div
         className="fixed right-0 top-0 bottom-0 w-full sm:w-[600px] z-50 overflow-y-auto flex flex-col"
         style={{ background: 'rgba(10,10,15,0.98)', borderLeft: '1px solid rgba(255,255,255,0.06)' }}
       >
@@ -346,7 +355,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style={{ background: `${getKindColor(task.kind)}15` }}>
+                style={{ background: `${getKindColor(task.kind)}15` }}>
                 <Icon name={getAgentIcon(task.kind)} size={20} style={{ color: getKindColor(task.kind) }} />
               </div>
               <div className="flex-1 min-w-0">
@@ -359,7 +368,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
               </div>
             </div>
             <button onClick={onClose} className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full"
-                    style={{ background: 'rgba(255,255,255,0.06)' }}>
+              style={{ background: 'rgba(255,255,255,0.06)' }}>
               <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
             </button>
           </div>
@@ -367,9 +376,9 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
           {/* Meta */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: 'Agent', value: task.agent },
-              { label: 'Model', value: task.model.split('/').pop() || task.model },
-              { label: 'Beskeder', value: String(task.messageCount) },
+              { label: t('common.agent'), value: task.agent },
+              { label: t('common.model'), value: task.model.split('/').pop() || task.model },
+              { label: t('common.messagesCount', { count: task.messageCount }).split(' ')[1] || t('common.messages'), value: String(task.messageCount) },
             ].map(m => (
               <div key={m.label} className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>{m.label}</p>
@@ -382,7 +391,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
         {/* Changelog for completed tasks */}
         {task.status === 'completed' && changes.length > 0 && (
           <div className="p-6 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <h3 className="text-sm font-bold text-white mb-3">Ændringer</h3>
+            <h3 className="text-sm font-bold text-white mb-3">{t('tasks.changes')}</h3>
             <div className="space-y-2">
               {changes.map((c, i) => (
                 <div key={i} className="flex items-center gap-3 text-xs">
@@ -404,7 +413,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
           {loadingHistory ? (
             <div className="text-center py-12">
               <div className="w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3" style={{ borderColor: '#007AFF', borderTopColor: 'transparent' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Indlæser historik...</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('tasks.loadingHistory')}</p>
             </div>
           ) : sessionHistory.length > 0 ? (
             <div className="space-y-3">
@@ -418,9 +427,9 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
                       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
                         <div className="max-w-[85%]">
                           <p className="text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.25)', textAlign: isUser ? 'right' : 'left' }}>
-                            {isUser ? 'Bruger' : 'Agent'}
+                            {isUser ? t('common.user') : t('common.agent')}
                           </p>
-                          <div className="rounded-xl px-4 py-2.5" style={{ 
+                          <div className="rounded-xl px-4 py-2.5" style={{
                             background: isUser ? '#007AFF' : 'rgba(255,255,255,0.06)',
                             color: isUser ? '#fff' : 'rgba(255,255,255,0.85)',
                           }}>
@@ -441,7 +450,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
           ) : (
             <div className="text-center py-12">
               <Icon name="doc-text" size={32} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.1)' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Ingen beskeder i denne session</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('tasks.noMessages')}</p>
             </div>
           )}
         </div>
@@ -452,6 +461,7 @@ function DetailPanel({ task, onClose }: { task: Task; onClose: () => void }) {
 
 /* ── Create Task Modal ───────────────────────── */
 function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [task, setTask] = useState('')
   const [category, setCategory] = useState<TaskCategory>('building')
@@ -486,19 +496,19 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
       // Append base64 images to task description
       if (attachments.length > 0) {
-        fullTask += `\n\n[Vedhæftet: ${attachments.length} billede${attachments.length > 1 ? 'r' : ''}]`
+        fullTask += `\n\n[${t('tasks.attachments', { count: attachments.length })}]`
         for (let i = 0; i < previews.length; i++) {
-          fullTask += `\n\nBillede ${i + 1} (${attachments[i].name}):\n${previews[i]}`
+          fullTask += `\n\n${t('common.image')} ${i + 1} (${attachments[i].name}):\n${previews[i]}`
         }
       }
 
       if (startNow) {
         // Start immediately — spawns agent
-        await createAgent({ 
-          name: name.trim(), 
-          task: fullTask, 
-          model: 'sonnet', 
-          label: name.trim().toLowerCase().replace(/\s+/g, '-') 
+        await createAgent({
+          name: name.trim(),
+          task: fullTask,
+          model: 'sonnet',
+          label: name.trim().toLowerCase().replace(/\s+/g, '-')
         })
       } else if (useSchedule && scheduledDate && scheduledTime) {
         // Schedule for specific time
@@ -508,7 +518,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           job: {
             name: name.trim(),
             schedule: { kind: 'at', at: new Date(isoTime).toISOString() },
-            payload: { kind: 'agentTurn', message: `[Opgave: ${name.trim()}]\n\n${fullTask}` },
+            payload: { kind: 'agentTurn', message: `[${t('tasks.title')}: ${name.trim()}]\n\n${fullTask}` },
             sessionTarget: 'isolated',
           }
         })
@@ -519,7 +529,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           job: {
             name: name.trim(),
             schedule: { kind: 'at', at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() },
-            payload: { kind: 'agentTurn', message: `[Opgave: ${name.trim()}]\n\n${fullTask}` },
+            payload: { kind: 'agentTurn', message: `[${t('tasks.title')}: ${name.trim()}]\n\n${fullTask}` },
             sessionTarget: 'isolated',
             enabled: false,
           }
@@ -534,7 +544,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
       setAttachments([])
       setPreviews([])
     } catch (e) {
-      console.error('Fejl ved oprettelse:', e)
+      console.error(t('tasks.form.createError'), e)
     } finally {
       setCreating(false)
     }
@@ -545,33 +555,33 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
   return (
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
-      <div 
+      <div
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50 p-6 rounded-xl"
         style={{ background: 'rgba(15,15,20,0.98)' }}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Opret Opgave</h2>
+          <h2 className="text-xl font-bold text-white">{t('tasks.createTask')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </button>
         </div>
-        
+
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/70">Navn</label>
-            <input 
+            <label className="block text-sm font-medium mb-2 text-white/70">{t('tasks.form.name')}</label>
+            <input
               type="text" value={name} onChange={e => setName(e.target.value)}
-              placeholder="f.eks. Byg ny feature"
+              placeholder={t('tasks.form.namePlaceholder')}
               className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-white/20"
               style={{ background: 'rgba(255,255,255,0.06)', border: 'none', outline: 'none' }}
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/70">Beskrivelse</label>
-            <textarea 
+            <label className="block text-sm font-medium mb-2 text-white/70">{t('tasks.form.description')}</label>
+            <textarea
               value={task} onChange={e => setTask(e.target.value)}
-              placeholder="Beskriv opgaven i detaljer..."
+              placeholder={t('tasks.form.descPlaceholder')}
               rows={3}
               className="w-full px-4 py-2.5 rounded-xl text-sm text-white resize-none placeholder-white/20"
               style={{ background: 'rgba(255,255,255,0.06)', border: 'none', outline: 'none' }}
@@ -580,7 +590,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/70">Vedhæft billeder</label>
+            <label className="block text-sm font-medium mb-2 text-white/70">{t('tasks.form.attachImages')}</label>
             <label
               className="block cursor-pointer rounded-xl p-4 text-center transition-all"
               style={{ background: 'rgba(255,255,255,0.04)', border: '2px dashed rgba(255,255,255,0.1)' }}
@@ -603,7 +613,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               }}
             >
               <Icon name="upload" size={20} style={{ color: 'rgba(255,255,255,0.3)', margin: '0 auto 8px' }} />
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Klik eller træk billeder hertil</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('tasks.form.dropPlaceholder')}</p>
               <input type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
             </label>
             {previews.length > 0 && (
@@ -626,20 +636,22 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white/70">Kategori</label>
+            <label className="block text-sm font-medium mb-2 text-white/70">{t('tasks.form.category')}</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ 
+                  style={{
                     background: category === cat.id ? `${cat.color}20` : 'rgba(255,255,255,0.04)',
                     color: category === cat.id ? cat.color : 'rgba(255,255,255,0.4)',
                   }}
                 >
                   <Icon name={cat.icon} size={12} />
-                  {cat.label}
+                  {t(`tasks.action.${cat.id.replace('-', '')}`) !== `tasks.action.${cat.id.replace('-', '')}`
+                    ? t(`tasks.action.${cat.id.replace('-', '')}`)
+                    : cat.id.charAt(0).toUpperCase() + cat.id.slice(1).replace('-', ' ')}
                 </button>
               ))}
             </div>
@@ -652,34 +664,34 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                 type="button"
                 onClick={() => { setStartNow(false); setUseSchedule(false) }}
                 className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
-                style={{ 
+                style={{
                   background: !startNow && !useSchedule ? '#FF9F0A' : 'rgba(255,255,255,0.06)',
                   color: !startNow && !useSchedule ? '#000' : 'rgba(255,255,255,0.5)'
                 }}
               >
-                Sæt i kø
+                {t('tasks.form.queue')}
               </button>
               <button
                 type="button"
                 onClick={() => { setStartNow(false); setUseSchedule(true) }}
                 className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
-                style={{ 
+                style={{
                   background: useSchedule ? '#007AFF' : 'rgba(255,255,255,0.06)',
                   color: useSchedule ? '#fff' : 'rgba(255,255,255,0.5)'
                 }}
               >
-                Planlæg
+                {t('tasks.form.schedule')}
               </button>
               <button
                 type="button"
                 onClick={() => { setStartNow(true); setUseSchedule(false) }}
                 className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all text-center"
-                style={{ 
+                style={{
                   background: startNow ? '#30D158' : 'rgba(255,255,255,0.06)',
                   color: startNow ? '#000' : 'rgba(255,255,255,0.5)'
                 }}
               >
-                Start nu
+                {t('tasks.form.startNow')}
               </button>
             </div>
           </div>
@@ -687,16 +699,16 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
           {useSchedule && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-white/40 mb-1">Dato</label>
-                <input 
+                <label className="block text-xs text-white/40 mb-1">{t('tasks.form.date')}</label>
+                <input
                   type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl text-sm text-white"
                   style={{ background: 'rgba(255,255,255,0.06)', border: 'none', outline: 'none', colorScheme: 'dark' }}
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/40 mb-1">Tidspunkt</label>
-                <input 
+                <label className="block text-xs text-white/40 mb-1">{t('tasks.form.time')}</label>
+                <input
                   type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl text-sm text-white"
                   style={{ background: 'rgba(255,255,255,0.06)', border: 'none', outline: 'none', colorScheme: 'dark' }}
@@ -704,18 +716,18 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
               </div>
             </div>
           )}
-          
+
           <button
             onClick={handleCreate}
             disabled={creating || !name.trim() || !task.trim()}
             className="w-full py-3 rounded-xl font-semibold text-white text-sm transition-all"
-            style={{ 
+            style={{
               background: creating || !name.trim() || !task.trim() ? 'rgba(0,122,255,0.2)' : startNow ? '#30D158' : useSchedule ? '#007AFF' : '#FF9F0A',
               opacity: creating || !name.trim() || !task.trim() ? 0.5 : 1,
               color: startNow || (!startNow && !useSchedule) ? '#000' : '#fff'
             }}
           >
-            {creating ? 'Opretter...' : startNow ? 'Start Opgave Nu' : useSchedule ? 'Planlæg Opgave' : 'Sæt i Kø'}
+            {creating ? t('tasks.form.creating') : startNow ? t('tasks.form.startNowBtn') : useSchedule ? t('tasks.form.scheduleBtn') : t('tasks.form.queueBtn')}
           </button>
         </div>
       </div>
@@ -724,9 +736,10 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 }
 
 /* ── Archive Modal ───────────────────────────── */
-function ArchiveModal({ open, onClose, tasks, onSelectTask }: { 
-  open: boolean; onClose: () => void; tasks: Task[]; onSelectTask: (t: Task) => void 
+function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
+  open: boolean; onClose: () => void; tasks: Task[]; onSelectTask: (t: Task) => void
 }) {
+  const { t, i18n } = useTranslation()
   const [filterStatus, setFilterStatus] = useState<'all' | 'queued' | 'active' | 'completed'>('all')
 
   const filteredTasks = useMemo(() => {
@@ -739,7 +752,7 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
   return (
     <>
       <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.85)' }} onClick={onClose} />
-      <div 
+      <div
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl z-50 rounded-xl overflow-hidden"
         style={{ background: 'rgba(15,15,20,0.98)', maxHeight: '85vh' }}
       >
@@ -751,12 +764,12 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                 <Icon name="doc-text" size={18} style={{ color: '#8E8E93' }} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Arkiv</h2>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{filteredTasks.length} opgaver</p>
+                <h2 className="text-lg font-bold text-white">{t('tasks.archive.title')}</h2>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{filteredTasks.length} {t('common.tasksCapital').toLowerCase()}</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" 
-                    style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.06)' }}>
               <Icon name="xmark" size={14} style={{ color: 'rgba(255,255,255,0.4)' }} />
             </button>
           </div>
@@ -764,16 +777,16 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
           {/* Status Filters */}
           <div className="flex gap-2">
             {[
-              { id: 'all', label: 'Alle', color: '#8E8E93' },
-              { id: 'queued', label: 'I Kø', color: '#FF9F0A' },
-              { id: 'active', label: 'Aktive', color: '#007AFF' },
-              { id: 'completed', label: 'Afsluttet', color: '#30D158' },
+              { id: 'all', label: t('tasks.archive.all'), color: '#8E8E93' },
+              { id: 'queued', label: t('tasks.status.queued'), color: '#FF9F0A' },
+              { id: 'active', label: t('tasks.archive.active'), color: '#007AFF' },
+              { id: 'completed', label: t('common.completed'), color: '#30D158' },
             ].map(f => (
               <button
                 key={f.id}
                 onClick={() => setFilterStatus(f.id as any)}
                 className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                style={{ 
+                style={{
                   background: filterStatus === f.id ? `${f.color}20` : 'rgba(255,255,255,0.04)',
                   color: filterStatus === f.id ? f.color : 'rgba(255,255,255,0.4)',
                 }}
@@ -789,65 +802,65 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
           {filteredTasks.length === 0 ? (
             <EmptyState
               icon="doc-text"
-              title="Ingen opgaver fundet"
-              description="Prøv at ændre filteret eller opret en ny opgave"
+              title={t('tasks.archive.noTasks')}
+              description={t('tasks.archive.noTasksDesc')}
             />
           ) : (
             <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
               <Table
                 data={filteredTasks}
-                onRowClick={(t) => { onClose(); onSelectTask(t) }}
+                onRowClick={(task) => { onClose(); onSelectTask(task) }}
                 searchable={true}
                 searchKeys={['title', 'status', 'priority', 'updated']}
                 exportable={true}
-                exportFilename="opgaver"
+                exportFilename={t('tasks.title').toLowerCase()}
                 columns={[
                   {
                     key: 'title',
-                    header: 'Titel',
+                    header: t('common.title'),
                     sortable: false,
-                    exportValue: (t) => t.title,
-                    render: (t) => (
+                    exportValue: (task) => task.title,
+                    render: (task) => (
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{t.title}</p>
-                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{t.agent}</p>
+                        <p className="text-sm font-medium text-white truncate">{task.title}</p>
+                        <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{task.agent}</p>
                       </div>
                     ),
                   },
                   {
                     key: 'status',
-                    header: 'Status',
+                    header: t('common.status'),
                     sortable: true,
-                    sortKey: (t) => ({ active: 3, queued: 2, completed: 1 } as any)[t.status] || 0,
-                    exportValue: (t) => t.status === 'active' ? 'Aktiv' : t.status === 'queued' ? 'I kø' : 'Afsluttet',
-                    render: (t) => (
+                    sortKey: (task) => ({ active: 3, queued: 2, completed: 1 } as any)[task.status] || 0,
+                    exportValue: (task) => task.status === 'active' ? t('tasks.status.active') : task.status === 'queued' ? t('tasks.status.queued') : t('tasks.status.completed'),
+                    render: (task) => (
                       <span
                         className="text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{
                           background:
-                            t.status === 'active' ? 'rgba(0,122,255,0.15)' :
-                            t.status === 'queued' ? 'rgba(255,159,10,0.15)' :
-                            'rgba(48,209,88,0.15)',
+                            task.status === 'active' ? 'rgba(0,122,255,0.15)' :
+                              task.status === 'queued' ? 'rgba(255,159,10,0.15)' :
+                                'rgba(48,209,88,0.15)',
                           color:
-                            t.status === 'active' ? '#5AC8FA' :
-                            t.status === 'queued' ? '#FF9F0A' :
-                            '#30D158',
+                            task.status === 'active' ? '#5AC8FA' :
+                              task.status === 'queued' ? '#FF9F0A' :
+                                '#30D158',
                           border:
-                            t.status === 'active' ? '1px solid rgba(0,122,255,0.25)' :
-                            t.status === 'queued' ? '1px solid rgba(255,159,10,0.25)' :
-                            '1px solid rgba(48,209,88,0.25)',
+                            task.status === 'active' ? '1px solid rgba(0,122,255,0.25)' :
+                              task.status === 'queued' ? '1px solid rgba(255,159,10,0.25)' :
+                                '1px solid rgba(48,209,88,0.25)',
                         }}
                       >
-                        {t.status === 'active' ? 'Aktiv' : t.status === 'queued' ? 'I kø' : 'Afsluttet'}
+                        {task.status === 'active' ? t('tasks.status.active') : task.status === 'queued' ? t('tasks.status.queued') : t('tasks.status.completed')}
                       </span>
                     ),
                   },
                   {
                     key: 'priority',
-                    header: 'Prioritet',
+                    header: t('common.priority'),
                     sortable: true,
-                    sortKey: (t) => {
-                      const c = (t.category || 'other') as string
+                    sortKey: (task) => {
+                      const c = (task.category || 'other') as string
                       if (c === 'deep-work') return 3
                       if (c === 'building') return 2
                       if (c === 'maintenance') return 2
@@ -855,14 +868,14 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                       if (c === 'research') return 1
                       return 0
                     },
-                    exportValue: (t) => {
-                      const c = (t.category || 'other') as string
-                      return c === 'deep-work' ? 'Høj' : c === 'building' || c === 'maintenance' || c === 'review' ? 'Mellem' : 'Lav'
+                    exportValue: (task) => {
+                      const c = (task.category || 'other') as string
+                      return c === 'deep-work' ? t('common.high') : c === 'building' || c === 'maintenance' || c === 'review' ? t('common.medium') : t('common.low')
                     },
-                    render: (t) => {
-                      const c = (t.category || 'other') as string
-                      const label = c === 'deep-work' ? 'Høj' : c === 'building' || c === 'maintenance' || c === 'review' ? 'Mellem' : 'Lav'
-                      const color = label === 'Høj' ? '#FF453A' : label === 'Mellem' ? '#FF9F0A' : '#8E8E93'
+                    render: (task) => {
+                      const c = (task.category || 'other') as string
+                      const label = c === 'deep-work' ? t('common.high') : c === 'building' || c === 'maintenance' || c === 'review' ? t('common.medium') : t('common.low')
+                      const color = label === t('common.high') ? '#FF453A' : label === t('common.medium') ? '#FF9F0A' : '#8E8E93'
                       return (
                         <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${color}15`, color, border: `1px solid ${color}30` }}>
                           {label}
@@ -872,24 +885,24 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
                   },
                   {
                     key: 'updated',
-                    header: 'Dato',
+                    header: t('common.date'),
                     sortable: true,
-                    sortKey: (t) => t.updated,
-                    exportValue: (t) => t.updated.toLocaleDateString('da-DK', { day: '2-digit', month: 'short', year: 'numeric' }),
-                    render: (t) => (
+                    sortKey: (task) => task.updated,
+                    exportValue: (task) => task.updated.toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' }),
+                    render: (task) => (
                       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                        {t.updated.toLocaleDateString('da-DK', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {task.updated.toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' })}
                       </span>
                     ),
                     className: 'whitespace-nowrap',
                   },
                   {
                     key: 'agent',
-                    header: 'Agent',
+                    header: t('common.agent'),
                     sortable: false,
-                    exportValue: (t) => t.agent,
-                    render: (t) => (
-                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{t.agent}</span>
+                    exportValue: (task) => task.agent,
+                    render: (task) => (
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>{task.agent}</span>
                     ),
                   },
                 ]}
@@ -904,8 +917,9 @@ function ArchiveModal({ open, onClose, tasks, onSelectTask }: {
 
 /* ── Main Page ──────────────────────────────── */
 export default function Tasks() {
-  usePageTitle('Opgaver')
-  
+  const { t } = useTranslation()
+  usePageTitle(t('tasks.title'))
+
   const { showToast } = useToast()
   const { sessions, cronJobs } = useLiveData()
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
@@ -922,7 +936,7 @@ export default function Tasks() {
   useEffect(() => {
     const cached = localStorage.getItem(CACHE_KEY_SESSIONS)
     if (cached) {
-      try { setAllSessions(JSON.parse(cached)) } catch {}
+      try { setAllSessions(JSON.parse(cached)) } catch { }
     }
     setLoading(true)
     fetchAllSessions()
@@ -930,11 +944,11 @@ export default function Tasks() {
         setAllSessions(s)
         localStorage.setItem(CACHE_KEY_SESSIONS, JSON.stringify(s))
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
 
-  // Debounce søgning (300ms)
+  // Debounce search (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search)
@@ -944,7 +958,7 @@ export default function Tasks() {
 
   const tasks: Task[] = useMemo(() => {
     const transcriptTasks = allSessions.map(transcriptToTask)
-    const liveTasks = sessions.map(liveSessionToTask)
+    const liveTasks = sessions.map(s => liveSessionToTask(s, t))
     const mergedMap = new Map<string, Task>()
     for (const t of transcriptTasks) mergedMap.set(t.sessionId, t)
     for (const t of liveTasks) {
@@ -962,7 +976,7 @@ export default function Tasks() {
             if (!mergedMap.has(cronId)) {
               mergedMap.set(cronId, {
                 id: cronId,
-                title: job.name || 'Planlagt opgave',
+                title: job.name || t('tasks.scheduledTask'),
                 status: 'queued',
                 kind: 'subagent',
                 agent: 'cron',
@@ -1035,7 +1049,7 @@ export default function Tasks() {
         try {
           await invokeToolRaw('cron', { action: 'remove', jobId: cronId })
         } catch (_) { /* ignore */ }
-        showToast('success', `Opgave startet: ${task.title}`)
+        showToast('success', t('tasks.taskStarted', { title: task.title }))
       } else {
         await createAgent({
           name: task.title,
@@ -1043,11 +1057,11 @@ export default function Tasks() {
           model: 'sonnet',
           label: task.label || task.title.toLowerCase().replace(/\s+/g, '-'),
         })
-        showToast('success', `Opgave startet: ${task.title}`)
+        showToast('success', t('tasks.taskStarted', { title: task.title }))
       }
     } catch (e) {
-      console.error('Fejl ved start:', e)
-      showToast('error', `Kunne ikke starte opgave: ${task.title}`)
+      console.error(t('tasks.form.createError'), e)
+      showToast('error', `${t('tasks.form.createError')} ${task.title}`)
     }
   }
 
@@ -1077,9 +1091,9 @@ export default function Tasks() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Opgaver</h1>
+          <h1 className="text-2xl font-bold text-white mb-1">{t('tasks.title')}</h1>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {loading ? 'Indlæser...' : `${tasks.length} total · ${active.length} aktive · ${completed.length} afsluttede`}
+            {loading ? t('common.loading') : `${tasks.length} ${t('tasks.total')} · ${active.length} ${t('tasks.activeCount')} · ${completed.length} ${t('tasks.completedCount')}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1102,23 +1116,23 @@ export default function Tasks() {
             }}
           >
             <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-            {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+            {allExpanded ? t('common.collapse') : t('common.expandAll')}
           </button>
           <button
             onClick={() => setShowArchive(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all"
             style={{ background: 'rgba(255,255,255,0.06)' }}
-            onMouseEnter={e => { 
-              e.currentTarget.style.background = 'rgba(255,255,255,0.1)' 
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
               e.currentTarget.style.boxShadow = '0 4px 20px rgba(142,142,147,0.2)'
             }}
-            onMouseLeave={e => { 
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)' 
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
               e.currentTarget.style.boxShadow = 'none'
             }}
           >
             <Icon name="doc-text" size={16} />
-            Arkiv
+            {t('tasks.archive.title')}
           </button>
           <button
             onClick={() => setShowCreate(true)}
@@ -1128,14 +1142,14 @@ export default function Tasks() {
             onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
           >
             <Icon name="plus" size={16} />
-            Ny Opgave
+            {t('tasks.createTask')}
           </button>
         </div>
       </div>
 
       {/* Search + Status Filter + Activity Status */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        {/* Søgefelt */}
+        {/* Search field */}
         <div style={{ flex: '1 1 220px', position: 'relative', minWidth: 0 }}>
           <Icon
             name="magnifying-glass"
@@ -1153,7 +1167,7 @@ export default function Tasks() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Søg i opgaver..."
+            placeholder={t('tasks.searchPlaceholder')}
             style={{
               width: '100%',
               paddingLeft: 42,
@@ -1195,10 +1209,10 @@ export default function Tasks() {
         {/* Status filter pills */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           {[
-            { id: 'all',       label: 'Alle',      color: '#8E8E93', count: tasks.length },
-            { id: 'queued',    label: 'I Kø',      color: '#FF9F0A', count: queued.length },
-            { id: 'active',    label: 'Aktive',    color: '#007AFF', count: active.length },
-            { id: 'completed', label: 'Afsluttet', color: '#30D158', count: completed.length },
+            { id: 'all', label: t('tasks.archive.all'), color: '#8E8E93', count: tasks.length },
+            { id: 'queued', label: t('tasks.status.queued'), color: '#FF9F0A', count: queued.length },
+            { id: 'active', label: t('tasks.archive.active'), color: '#007AFF', count: active.length },
+            { id: 'completed', label: t('common.completed'), color: '#30D158', count: completed.length },
           ].map(f => {
             const isActive = statusFilter === f.id
             return (
@@ -1253,14 +1267,14 @@ export default function Tasks() {
         {nextCron && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
             <Icon name="clock" size={14} style={{ color: '#FF9F0A' }} />
-            <span className="text-xs text-white/50">Næste:</span>
+            <span className="text-xs text-white/50">{t('tasks.next')}</span>
             <span className="text-xs font-medium text-white">{nextCron.name}</span>
             <span className="text-xs font-mono" style={{ color: '#FF9F0A' }}>{nextCron.timeStr}</span>
           </div>
         )}
       </div>
 
-      {/* Kombineret tomt state ved søgning uden resultater */}
+      {/* Combined empty state for search with no results */}
       {hasActiveSearch && totalFiltered === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div style={{ textAlign: 'center' }}>
@@ -1277,10 +1291,10 @@ export default function Tasks() {
               <Icon name="magnifying-glass" size={24} style={{ color: 'rgba(255,255,255,0.15)' }} />
             </div>
             <p style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
-              Ingen opgaver fundet
+              {t('tasks.archive.noTasks')}
             </p>
             <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-              Ingen opgaver matcher "{debouncedSearch}"
+              {t('tasks.archive.noTasksDesc')}
             </p>
             <button
               onClick={() => setSearch('')}
@@ -1296,116 +1310,116 @@ export default function Tasks() {
                 color: '#5AC8FA',
               }}
             >
-              Ryd søgning
+              {t('tasks.clearSearch')}
             </button>
           </div>
         </div>
       ) : (
-      <div className="flex-1 overflow-hidden" style={{
-        display: 'grid',
-        gridTemplateColumns: statusFilter === 'all'
-          ? 'repeat(3, 1fr)'
-          : '1fr',
-        gap: 16,
-      }}>
-        {/* I KØ */}
-        {(statusFilter === 'all' || statusFilter === 'queued') && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-4 px-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: '#FF9F0A' }} />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">I Kø</h2>
-            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(255,159,10,0.1)', color: '#FF9F0A' }}>
-              {queuedFiltered.length}
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {loading && tasks.length === 0 ? (
-              <>
-                <style>{shimmerStyle}</style>
-                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
-              </>
-            ) : queuedFiltered.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon name="clock" size={24} className="mx-auto mb-2" style={{ color: 'rgba(255,159,10,0.2)' }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen i kø</p>
+        <div className="flex-1 overflow-hidden" style={{
+          display: 'grid',
+          gridTemplateColumns: statusFilter === 'all'
+            ? 'repeat(3, 1fr)'
+            : '1fr',
+          gap: 16,
+        }}>
+          {/* IN QUEUE */}
+          {(statusFilter === 'all' || statusFilter === 'queued') && (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-4 px-2">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#FF9F0A' }} />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wide">{t('tasks.status.queued')}</h2>
+                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(255,159,10,0.1)', color: '#FF9F0A' }}>
+                  {queuedFiltered.length}
+                </span>
               </div>
-            ) : (
-              queuedFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} onStart={() => handleStartTask(t)} expanded={allExpanded} />
-              ))
-            )}
-          </div>
-        </div>
-        )}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {loading && tasks.length === 0 ? (
+                  <>
+                    <style>{shimmerStyle}</style>
+                    {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+                  </>
+                ) : queuedFiltered.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Icon name="clock" size={24} className="mx-auto mb-2" style={{ color: 'rgba(255,159,10,0.2)' }} />
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('tasks.noQueuedTasks')}</p>
+                  </div>
+                ) : (
+                  queuedFiltered.map(t => (
+                    <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} onStart={() => handleStartTask(t)} expanded={allExpanded} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
-        {/* AKTIVE */}
-        {(statusFilter === 'all' || statusFilter === 'active') && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-4 px-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: '#007AFF' }} />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Aktive</h2>
-            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>
-              {activeFiltered.length}
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {loading && tasks.length === 0 ? (
-              <>
-                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
-              </>
-            ) : activeFiltered.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon name="bolt" size={24} className="mx-auto mb-2" style={{ color: 'rgba(0,122,255,0.2)' }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen aktive</p>
+          {/* ACTIVE */}
+          {(statusFilter === 'all' || statusFilter === 'active') && (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-4 px-2">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#007AFF' }} />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wide">{t('tasks.archive.active')}</h2>
+                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,122,255,0.1)', color: '#007AFF' }}>
+                  {activeFiltered.length}
+                </span>
               </div>
-            ) : (
-              activeFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
-              ))
-            )}
-          </div>
-        </div>
-        )}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {loading && tasks.length === 0 ? (
+                  <>
+                    {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+                  </>
+                ) : activeFiltered.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Icon name="bolt" size={24} className="mx-auto mb-2" style={{ color: 'rgba(0,122,255,0.2)' }} />
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('tasks.noTasks')}</p>
+                  </div>
+                ) : (
+                  activeFiltered.map(t => (
+                    <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
-        {/* AFSLUTTET */}
-        {(statusFilter === 'all' || statusFilter === 'completed') && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-4 px-2">
-            <div className="w-3 h-3 rounded-full" style={{ background: '#30D158' }} />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wide">Afsluttet</h2>
-            <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(48,209,88,0.1)', color: '#30D158' }}>
-              {completedFiltered.length}
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {loading && tasks.length === 0 ? (
-              <>
-                {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
-              </>
-            ) : completedFiltered.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon name="checkmark-circle" size={24} className="mx-auto mb-2" style={{ color: 'rgba(48,209,88,0.2)' }} />
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>Ingen afsluttede</p>
+          {/* COMPLETED */}
+          {(statusFilter === 'all' || statusFilter === 'completed') && (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-4 px-2">
+                <div className="w-3 h-3 rounded-full" style={{ background: '#30D158' }} />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wide">{t('common.completed')}</h2>
+                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(48,209,88,0.1)', color: '#30D158' }}>
+                  {completedFiltered.length}
+                </span>
               </div>
-            ) : (
-              completedFiltered.map(t => (
-                <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
-              ))
-            )}
-          </div>
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {loading && tasks.length === 0 ? (
+                  <>
+                    {[1, 2, 3].map(i => <SkeletonRow key={i} />)}
+                  </>
+                ) : completedFiltered.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Icon name="checkmark-circle" size={24} className="mx-auto mb-2" style={{ color: 'rgba(48,209,88,0.2)' }} />
+                    <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('tasks.noTasks')}</p>
+                  </div>
+                ) : (
+                  completedFiltered.map(t => (
+                    <TaskMiniCard key={t.id} task={t} onSelect={() => setSelectedTask(t)} expanded={allExpanded} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        )}
-      </div>
       )}
 
       {/* Popups */}
       {selectedTask && <DetailPanel task={selectedTask} onClose={() => setSelectedTask(null)} />}
       <CreateModal open={showCreate} onClose={() => setShowCreate(false)} />
-      <ArchiveModal 
-        open={showArchive} 
-        onClose={() => setShowArchive(false)} 
-        tasks={tasks} 
-        onSelectTask={setSelectedTask} 
+      <ArchiveModal
+        open={showArchive}
+        onClose={() => setShowArchive(false)}
+        tasks={tasks}
+        onSelectTask={setSelectedTask}
       />
     </div>
   )

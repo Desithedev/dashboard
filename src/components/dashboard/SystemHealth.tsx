@@ -1,10 +1,11 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 import { MiniLineChart } from '../Chart'
 import type { SystemInfo } from './types'
 
-interface SystemhelbRedProps {
+interface SystemHealthProps {
   systemInfo: SystemInfo
   ramPct: number | null
   diskPctValue: number | null
@@ -13,33 +14,35 @@ interface SystemhelbRedProps {
   consecutiveErrors: number
 }
 
-const SystemhelbRed = memo(function SystemhelbRed({
+const SystemHealth = memo(function SystemHealth({
   systemInfo,
   ramPct,
   diskPctValue,
   ramHistory,
   diskHistory,
   consecutiveErrors,
-}: SystemhelbRedProps) {
+}: SystemHealthProps) {
+  const { t } = useTranslation()
+
   const ramColor =
     ramPct === null ? '#8E8E93' :
-    ramPct > 90 ? '#FF3B30' :
-    ramPct > 70 ? '#FF9F0A' : '#34C759'
+      ramPct > 90 ? '#FF3B30' :
+        ramPct > 70 ? '#FF9F0A' : '#34C759'
 
   const diskColor =
     diskPctValue === null ? '#8E8E93' :
-    diskPctValue > 90 ? '#FF3B30' :
-    diskPctValue > 70 ? '#FF9F0A' : '#34C759'
+      diskPctValue > 90 ? '#FF3B30' :
+        diskPctValue > 70 ? '#FF9F0A' : '#34C759'
 
   const connScore = consecutiveErrors === 0 ? 100 : Math.max(0, 100 - consecutiveErrors * 20)
   const connColor =
     connScore >= 80 ? '#34C759' :
-    connScore >= 50 ? '#FF9F0A' : '#FF3B30'
+      connScore >= 50 ? '#FF9F0A' : '#FF3B30'
 
   return (
-    <Card title="Systemhelbred" subtitle="Server- og forbindelsesstatus" className="mb-8" style={{ animationDelay: '300ms' }}>
+    <Card title={t('components.systemStatus', 'System Status')} subtitle={t('components.status', 'Status')} className="mb-8" style={{ animationDelay: '300ms' }}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Gateway Oppetid */}
+        {/* Gateway Uptime */}
         <div className="flex items-start gap-3">
           <div style={{
             flexShrink: 0, width: 32, height: 32, borderRadius: 8,
@@ -49,9 +52,9 @@ const SystemhelbRed = memo(function SystemhelbRed({
             <Icon name="server" size={16} style={{ color: '#34C759' }} />
           </div>
           <div className="min-w-0">
-            <p className="caption text-xs">Gateway Oppetid</p>
+            <p className="caption text-xs">{t('components.gatewayUptime', 'Gateway Uptime')}</p>
             <p className="text-sm font-semibold text-white truncate">
-              {systemInfo.uptime || 'Ukendt'}
+              {systemInfo.uptime || t('components.unknown', 'Unknown')}
             </p>
           </div>
         </div>
@@ -66,7 +69,7 @@ const SystemhelbRed = memo(function SystemhelbRed({
             <Icon name="gauge" size={16} style={{ color: ramColor }} />
           </div>
           <div className="min-w-0">
-            <p className="caption text-xs">Hukommelse</p>
+            <p className="caption text-xs">{t('components.workingMemory', 'Working Memory')}</p>
             <p className="text-sm font-semibold text-white truncate">
               {ramPct !== null ? `${ramPct}%` : 'N/A'}
             </p>
@@ -93,7 +96,7 @@ const SystemhelbRed = memo(function SystemhelbRed({
             <Icon name="folder" size={16} style={{ color: diskColor }} />
           </div>
           <div className="min-w-0">
-            <p className="caption text-xs">Disk</p>
+            <p className="caption text-xs">{t('components.memory', 'Memory')}</p>
             <p className="text-sm font-semibold text-white truncate">
               {diskPctValue !== null ? `${diskPctValue}%` : 'N/A'}
             </p>
@@ -110,7 +113,7 @@ const SystemhelbRed = memo(function SystemhelbRed({
           </div>
         </div>
 
-        {/* Forbindelsesstatus */}
+        {/* Connection Status */}
         <div className="flex items-start gap-3">
           <div style={{
             flexShrink: 0, width: 32, height: 32, borderRadius: 8,
@@ -120,12 +123,12 @@ const SystemhelbRed = memo(function SystemhelbRed({
             <Icon name="zap" size={16} style={{ color: connColor }} />
           </div>
           <div className="min-w-0">
-            <p className="caption text-xs">Forbindelse</p>
+            <p className="caption text-xs">{t('pages.dashboard.header', 'Dashboard')}</p>
             <p className="text-sm font-semibold truncate" style={{ color: connColor }}>
               {connScore}%
             </p>
             <p className="caption text-xs truncate">
-              {consecutiveErrors === 0 ? 'Stabil' : `${consecutiveErrors} fejl i træk`}
+              {consecutiveErrors === 0 ? t('common.stable', 'Stable') : t('dashboard.errorsCount', '{{count}} errors', { count: consecutiveErrors })}
             </p>
           </div>
         </div>
@@ -134,4 +137,4 @@ const SystemhelbRed = memo(function SystemhelbRed({
   )
 })
 
-export default SystemhelbRed
+export default SystemHealth

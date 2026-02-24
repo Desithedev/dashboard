@@ -3,15 +3,15 @@ import { useLiveData } from '../api/LiveDataContext'
 import { useNotifications } from '../api/NotificationContext'
 
 /**
- * Custom hook der sætter document title med connection status og ulæste notifikationer.
+ * Custom hook that sets the document title with connection status and unread notifications.
  *
- * Format eksempler:
- *   "(3) ⚠ Dashboard — Mission Kontrol"  (ulæste + afbrudt)
- *   "(3) Dashboard — Mission Kontrol"     (ulæste, forbundet)
- *   "⚠ Dashboard — Mission Kontrol"       (afbrudt, ingen ulæste)
- *   "Dashboard — Mission Kontrol"         (forbundet, ingen ulæste)
+ * Format examples:
+ *   "(3) ⚠ Dashboard — Mission Kontrol"  (unread + disconnected)
+ *   "(3) Dashboard — Mission Kontrol"     (unread, connected)
+ *   "⚠ Dashboard — Mission Kontrol"       (disconnected, none unread)
+ *   "Dashboard — Mission Kontrol"         (connected, none unread)
  *
- * @param title - Sidens navn på dansk
+ * @param title - The name of the page
  */
 export function usePageTitle(title: string) {
   const { isConnected } = useLiveData()

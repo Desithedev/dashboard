@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -15,13 +16,14 @@ interface Message {
   toolCalls?: string[]
 }
 
-type FilterType = 'alle' | 'aktive' | 'sub-agenter'
+type FilterType = 'all' | 'active' | 'sub-agents'
 
-const ACTIVE_THRESHOLD_MS = 60 * 60 * 1000 // 1 time
-const POLL_INTERVAL_MS = 3000              // Auto-refresh beskeder hvert 3s
+const ACTIVE_THRESHOLD_MS = 60 * 60 * 1000 // 1 hour
+const POLL_INTERVAL_MS = 3000              // Auto-refresh messages every 3s
 
 export default function Communication() {
-  usePageTitle('Kommunikation')
+  const { t, i18n } = useTranslation()
+  usePageTitle(t('pages.communication.title', 'Communication'))
 
   const [sessions, setSessions] = useState<ApiSession[]>([])
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
@@ -30,58 +32,58 @@ export default function Communication() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [allExpanded, setAllExpanded] = useState(false)
-  const [filter, setFilter] = useState<FilterType>('alle')
+  const [filter, setFilter] = useState<FilterType>('all')
   const [unreadSessions, setUnreadSessions] = useState<Set<string>>(new Set())
 
-  // Ref til "sidst set" tidspunkt pr. session
+  // Ref to "last seen" timestamp per session
   const lastSeenRef = useRef<Record<string, number>>({})
-  // Ref til seneste kendte besked-tidspunkt pr. session (til unread-detektion)
+  // Ref to latest known message timestamp per session (for unread detection)
   const latestMsgTimestampRef = useRef<Record<string, number>>({})
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const selectedSessionRef = useRef<string | null>(null)
   const sendingRef = useRef(false)
 
-  // Hold refs synkrone med state
+  // Keep refs in sync with state
   useEffect(() => { selectedSessionRef.current = selectedSession }, [selectedSession])
   useEffect(() => { sendingRef.current = sending }, [sending])
 
-  // Scroll ned når beskeder ændres
+  // Scroll down when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // --- Hent sessioner hvert 5s (og brug lastMessages til unread-detektion) ---
+  // --- Fetch sessions every 5s (and use lastMessages for unread detection) ---
   useEffect(() => {
     fetchSessions()
     const interval = setInterval(fetchSessions, 5000)
     return () => clearInterval(interval)
   }, [])
 
-  // --- Auto-refresh beskeder hvert 3s for valgte session ---
+  // --- Auto-refresh messages every 3s for selected session ---
   useEffect(() => {
     if (!selectedSession) return
     const interval = setInterval(() => {
-      // Spring over hvis vi sender en besked
+      // Skip if we are sending a message
       if (sendingRef.current) return
       fetchMessages(selectedSession, /* silent */ true)
     }, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [selectedSession])
 
-  // Hent beskeder første gang session vælges
+  // Fetch messages the first time a session is selected
   useEffect(() => {
     if (selectedSession) {
       fetchMessages(selectedSession)
-      // Marker som "set" nu
+      // Mark as "seen" now
       markAsSeen(selectedSession)
     }
   }, [selectedSession])
 
-  // --- Filtrer sessions ---
+  // --- Filter sessions ---
   const filteredSessions = sessions.filter(s => {
-    if (filter === 'aktive') return Date.now() - s.updatedAt < ACTIVE_THRESHOLD_MS
-    if (filter === 'sub-agenter') return s.kind !== 'main'
+    if (filter === 'active') return Date.now() - s.updatedAt < ACTIVE_THRESHOLD_MS
+    if (filter === 'sub-agents') return s.kind !== 'main'
     return true
   })
 
@@ -110,17 +112,17 @@ export default function Communication() {
         const incoming: ApiSession[] = parsed.sessions || []
         setSessions(incoming)
 
-        // Auto-vælg første session
+        // Auto-select first session
         if (!selectedSessionRef.current && incoming.length > 0) {
           setSelectedSession(incoming[0].key)
           markAsSeen(incoming[0].key)
         }
 
-        // Opdater unread-indikatorer baseret på lastMessages
+        // Update unread indicators based on lastMessages
         incoming.forEach(session => {
           const lastMsgs = session.lastMessages
           if (!lastMsgs || lastMsgs.length === 0) return
-          // Seneste besked-timestamp
+          // Latest message timestamp
           const latestTs = lastMsgs.reduce((max: number, m: any) => {
             const ts = m.timestamp || 0
             return ts > max ? ts : max
@@ -130,7 +132,7 @@ export default function Communication() {
           const prevLatest = latestMsgTimestampRef.current[session.key] || 0
           latestMsgTimestampRef.current[session.key] = Math.max(prevLatest, latestTs)
 
-          // Ny besked siden sidst set? Og ikke den valgte session?
+          // New message since last seen? And not the selected session?
           const lastSeen = lastSeenRef.current[session.key] || 0
           if (latestTs > lastSeen && session.key !== selectedSessionRef.current) {
             setUnreadSessions(prev => {
@@ -144,7 +146,7 @@ export default function Communication() {
       }
       setLoading(false)
     } catch (error) {
-      console.error('Fejl ved hentning af sessioner:', error)
+      console.error('Error fetching sessions:', error)
       setLoading(false)
     }
   }
@@ -176,7 +178,7 @@ export default function Communication() {
                   : '...'
                 toolCalls.push(`${name}(${argStr})`)
               }
-              // Spring 'thinking'-blokke over
+              // Skip 'thinking' blocks
             }
             content = textParts.join('\n')
           } else {
@@ -184,7 +186,7 @@ export default function Communication() {
           }
 
           if (toolCalls.length > 0) {
-            const toolLine = toolCalls.map((t: string) => `[${t}]`).join(' ')
+            const toolLine = toolCalls.map((t_call: string) => `[${t_call}]`).join(' ')
             content = content ? `${content}\n${toolLine}` : toolLine
           }
 
@@ -198,23 +200,23 @@ export default function Communication() {
           }
         }).filter((m: any) => {
           if (!m.content || !m.content.trim()) return false
-          const t = m.content.trim()
-          if (t === 'NO_REPLY' || t === 'HEARTBEAT_OK') return false
+          const t_content = m.content.trim()
+          if (t_content === 'NO_REPLY' || t_content === 'HEARTBEAT_OK') return false
           return true
         })
 
-        // Kun opdater state hvis det er den stadig valgte session
+        // Only update state if it is still the selected session
         if (sessionKey === selectedSessionRef.current) {
           setMessages(parsedMsgs)
         }
 
-        // Opdater sidst-set ved auto-refresh (session er aktiv og set)
+        // Update last-seen on auto-refresh (session is active and viewed)
         if (silent && sessionKey === selectedSessionRef.current) {
           lastSeenRef.current[sessionKey] = Date.now()
         }
       }
     } catch (error) {
-      if (!silent) console.error('Fejl ved hentning af beskeder:', error)
+      if (!silent) console.error('Error fetching messages:', error)
     }
   }, [])
 
@@ -230,7 +232,7 @@ export default function Communication() {
       setMessageInput('')
       setTimeout(() => fetchMessages(selectedSession), 1000)
     } catch (error) {
-      console.error('Fejl ved afsendelse:', error)
+      console.error('Error sending message:', error)
     } finally {
       setSending(false)
     }
@@ -242,7 +244,7 @@ export default function Communication() {
 
   const selectedSessionData = sessions.find(s => s.key === selectedSession)
 
-  // Filterknapstyle helper
+  // Filter button style helper
   const filterBtnStyle = (active: boolean): React.CSSProperties => ({
     background: active ? 'rgba(0,122,255,0.18)' : 'rgba(255,255,255,0.05)',
     border: `1px solid ${active ? 'rgba(0,122,255,0.35)' : 'rgba(255,255,255,0.08)'}`,
@@ -260,7 +262,7 @@ export default function Communication() {
   return (
     <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Kommunikation</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{t('pages.communication.title', 'Communication')}</h1>
         <DataFreshness />
         <button
           onClick={() => setAllExpanded(!allExpanded)}
@@ -280,11 +282,11 @@ export default function Communication() {
           }}
         >
           <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-          {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+          {allExpanded ? t('common.collapse', 'Collapse') : t('common.expandAll', 'Expand all')}
         </button>
       </div>
       <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        Live beskeder fra Telegram og andre kanaler
+        {t('pages.communication.subtitle', 'Live messages from Telegram and other channels')}
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-240px)]">
@@ -295,18 +297,18 @@ export default function Communication() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
               <Icon name="filter" size={13} style={{ color: 'rgba(255,255,255,0.4)' }} />
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 500, letterSpacing: '0.03em' }}>
-                FILTER
+                {t('common.filter', 'FILTER')}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              <button style={filterBtnStyle(filter === 'alle')} onClick={() => setFilter('alle')}>
-                Alle
+              <button style={filterBtnStyle(filter === 'all')} onClick={() => setFilter('all')}>
+                {t('pages.communication.filterAll', 'All')}
               </button>
-              <button style={filterBtnStyle(filter === 'aktive')} onClick={() => setFilter('aktive')}>
-                Aktive
+              <button style={filterBtnStyle(filter === 'active')} onClick={() => setFilter('active')}>
+                {t('pages.communication.filterActive', 'Active')}
               </button>
-              <button style={filterBtnStyle(filter === 'sub-agenter')} onClick={() => setFilter('sub-agenter')}>
-                Sub-agenter
+              <button style={filterBtnStyle(filter === 'sub-agents')} onClick={() => setFilter('sub-agents')}>
+                {t('pages.communication.filterSubAgents', 'Sub-agents')}
               </button>
             </div>
             <div style={{
@@ -317,7 +319,7 @@ export default function Communication() {
           </div>
 
           <h3 className="text-sm font-semibold text-white mb-3">
-            Sessioner
+            {t('dashboard.sessions', 'Sessions')}
             {filteredSessions.length !== sessions.length && (
               <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '6px' }}>
                 ({filteredSessions.length}/{sessions.length})
@@ -326,7 +328,7 @@ export default function Communication() {
           </h3>
 
           {filteredSessions.length === 0 ? (
-            <p className="text-sm text-white/50 text-center py-8">Ingen sessioner</p>
+            <p className="text-sm text-white/50 text-center py-8">{t('pages.communication.noSessions', 'No sessions')}</p>
           ) : (
             <div className="space-y-2">
               {filteredSessions.map(session => {
@@ -344,7 +346,7 @@ export default function Communication() {
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      {/* Status-prik (online/offline) */}
+                      {/* Status dot (online/offline) */}
                       <span
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ background: isActive ? '#34C759' : '#8E8E93' }}
@@ -352,10 +354,10 @@ export default function Communication() {
                       <span className="text-sm font-medium text-white truncate flex-1">
                         {session.displayName || session.label || session.key}
                       </span>
-                      {/* Unread indikator */}
+                      {/* Unread indicator */}
                       {hasUnread && !isSelected && (
                         <span
-                          title="Nye beskeder"
+                          title={t('pages.communication.newMessages', 'New messages')}
                           style={{
                             width: '8px',
                             height: '8px',
@@ -367,11 +369,11 @@ export default function Communication() {
                         />
                       )}
                     </div>
-                    <p className="caption text-xs truncate">{session.channel || 'ingen kanal'}</p>
+                    <p className="caption text-xs truncate">{session.channel || t('pages.communication.channelUnknown', 'no channel')}</p>
                     {allExpanded && (
                       <div style={{ marginTop: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>
-                        <p>Model: {session.model || 'ukendt'}</p>
-                        <p>Opdateret: {new Date(session.updatedAt).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p>{t('components.model', 'Model')}: {session.model || t('pages.communication.modelUnknown', 'unknown')}</p>
+                        <p>{t('common.updatedJustNow', 'Updated')}: {new Date(session.updatedAt).toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
                       </div>
                     )}
                   </button>
@@ -381,11 +383,11 @@ export default function Communication() {
           )}
         </Card>
 
-        {/* Besked-område */}
+        {/* Message area */}
         <Card className="lg:col-span-3 flex flex-col" style={{ animationDelay: '60ms' }}>
           {!selectedSession ? (
             <div className="flex-1 flex items-center justify-center text-white/50">
-              Vælg en session for at se beskeder
+              {t('pages.communication.selectSession', 'Select a session to view messages')}
             </div>
           ) : (
             <>
@@ -399,7 +401,7 @@ export default function Communication() {
                     <p className="caption text-xs">
                       {selectedSessionData?.channel} · {selectedSessionData?.model}
                     </p>
-                    {/* Auto-refresh indikator */}
+                    {/* Auto-refresh indicator */}
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -415,7 +417,7 @@ export default function Communication() {
                         display: 'inline-block',
                         animation: 'pulse 2s infinite',
                       }} />
-                      Live
+                      {t('pages.communication.live', 'Live')}
                     </span>
                   </div>
                 </div>
@@ -423,16 +425,16 @@ export default function Communication() {
                   onClick={() => fetchMessages(selectedSession)}
                   className="p-2 rounded-lg transition-all"
                   style={{ background: 'rgba(255,255,255,0.06)' }}
-                  title="Genindlæs beskeder"
+                  title={t('pages.communication.reload', 'Reload messages')}
                 >
                   <Icon name="arrow-path" size={16} className="text-white/70" />
                 </button>
               </div>
 
-              {/* Beskeder */}
+              {/* Messages */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4">
                 {messages.length === 0 ? (
-                  <p className="text-sm text-white/50 text-center py-8">Ingen beskeder</p>
+                  <p className="text-sm text-white/50 text-center py-8">{t('pages.communication.noMessages', 'No messages')}</p>
                 ) : (
                   messages.map((msg, i) => (
                     <div
@@ -446,23 +448,22 @@ export default function Communication() {
                             msg.role === 'user'
                               ? 'rgba(0, 122, 255, 0.2)'
                               : msg.role === 'assistant'
-                              ? 'rgba(255,255,255,0.06)'
-                              : 'rgba(255, 159, 10, 0.15)',
-                          border: `1px solid ${
-                            msg.role === 'user'
-                              ? 'rgba(0, 122, 255, 0.3)'
-                              : msg.role === 'assistant'
+                                ? 'rgba(255,255,255,0.06)'
+                                : 'rgba(255, 159, 10, 0.15)',
+                          border: `1px solid ${msg.role === 'user'
+                            ? 'rgba(0, 122, 255, 0.3)'
+                            : msg.role === 'assistant'
                               ? 'rgba(255,255,255,0.08)'
                               : 'rgba(255, 159, 10, 0.3)'
-                          }`,
+                            }`,
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-medium text-white/70">
-                            {msg.role === 'user' ? 'Bruger' : msg.role === 'assistant' ? 'AI' : 'System'}
+                            {msg.role === 'user' ? t('pages.communication.statusUser', 'User') : msg.role === 'assistant' ? t('pages.communication.statusAssistant', 'AI') : t('pages.communication.statusSystem', 'System')}
                           </span>
                           <span className="caption text-xs">
-                            {new Date(msg.timestamp).toLocaleTimeString('da-DK', {
+                            {new Date(msg.timestamp).toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
@@ -511,7 +512,7 @@ export default function Communication() {
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  placeholder="Skriv en besked..."
+                  placeholder={t('pages.communication.inputPlaceholder', 'Type a message...')}
                   disabled={sending}
                   className="flex-1 px-4 py-2 rounded-lg text-sm text-white placeholder-white/30"
                   style={{
@@ -531,7 +532,7 @@ export default function Communication() {
                     cursor: sending || !messageInput.trim() ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {sending ? 'Sender...' : 'Send'}
+                  {sending ? t('pages.communication.sending', 'Sending...') : t('pages.communication.send', 'Send')}
                 </button>
               </div>
             </>
@@ -539,7 +540,7 @@ export default function Communication() {
         </Card>
       </div>
 
-      {/* CSS animation til Live-prik */}
+      {/* CSS animation for Live dot */}
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }

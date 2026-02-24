@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 import { useNotifications, NotificationType } from '../api/NotificationContext'
 
@@ -9,15 +10,16 @@ const typeConfig: Record<NotificationType, { icon: string; color: string; bg: st
   success: { icon: 'check-circle', color: '#30D158', bg: 'rgba(48,209,88,0.1)' },
 }
 
-function formatTime(ts: number): string {
+function formatTime(ts: number, t: any, i18n: any): string {
   const diff = Date.now() - ts
-  if (diff < 60000) return 'lige nu'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} min siden`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}t siden`
-  return new Date(ts).toLocaleDateString('da-DK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  if (diff < 60000) return t('common.justNow', 'just now')
+  if (diff < 3600000) return t('common.minutesAgo', { count: Math.floor(diff / 60000) })
+  if (diff < 86400000) return t('common.hoursAgo', { count: Math.floor(diff / 3600000) })
+  return new Date(ts).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function NotificationCenter() {
+  const { t, i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, dismissNotification } = useNotifications()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -38,8 +40,8 @@ export default function NotificationCenter() {
         background: isOpen ? 'rgba(255,255,255,0.08)' : 'transparent',
         border: 'none', cursor: 'pointer', transition: 'background 150ms',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-      onMouseLeave={e => (e.currentTarget.style.background = isOpen ? 'rgba(255,255,255,0.08)' : 'transparent')}>
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.background = isOpen ? 'rgba(255,255,255,0.08)' : 'transparent')}>
         <Icon name={unreadCount > 0 ? 'bell-badge' : 'bell'} size={20} className="text-white/70" />
         {unreadCount > 0 && (
           <span style={{
@@ -63,12 +65,12 @@ export default function NotificationCenter() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>Notifikationer</span>
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>{t('notifications.title', 'Notifications')}</span>
               {unreadCount > 0 && (
                 <span style={{
                   background: 'rgba(255,59,48,0.15)', color: '#FF3B30', fontSize: 11,
                   fontWeight: 600, padding: '2px 8px', borderRadius: 10,
-                }}>{unreadCount} ulæste</span>
+                }}>{t('notifications.unreadCount', '{{count}} unread', { count: unreadCount })}</span>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -76,13 +78,13 @@ export default function NotificationCenter() {
                 <button onClick={markAllAsRead} style={{
                   background: 'none', border: 'none', color: 'rgba(0,122,255,0.9)',
                   fontSize: 12, cursor: 'pointer', padding: '4px 8px', borderRadius: 6,
-                }}>Markér alle læst</button>
+                }}> {t('notifications.markAllRead', 'Mark all as read')} </button>
               )}
               {notifications.length > 0 && (
                 <button onClick={clearAll} style={{
                   background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
                   fontSize: 12, cursor: 'pointer', padding: '4px 8px', borderRadius: 6,
-                }}>Ryd alle</button>
+                }}>{t('notifications.clearAll', 'Clear all')}</button>
               )}
             </div>
           </div>
@@ -91,7 +93,7 @@ export default function NotificationCenter() {
             {notifications.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
                 <Icon name="bell" size={32} className="text-white/20" style={{ marginBottom: 12 }} />
-                <p>Ingen notifikationer</p>
+                <p>{t('notifications.noneTitle', 'No notifications')}</p>
               </div>
             ) : (
               notifications.slice(0, 50).map(n => {
@@ -123,7 +125,7 @@ export default function NotificationCenter() {
                         {n.message}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{formatTime(n.timestamp)}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }}>{formatTime(n.timestamp, t, i18n)}</span>
                         {n.source && (
                           <span style={{
                             fontSize: 10, color: 'rgba(255,255,255,0.2)',

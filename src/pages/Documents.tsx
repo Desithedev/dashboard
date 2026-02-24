@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../components/Card'
 import Table from '../components/Table'
 import SearchBar from '../components/SearchBar'
@@ -22,8 +23,9 @@ interface WorkspaceFile {
 }
 
 export default function Documents() {
-  usePageTitle('Dokumenter')
-  
+  const { t } = useTranslation()
+  usePageTitle(t('documents.title', 'Documents'))
+
   const { isConnected } = useLiveData()
   const { showToast } = useToast()
   const [files, setFiles] = useState<WorkspaceFile[]>([])
@@ -41,10 +43,10 @@ export default function Documents() {
         .then(fileList => {
           const mapped = fileList.map((f: any, i: number) => ({
             id: `f${i}`,
-            name: f.name || f.path?.split('/').pop() || 'Unavngiven',
+            name: f.name || f.path?.split('/').pop() || t('documents.unnamed', 'Unnamed'),
             path: f.path || '',
             size: f.size || 'N/A',
-            modified: f.modified || 'Ukendt',
+            modified: f.modified || 'Unknown',
             type: f.type || detectFileType(f.name || f.path || ''),
           }))
           setFiles(mapped)
@@ -70,12 +72,12 @@ export default function Documents() {
   if (!isConnected) {
     return (
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold mb-1">Dokumenter</h1>
-        <p className="caption mb-6">Videnbase og filhåndtering</p>
+        <h1 className="text-xl sm:text-2xl font-bold mb-1">{t('documents.title', 'Documents')}</h1>
+        <p className="caption mb-6">{t('documents.subtitle', 'Knowledge base and file management')}</p>
         <Card>
           <div className="text-center py-8">
-            <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-            <p className="text-sm text-white/50">Gå til Indstillinger for at konfigurere API forbindelse</p>
+            <p className="text-white/70 mb-2">{t('documents.noConnectionTitle', 'No connection to Gateway')}</p>
+            <p className="text-sm text-white/50">{t('documents.noConnectionDescription', 'Go to Settings to configure API connection')}</p>
           </div>
         </Card>
       </div>
@@ -85,30 +87,36 @@ export default function Documents() {
   return (
     <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold">Dokumenter</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{t('documents.title', 'Documents')}</h1>
         <DataFreshness className="ml-auto" />
       </div>
-      <p className="caption mb-6">Videnbase og filhåndtering</p>
+      <p className="caption mb-6">{t('documents.subtitle', 'Knowledge base and file management')}</p>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
-        <div className="flex-1"><SearchBar value={search} onChange={setSearch} placeholder="Søg i dokumenter..." /></div>
-        <button 
-          onClick={() => showToast('info', 'Upload funktion kommer snart')}
-          className="flex items-center justify-center gap-1.5" 
+        <div className="flex-1">
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={t('documents.searchPlaceholder', 'Search documents...')}
+          />
+        </div>
+        <button
+          onClick={() => showToast('info', t('documents.uploadComingSoon', 'Upload functionality coming soon'))}
+          className="flex items-center justify-center gap-1.5"
           style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
         >
-          <Icon name="upload" size={14} /> Upload Dokument
+          <Icon name="upload" size={14} /> {t('documents.uploadButton', 'Upload Document')}
         </button>
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState
           icon="doc"
-          title={files.length === 0 ? 'Ingen filer fundet' : 'Ingen filer matchede søgningen'}
+          title={files.length === 0 ? t('documents.noFilesTitle', 'No files found') : t('documents.noSearchMatchTitle', 'No files matched your search')}
           description={
             files.length === 0
-              ? 'Workspace er tomt eller Gateway er ikke forbundet'
-              : 'Prøv et andet søgeord'
+              ? t('documents.noFilesDescription', 'Workspace is empty or the Gateway is not connected')
+              : t('documents.noSearchMatchDescription', 'Try a different search term')
           }
         />
       ) : (
@@ -118,16 +126,18 @@ export default function Documents() {
               data={filtered}
               onRowClick={setSelected}
               columns={[
-                { key: 'name', header: 'Navn', render: d => (
-                  <div className="flex items-center gap-2">
-                    <Icon name={getIconForFile(d.name)} size={14} className="text-white/40" />
-                    <span className="font-medium whitespace-nowrap">{d.name}</span>
-                  </div>
-                )},
-                { key: 'type', header: 'Type', render: d => <span className="whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.7)' }}>{d.type}</span> },
-                { key: 'size', header: 'Størrelse', render: d => <span className="whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.7)' }}>{d.size}</span> },
-                { key: 'modified', header: 'Ændret', render: d => <span className="caption whitespace-nowrap">{d.modified}</span> },
-                { key: 'path', header: 'Sti', render: d => <span className="caption whitespace-nowrap font-mono text-xs">{d.path}</span> },
+                {
+                  key: 'name', header: t('documents.name', 'Name'), render: d => (
+                    <div className="flex items-center gap-2">
+                      <Icon name={getIconForFile(d.name)} size={14} className="text-white/40" />
+                      <span className="font-medium whitespace-nowrap">{d.name}</span>
+                    </div>
+                  )
+                },
+                { key: 'type', header: t('documents.type', 'Type'), render: d => <span className="whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.7)' }}>{d.type}</span> },
+                { key: 'size', header: t('documents.size', 'Size'), render: d => <span className="whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.7)' }}>{d.size}</span> },
+                { key: 'modified', header: t('documents.modified', 'Modified'), render: d => <span className="caption whitespace-nowrap">{d.modified}</span> },
+                { key: 'path', header: t('documents.path', 'Path'), render: d => <span className="caption whitespace-nowrap font-mono text-xs">{d.path}</span> },
               ]}
             />
           </div>
@@ -136,18 +146,18 @@ export default function Documents() {
 
       <div className="mt-6 border-2 border-dashed rounded-xl p-8 sm:p-12 text-center transition-colors" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
         <Icon name="upload" size={24} className="text-white/30 mx-auto mb-2" />
-        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Upload funktion kommer snart</p>
-        <p className="caption mt-1">PDF, Markdown, CSV, Excel, SQL</p>
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('documents.emptyUploadTitle', 'Upload functionality coming soon')}</p>
+        <p className="caption mt-1">{t('documents.emptyUploadDescription', 'PDF, Markdown, CSV, Excel, SQL')}</p>
       </div>
 
       <Modal open={!!selected} onClose={() => { setSelected(null); setFileContent(null) }} title={selected?.name || ''}>
         {selected && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><p className="caption">Type</p><p className="font-medium">{selected.type}</p></div>
-              <div><p className="caption">Størrelse</p><p className="font-medium">{selected.size}</p></div>
-              <div><p className="caption">Sidst Ændret</p><p className="font-medium">{selected.modified}</p></div>
-              <div><p className="caption">Sti</p><p className="font-medium font-mono text-xs">{selected.path}</p></div>
+              <div><p className="caption">{t('documents.type', 'Type')}</p><p className="font-medium">{selected.type}</p></div>
+              <div><p className="caption">{t('documents.size', 'Size')}</p><p className="font-medium">{selected.size}</p></div>
+              <div><p className="caption">{t('documents.lastModified', 'Last Modified')}</p><p className="font-medium">{selected.modified}</p></div>
+              <div><p className="caption">{t('documents.path', 'Path')}</p><p className="font-medium font-mono text-xs">{selected.path}</p></div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <button
@@ -168,7 +178,7 @@ export default function Documents() {
                 }}
                 style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}
               >
-                {downloading ? 'Henter...' : 'Download'}
+                {downloading ? t('documents.downloading', 'Downloading...') : t('documents.download', 'Download')}
               </button>
               <button
                 onClick={async () => {
@@ -177,12 +187,12 @@ export default function Documents() {
                   try {
                     const content = await readFileContent(selected.path)
                     setFileContent(content)
-                  } catch (e: any) { setFileContent(`Fejl: ${e?.message || 'Kunne ikke læse fil'}`) }
+                  } catch (e: any) { setFileContent(`${t('common.error', 'Error')}: ${e?.message || t('documents.errorReadingFile', 'Could not read file')}`) }
                   finally { setLoadingContent(false) }
                 }}
                 style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}
               >
-                {loadingContent ? 'Indlæser...' : fileContent !== null ? 'Skjul Indhold' : 'Se Indhold'}
+                {loadingContent ? t('documents.loadingContent', 'Loading...') : fileContent !== null ? t('documents.hideContent', 'Hide Content') : t('documents.viewContent', 'View Content')}
               </button>
             </div>
             {fileContent !== null && (
@@ -201,11 +211,11 @@ export default function Documents() {
 
 function detectFileType(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase()
-  if (!ext) return 'Ukendt'
-  
+  if (!ext) return 'Unknown'
+
   const types: Record<string, string> = {
     md: 'Markdown',
-    txt: 'Tekst',
+    txt: 'Text',
     json: 'JSON',
     js: 'JavaScript',
     ts: 'TypeScript',
@@ -222,16 +232,16 @@ function detectFileType(filename: string): string {
     yaml: 'YAML',
     toml: 'TOML',
   }
-  
+
   return types[ext] || ext.toUpperCase()
 }
 
 function getIconForFile(filename: string): 'doc' | 'doc-text' | 'folder' {
   const ext = filename.split('.').pop()?.toLowerCase()
   if (!ext) return 'doc'
-  
+
   const textTypes = ['md', 'txt', 'json', 'js', 'ts', 'jsx', 'tsx', 'css', 'html', 'yml', 'yaml', 'toml', 'sh']
   if (textTypes.includes(ext)) return 'doc-text'
-  
+
   return 'doc'
 }

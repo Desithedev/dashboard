@@ -1,7 +1,8 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { withTranslation, WithTranslation } from 'react-i18next'
 import Icon from './Icon'
 
-interface Props {
+interface Props extends WithTranslation {
   children: ReactNode
 }
 
@@ -10,7 +11,7 @@ interface State {
   error: Error | null
 }
 
-export default class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
     this.state = { hasError: false, error: null }
@@ -74,7 +75,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 letterSpacing: '-0.02em',
               }}
             >
-              Noget gik galt
+              {this.props.t('common.errors.title', 'Something went wrong')}
             </h1>
 
             <p
@@ -85,7 +86,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                 lineHeight: '1.6',
               }}
             >
-              {this.state.error?.message || 'Der opstod en uventet fejl i applikationen.'}
+              {this.state.error?.message || this.props.t('common.errors.unexpectedApp', 'An unexpected error occurred in the application.')}
             </p>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -114,7 +115,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
-                Prøv igen
+                {this.props.t('common.retry', 'Try again')}
               </button>
 
               <button
@@ -145,7 +146,7 @@ export default class ErrorBoundary extends Component<Props, State> {
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
-                Gå til Dashboard
+                {this.props.t('common.backToDashboard', 'Back to Dashboard')}
               </button>
             </div>
           </div>
@@ -156,3 +157,5 @@ export default class ErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
+
+export default withTranslation()(ErrorBoundary)

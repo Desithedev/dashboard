@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 
@@ -10,40 +11,42 @@ interface Handling {
   accentColor: string
 }
 
-const HANDLINGER: Handling[] = [
-  {
-    icon: 'sparkle',
-    title: 'Ny Workshop prompt',
-    description: 'Skriv og test AI prompts',
-    hash: 'workshop',
-    accentColor: '#AF52DE',
-  },
-  {
-    icon: 'doc-text',
-    title: 'Se Journal',
-    description: 'Gennemse agent aktivitet',
-    hash: 'journal',
-    accentColor: '#007AFF',
-  },
-  {
-    icon: 'timer',
-    title: 'Cron Jobs',
-    description: 'Planlagte automatiseringer',
-    hash: 'cron',
-    accentColor: '#FF9F0A',
-  },
-  {
-    icon: 'chart-bar',
-    title: 'API Forbrug',
-    description: 'Token og omkostningsoversigt',
-    hash: 'api',
-    accentColor: '#34C759',
-  },
-]
+const QuickNav = memo(function QuickNav() {
+  const { t } = useTranslation()
 
-const HurtigeHandlinger = memo(function HurtigeHandlinger() {
+  const HANDLINGER: Handling[] = [
+    {
+      icon: 'sparkle',
+      title: t('dashboard.newWorkshopPrompt', 'New Workshop prompt'),
+      description: t('dashboard.writeTestAiPrompts', 'Write and test AI prompts'),
+      hash: 'workshop',
+      accentColor: '#AF52DE',
+    },
+    {
+      icon: 'doc-text',
+      title: t('dashboard.viewJournal', 'View Journal'),
+      description: t('dashboard.reviewAgentActivity', 'Review agent activity'),
+      hash: 'journal',
+      accentColor: '#007AFF',
+    },
+    {
+      icon: 'timer',
+      title: t('dashboard.cronJobs', 'Cron Jobs'),
+      description: t('dashboard.scheduledAutomations', 'Planned automations'),
+      hash: 'cron',
+      accentColor: '#FF9F0A',
+    },
+    {
+      icon: 'chart-bar',
+      title: t('dashboard.apiUsage', 'API Usage'),
+      description: t('dashboard.tokenCostOverview', 'Token and cost overview'),
+      hash: 'api',
+      accentColor: '#34C759',
+    },
+  ]
+
   return (
-    <Card title="Hurtige handlinger" subtitle="Genveje til vigtige sider" className="mb-8">
+    <Card title={t('dashboard.quickNav', 'Quick Navigation')} subtitle={t('dashboard.quickNavSubtitle', 'Shortcuts')} className="mb-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {HANDLINGER.map(h => (
           <button
@@ -91,4 +94,4 @@ const HurtigeHandlinger = memo(function HurtigeHandlinger() {
   )
 })
 
-export default HurtigeHandlinger
+export default QuickNav

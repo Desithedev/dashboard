@@ -20,92 +20,95 @@ function renderPalette(overrides: Partial<React.ComponentProps<typeof CommandPal
 
 describe('CommandPalette', () => {
   describe('Rendering', () => {
-    it('renderer ikke når open=false', () => {
+    it('does not render when open=false', () => {
       renderPalette({ open: false })
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('renderer dialog når open=true', () => {
+    it('renders dialog when open=true', () => {
       renderPalette()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('har søgefelt', () => {
+    it('has search input', () => {
       renderPalette()
-      expect(screen.getByPlaceholderText('Søg...')).toBeInTheDocument()
+      // The mock returns 'commandPalette.placeholder' if no fallback is provided, 
+      // but in the component we should ideally have fallbacks or the keys.
+      // Let's assume the keys for now to be safe.
+      expect(screen.getByPlaceholderText('commandPalette.placeholder')).toBeInTheDocument()
     })
 
-    it('viser "Sider" sektionsheader', () => {
+    it('shows "Pages" section header', () => {
       renderPalette()
-      expect(screen.getByText('Sider')).toBeInTheDocument()
+      expect(screen.getByText('commandPalette.sectionPages')).toBeInTheDocument()
     })
 
-    it('viser "Handlinger" sektionsheader', () => {
+    it('shows "Actions" section header', () => {
       renderPalette()
-      expect(screen.getByText('Handlinger')).toBeInTheDocument()
+      expect(screen.getByText('commandPalette.sectionActions')).toBeInTheDocument()
     })
 
-    it('viser alle nav-sider som standard', () => {
+    it('shows nav items by default', () => {
       renderPalette()
-      expect(screen.getByText('Oversigt')).toBeInTheDocument()
-      expect(screen.getByText('Opgaver')).toBeInTheDocument()
-      expect(screen.getByText('Indstillinger')).toBeInTheDocument()
+      expect(screen.getByText('nav.item.dashboard')).toBeInTheDocument()
+      expect(screen.getByText('nav.item.tasks')).toBeInTheDocument()
+      expect(screen.getByText('nav.item.settings')).toBeInTheDocument()
     })
 
-    it('viser keyboard hints i footer', () => {
+    it('shows keyboard hints in footer', () => {
       renderPalette()
-      expect(screen.getByText('naviger')).toBeInTheDocument()
-      expect(screen.getByText('vælg')).toBeInTheDocument()
-      expect(screen.getByText('luk')).toBeInTheDocument()
+      expect(screen.getByText('commandPalette.hintNavigate')).toBeInTheDocument()
+      expect(screen.getByText('commandPalette.hintSelect')).toBeInTheDocument()
+      expect(screen.getByText('commandPalette.hintClose')).toBeInTheDocument()
     })
   })
 
-  describe('Søgning', () => {
-    it('filtrerer nav-sider ved søgning', async () => {
+  describe('Searching', () => {
+    it('filters nav pages by search', async () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
-      fireEvent.change(input, { target: { value: 'opg' } })
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
+      fireEvent.change(input, { target: { value: 'tasks' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Opgaver')).toBeInTheDocument()
-        expect(screen.queryByText('Oversigt')).not.toBeInTheDocument()
+        expect(screen.getByText('nav.item.tasks')).toBeInTheDocument()
+        expect(screen.queryByText('nav.item.dashboard')).not.toBeInTheDocument()
       })
     })
 
-    it('filtrerer handlinger ved søgning', async () => {
+    it('filters actions by search', async () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
       fireEvent.change(input, { target: { value: 'github' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Åbn GitHub')).toBeInTheDocument()
-        expect(screen.queryByText('Oversigt')).not.toBeInTheDocument()
+        expect(screen.getByText('commandPalette.actions.openGitHub')).toBeInTheDocument()
+        expect(screen.queryByText('nav.item.dashboard')).not.toBeInTheDocument()
       })
     })
 
-    it('viser "Ingen resultater" ved ingen match', async () => {
+    it('shows "No results" when none found', async () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
       fireEvent.change(input, { target: { value: 'XXXXXXXXXX' } })
 
       await waitFor(() => {
-        expect(screen.getByText('Ingen resultater')).toBeInTheDocument()
+        expect(screen.getByText('commandPalette.noResults')).toBeInTheDocument()
       })
     })
 
-    it('fuzzy-matcher sider', async () => {
+    it('fuzzy matches pages', async () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
-      fireEvent.change(input, { target: { value: 'vrsgt' } }) // fuzzy for "Oversigt"
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
+      fireEvent.change(input, { target: { value: 'dshboard' } }) // fuzzy for "dashboard"
 
       await waitFor(() => {
-        expect(screen.getByText('Oversigt')).toBeInTheDocument()
+        expect(screen.getByText('nav.item.dashboard')).toBeInTheDocument()
       })
     })
   })
 
   describe('Keyboard navigation', () => {
-    it('lukker ved Escape via backdrop-klik ikon', () => {
+    it('closes on backdrop click', () => {
       const onClose = vi.fn()
       const { container } = renderPalette({ onClose })
       const backdrop = container.firstChild as HTMLElement
@@ -113,19 +116,19 @@ describe('CommandPalette', () => {
       expect(onClose).toHaveBeenCalledTimes(1)
     })
 
-    it('navigerer ned med ArrowDown', () => {
+    it('navigates down with ArrowDown', () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
       fireEvent.keyDown(input, { key: 'ArrowDown' })
 
       const options = screen.getAllByRole('option')
-      // Andet element er nu selected (index 1)
+      // Second element is now selected (index 1)
       expect(options[1]).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('navigerer op med ArrowUp fra position 1', () => {
+    it('navigates up with ArrowUp from position 1', () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
       fireEvent.keyDown(input, { key: 'ArrowDown' }) // → index 1
       fireEvent.keyDown(input, { key: 'ArrowUp' })   // → index 0
 
@@ -133,55 +136,55 @@ describe('CommandPalette', () => {
       expect(options[0]).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('navigerer ikke under index 0 med ArrowUp', () => {
+    it('does not navigate below index 0 with ArrowUp', () => {
       renderPalette()
-      const input = screen.getByPlaceholderText('Søg...')
-      fireEvent.keyDown(input, { key: 'ArrowUp' }) // allerede på 0
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
+      fireEvent.keyDown(input, { key: 'ArrowUp' }) // already at 0
 
       const options = screen.getAllByRole('option')
       expect(options[0]).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('vælger nuværende element med Enter', () => {
+    it('selects current element with Enter', () => {
       const onNavigate = vi.fn()
       renderPalette({ onNavigate })
-      const input = screen.getByPlaceholderText('Søg...')
-      // Første element er 'dashboard'
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
+      // First element is 'dashboard'
       fireEvent.keyDown(input, { key: 'Enter' })
       expect(onNavigate).toHaveBeenCalledWith('dashboard')
     })
 
-    it('nulstiller søgning når dialog åbner', () => {
+    it('resets search when dialog opens', () => {
       const { rerender } = renderPalette({ open: false })
       rerender(
         <ToastProvider>
           <CommandPalette open={true} onClose={vi.fn()} onNavigate={vi.fn()} />
         </ToastProvider>
       )
-      const input = screen.getByPlaceholderText('Søg...')
+      const input = screen.getByPlaceholderText('commandPalette.placeholder')
       expect(input).toHaveValue('')
     })
   })
 
-  describe('Navigation og handlinger', () => {
-    it('kalder onNavigate og onClose ved klik på side', () => {
+  describe('Navigation and actions', () => {
+    it('calls onNavigate and onClose when clicking a page', () => {
       const onNavigate = vi.fn()
       const onClose = vi.fn()
       renderPalette({ onNavigate, onClose })
 
-      fireEvent.click(screen.getByText('Opgaver'))
+      fireEvent.click(screen.getByText('nav.item.tasks'))
       expect(onNavigate).toHaveBeenCalledWith('tasks')
       expect(onClose).toHaveBeenCalledTimes(1)
     })
 
-    it('selected ændres ved hover', () => {
+    it('selection changes on hover', () => {
       renderPalette()
       const options = screen.getAllByRole('option')
       fireEvent.mouseEnter(options[2])
       expect(options[2]).toHaveAttribute('aria-selected', 'true')
     })
 
-    it('lukker ikke ved klik inde i dialog', () => {
+    it('does not close when clicking inside dialog', () => {
       const onClose = vi.fn()
       renderPalette({ onClose })
       fireEvent.click(screen.getByRole('dialog'))

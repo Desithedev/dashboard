@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../components/Card'
 import PageHeader from '../components/PageHeader'
 import { useLiveData } from '../api/LiveDataContext'
@@ -7,8 +8,11 @@ import { WeeklyRecapSkeleton } from '../components/SkeletonLoader'
 import DataFreshness from '../components/DataFreshness'
 
 export default function WeeklyRecap() {
-  usePageTitle('Ugeoversigt')
-  
+  const { t, i18n } = useTranslation()
+  const currentLang = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+
+  usePageTitle(t('weeklyRecap.title'))
+
   const { sessions, cronJobs, isLoading } = useLiveData()
 
   // Beregn metrics fra live data
@@ -27,20 +31,20 @@ export default function WeeklyRecap() {
     const totalCronJobs = cronJobs.length
 
     // Seneste aktivitet
-    const latestSession = sessions.length > 0 
-      ? sessions.reduce((latest, s) => 
-          new Date(s.updatedAt) > new Date(latest.updatedAt) ? s : latest
-        )
+    const latestSession = sessions.length > 0
+      ? sessions.reduce((latest, s) =>
+        new Date(s.updatedAt) > new Date(latest.updatedAt) ? s : latest
+      )
       : null
 
-    const lastActivity = latestSession 
-      ? new Date(latestSession.updatedAt).toLocaleString('da-DK', { 
-          day: 'numeric', 
-          month: 'short', 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })
-      : 'Ingen aktivitet'
+    const lastActivity = latestSession
+      ? new Date(latestSession.updatedAt).toLocaleString(currentLang, {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      : t('weeklyRecap.activityOverview.noActivity')
 
     // Token forbrug (rough cost estimate)
     const totalTokens = recentSessions.reduce((sum, s) => sum + (s.totalTokens || 0), 0)
@@ -62,7 +66,7 @@ export default function WeeklyRecap() {
       }).length
       return {
         date,
-        label: date.toLocaleDateString('da-DK', { weekday: 'short', day: 'numeric', month: 'short' }),
+        label: date.toLocaleDateString(currentLang, { weekday: 'short', day: 'numeric', month: 'short' }),
         count
       }
     })
@@ -81,16 +85,16 @@ export default function WeeklyRecap() {
       dailyActivity,
       maxDailyCount
     }
-  }, [sessions, cronJobs])
+  }, [sessions, cronJobs, currentLang, t])
 
   // Ugentlig dato range
   const weekRange = useMemo(() => {
     const now = new Date()
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const start = sevenDaysAgo.toLocaleDateString('da-DK', { day: 'numeric', month: 'long' })
-    const end = now.toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })
+    const start = sevenDaysAgo.toLocaleDateString(currentLang, { day: 'numeric', month: 'long' })
+    const end = now.toLocaleDateString(currentLang, { day: 'numeric', month: 'long', year: 'numeric' })
     return `${start} – ${end}`
-  }, [])
+  }, [currentLang])
 
   if (isLoading) {
     return <WeeklyRecapSkeleton />
@@ -99,18 +103,18 @@ export default function WeeklyRecap() {
   return (
     <div className="animate-page-in">
       <PageHeader
-        title="Ugerapport"
+        title={t('weeklyRecap.headerTitle')}
         description={weekRange}
-        breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Ugerapport' }]}
+        breadcrumb={[{ label: t('sidebar.dashboard'), href: '#dashboard' }, { label: t('weeklyRecap.headerTitle') }]}
         actions={<DataFreshness />}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Fuldført', value: metrics.completedSessions.toString(), color: 'text-[#34C759]' },
-          { label: 'Aktive', value: metrics.activeSessions.toString(), color: 'text-apple-blue' },
-          { label: 'Fejl', value: metrics.errorSessions.toString(), color: 'text-[#FF3B30]' },
-          { label: 'Est. Omkostning', value: `$${metrics.estimatedCost.toFixed(2)}`, color: 'text-white' },
+          { label: t('weeklyRecap.metrics.completed'), value: metrics.completedSessions.toString(), color: 'text-[#34C759]' },
+          { label: t('weeklyRecap.metrics.active'), value: metrics.activeSessions.toString(), color: 'text-apple-blue' },
+          { label: t('weeklyRecap.metrics.error'), value: metrics.errorSessions.toString(), color: 'text-[#FF3B30]' },
+          { label: t('weeklyRecap.metrics.estCost'), value: `$${metrics.estimatedCost.toFixed(2)}`, color: 'text-white' },
         ].map((s, i) => (
           <Card key={i} style={{ animationDelay: `${i * 60}ms` }}>
             <p className="caption">{s.label}</p>
@@ -120,46 +124,46 @@ export default function WeeklyRecap() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card title="Aktivitetsoversigt" style={{ animationDelay: '240ms' }}>
+        <Card title={t('weeklyRecap.activityOverview.title')} style={{ animationDelay: '240ms' }}>
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2 glass-row">
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Sessions Sidst 7 Dage</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{t('weeklyRecap.activityOverview.recentSessions')}</span>
               <span className="font-bold text-apple-blue">{metrics.recentSessions}</span>
             </div>
             <div className="flex items-center justify-between py-2 glass-row">
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Cron Jobs</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{t('weeklyRecap.activityOverview.cronJobs')}</span>
               <span className="font-bold">{metrics.activeCronJobs} / {metrics.totalCronJobs}</span>
             </div>
             <div className="flex items-center justify-between py-2 glass-row">
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Seneste Aktivitet</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{t('weeklyRecap.activityOverview.lastActivity')}</span>
               <span className="font-bold text-sm">{metrics.lastActivity}</span>
             </div>
             <div className="flex items-center justify-between py-2 glass-row">
-              <span style={{ color: 'rgba(255,255,255,0.7)' }}>Total Tokens</span>
+              <span style={{ color: 'rgba(255,255,255,0.7)' }}>{t('weeklyRecap.activityOverview.totalTokens')}</span>
               <span className="font-bold">{(metrics.totalTokens / 1000).toFixed(0)}K</span>
             </div>
           </div>
         </Card>
 
-        <Card title="Planlagte Jobs" style={{ animationDelay: '300ms' }}>
+        <Card title={t('weeklyRecap.plannedJobs.title')} style={{ animationDelay: '300ms' }}>
           {cronJobs.length === 0 ? (
-            <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen planlagte jobs</p>
+            <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('weeklyRecap.plannedJobs.noJobs')}</p>
           ) : (
             <div className="space-y-2">
               {cronJobs.slice(0, 5).map((job) => (
                 <div key={job.id} className="flex items-center justify-between py-2 glass-row text-sm">
                   <div>
                     <p className="font-medium">{job.name}</p>
-                    <p className="caption">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt') : (job.schedule || 'Ukendt')}</p>
+                    <p className="caption">{typeof job.schedule === 'object' ? (job.schedule?.expr || job.schedule?.kind || t('common.scheduled')) : (job.schedule || t('common.unknown'))}</p>
                   </div>
-                  <span 
-                    className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap" 
-                    style={{ 
-                      background: job.enabled ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)', 
-                      color: job.enabled ? '#34C759' : 'rgba(255,255,255,0.4)' 
+                  <span
+                    className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap"
+                    style={{
+                      background: job.enabled ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)',
+                      color: job.enabled ? '#34C759' : 'rgba(255,255,255,0.4)'
                     }}
                   >
-                    {job.enabled ? 'Aktiv' : 'Inaktiv'}
+                    {job.enabled ? t('weeklyRecap.plannedJobs.status.active') : t('weeklyRecap.plannedJobs.status.inactive')}
                   </span>
                 </div>
               ))}
@@ -168,7 +172,7 @@ export default function WeeklyRecap() {
         </Card>
       </div>
 
-      <Card title="Daglig Aktivitet" className="mb-6" style={{ animationDelay: '360ms' }}>
+      <Card title={t('weeklyRecap.dailyActivity.title')} className="mb-6" style={{ animationDelay: '360ms' }}>
         <div className="space-y-4">
           {metrics.dailyActivity.map((day, i) => (
             <div key={i} className="flex items-center gap-3">
@@ -176,12 +180,12 @@ export default function WeeklyRecap() {
                 {day.label}
               </div>
               <div className="flex-1 flex items-center gap-2">
-                <div 
+                <div
                   className="h-8 rounded transition-all"
                   style={{
                     width: `${(day.count / metrics.maxDailyCount) * 100}%`,
                     minWidth: day.count > 0 ? '2rem' : '0',
-                    background: day.count > 0 
+                    background: day.count > 0
                       ? 'linear-gradient(90deg, rgba(10,132,255,0.6), rgba(10,132,255,0.3))'
                       : 'rgba(255,255,255,0.05)'
                   }}
@@ -195,21 +199,21 @@ export default function WeeklyRecap() {
         </div>
       </Card>
 
-      <Card title="Seneste Sessions" style={{ animationDelay: '420ms' }}>
+      <Card title={t('weeklyRecap.recentSessions.title')} style={{ animationDelay: '420ms' }}>
         {sessions.length === 0 ? (
-          <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>Ingen sessions</p>
+          <p className="text-center py-8" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('weeklyRecap.recentSessions.noSessions')}</p>
         ) : (
           <div className="space-y-2">
             {sessions.slice(0, 8).map((s) => (
               <div key={s.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 glass-row">
                 <div>
-                  <p className="text-sm font-medium">{s.label || 'Ingen label'}</p>
+                  <p className="text-sm font-medium">{s.label || t('weeklyRecap.recentSessions.noLabel')}</p>
                   <p className="caption">
-                    <span className="font-mono">{s.key}</span> · {new Date(s.updatedAt).toLocaleString('da-DK', { 
-                      day: 'numeric', 
-                      month: 'short', 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                    <span className="font-mono">{s.key}</span> · {new Date(s.updatedAt).toLocaleString(currentLang, {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </p>
                 </div>
@@ -217,14 +221,14 @@ export default function WeeklyRecap() {
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
                     {s.totalTokens ? `${(s.totalTokens / 1000).toFixed(1)}K` : 'N/A'}
                   </span>
-                  <span 
-                    className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap" 
-                    style={{ 
-                      background: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)', 
-                      color: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? '#34C759' : 'rgba(255,255,255,0.4)' 
+                  <span
+                    className="px-2.5 py-1 rounded-full text-xs whitespace-nowrap"
+                    style={{
+                      background: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)',
+                      color: new Date(s.updatedAt).getTime() > Date.now() - 300000 ? '#34C759' : 'rgba(255,255,255,0.4)'
                     }}
                   >
-                    {new Date(s.updatedAt).getTime() > Date.now() - 300000 ? 'Live' : 'Afsluttet'}
+                    {new Date(s.updatedAt).getTime() > Date.now() - 300000 ? t('weeklyRecap.recentSessions.status.live') : t('weeklyRecap.recentSessions.status.completed')}
                   </span>
                 </div>
               </div>

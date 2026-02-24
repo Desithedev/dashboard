@@ -1,20 +1,22 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render } from '@testing-library/react'
+// @ts-ignore
+import { screen, fireEvent, act } from '@testing-library/react'
 import './mocks'
 import { ToastProvider, useToast, ToastType } from '../components/Toast'
 
-// ── Helper komponent til at trigge toasts ──────────────────────────────────────
+// ── Helper component to trigger toasts ──────────────────────────────────────
 function ToastTrigger({ type, message }: { type: ToastType; message: string }) {
   const { showToast } = useToast()
   return (
     <button onClick={() => showToast(type, message)}>
-      Vis toast
+      Show toast
     </button>
   )
 }
 
-function renderWithProvider(type: ToastType = 'info', message = 'Test besked') {
+function renderWithProvider(type: ToastType = 'info', message = 'Test message') {
   return render(
     <ToastProvider>
       <ToastTrigger type={type} message={message} />
@@ -32,57 +34,57 @@ describe('Toast System', () => {
     vi.useRealTimers()
   })
 
-  describe('Visning', () => {
-    it('viser ikke toast som standard', () => {
+  describe('Display', () => {
+    it('does not show toast by default', () => {
       renderWithProvider()
-      expect(screen.queryByText('Test besked')).not.toBeInTheDocument()
+      expect(screen.queryByText('Test message')).not.toBeInTheDocument()
     })
 
-    it('viser toast efter showToast kaldes', async () => {
+    it('shows toast after showToast is called', async () => {
       renderWithProvider('info', 'Hello toast')
-      fireEvent.click(screen.getByText('Vis toast'))
-      
+      fireEvent.click(screen.getByText('Show toast'))
+
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
-      
+
       expect(screen.getByText('Hello toast')).toBeInTheDocument()
     })
 
-    it('viser success toast', async () => {
-      renderWithProvider('success', 'Det lykkedes!')
-      fireEvent.click(screen.getByText('Vis toast'))
-      
+    it('shows success toast', async () => {
+      renderWithProvider('success', 'Success!')
+      fireEvent.click(screen.getByText('Show toast'))
+
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
-      
-      expect(screen.getByText('Det lykkedes!')).toBeInTheDocument()
+
+      expect(screen.getByText('Success!')).toBeInTheDocument()
     })
 
-    it('viser error toast', async () => {
-      renderWithProvider('error', 'Noget gik galt')
-      fireEvent.click(screen.getByText('Vis toast'))
-      
+    it('shows error toast', async () => {
+      renderWithProvider('error', 'Something went wrong')
+      fireEvent.click(screen.getByText('Show toast'))
+
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
-      
-      expect(screen.getByText('Noget gik galt')).toBeInTheDocument()
+
+      expect(screen.getByText('Something went wrong')).toBeInTheDocument()
     })
 
-    it('viser warning toast', async () => {
-      renderWithProvider('warning', 'Advarsel!')
-      fireEvent.click(screen.getByText('Vis toast'))
-      
+    it('shows warning toast', async () => {
+      renderWithProvider('warning', 'Warning!')
+      fireEvent.click(screen.getByText('Show toast'))
+
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
-      
-      expect(screen.getByText('Advarsel!')).toBeInTheDocument()
+
+      expect(screen.getByText('Warning!')).toBeInTheDocument()
     })
 
-    it('viser multiple toasts', async () => {
+    it('shows multiple toasts', async () => {
       render(
         <ToastProvider>
           <ToastTrigger type="info" message="Toast 1" />
@@ -90,7 +92,7 @@ describe('Toast System', () => {
         </ToastProvider>
       )
 
-      const btns = screen.getAllByText('Vis toast')
+      const btns = screen.getAllByText('Show toast')
       fireEvent.click(btns[0])
       fireEvent.click(btns[1])
 
@@ -103,26 +105,26 @@ describe('Toast System', () => {
     })
   })
 
-  describe('Manuel luk', () => {
-    it('kan lukkes manuelt via luk-knap', async () => {
-      renderWithProvider('info', 'Luk mig')
-      fireEvent.click(screen.getByText('Vis toast'))
+  describe('Manual close', () => {
+    it('can be closed manually via close button', async () => {
+      renderWithProvider('info', 'Close me')
+      fireEvent.click(screen.getByText('Show toast'))
 
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
 
-      const closeBtn = screen.getByRole('button', { name: /luk notifikation/i })
+      const closeBtn = screen.getByRole('button', { name: /close notification/i })
       fireEvent.click(closeBtn)
 
-      expect(screen.queryByText('Luk mig')).not.toBeInTheDocument()
+      expect(screen.queryByText('Close me')).not.toBeInTheDocument()
     })
   })
 
   describe('Auto-dismiss', () => {
-    it('forsvinder efter TOAST_DURATION (4000ms)', async () => {
+    it('disappears after TOAST_DURATION (4000ms)', async () => {
       renderWithProvider('info', 'Auto-dismiss test')
-      fireEvent.click(screen.getByText('Vis toast'))
+      fireEvent.click(screen.getByText('Show toast'))
 
       await act(async () => {
         vi.advanceTimersByTime(50)
@@ -137,27 +139,27 @@ describe('Toast System', () => {
       expect(screen.queryByText('Auto-dismiss test')).not.toBeInTheDocument()
     })
 
-    it('forbliver synlig inden TOAST_DURATION udløber', async () => {
-      renderWithProvider('success', 'Stadig synlig')
-      fireEvent.click(screen.getByText('Vis toast'))
+    it('remains visible before TOAST_DURATION expires', async () => {
+      renderWithProvider('success', 'Still visible')
+      fireEvent.click(screen.getByText('Show toast'))
 
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
 
-      expect(screen.getByText('Stadig synlig')).toBeInTheDocument()
+      expect(screen.getByText('Still visible')).toBeInTheDocument()
 
       await act(async () => {
         vi.advanceTimersByTime(2000)
       })
 
-      expect(screen.getByText('Stadig synlig')).toBeInTheDocument()
+      expect(screen.getByText('Still visible')).toBeInTheDocument()
     })
   })
 
-  describe('Context fejl', () => {
-    it('kaster fejl når useToast bruges uden provider', () => {
-      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  describe('Context error', () => {
+    it('throws error when useToast is used without provider', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => { })
 
       function BadComponent() {
         useToast()
@@ -165,7 +167,7 @@ describe('Toast System', () => {
       }
 
       expect(() => render(<BadComponent />)).toThrow(
-        'useToast skal bruges inden i ToastProvider'
+        'useToast must be used within ToastProvider'
       )
 
       spy.mockRestore()
@@ -173,7 +175,7 @@ describe('Toast System', () => {
   })
 
   describe('Queue', () => {
-    it('håndterer mere end 5 toasts via kø', async () => {
+    it('handles more than 5 toasts via queue', async () => {
       function MultiTrigger() {
         const { showToast } = useToast()
         return (
@@ -182,7 +184,7 @@ describe('Toast System', () => {
               showToast('info', `Toast ${i}`)
             }
           }}>
-            Vis mange
+            Show many
           </button>
         )
       }
@@ -193,13 +195,13 @@ describe('Toast System', () => {
         </ToastProvider>
       )
 
-      fireEvent.click(screen.getByText('Vis mange'))
+      fireEvent.click(screen.getByText('Show many'))
 
       await act(async () => {
         vi.advanceTimersByTime(50)
       })
 
-      // MAX_VISIBLE = 5, så kun 5 synlige
+      // MAX_VISIBLE = 5, so only 5 visible
       const toastTexts = Array.from(
         document.querySelectorAll('p')
       ).map(el => el.textContent).filter(t => t?.startsWith('Toast'))

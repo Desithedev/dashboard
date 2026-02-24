@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 import { BarChart } from '../Chart'
@@ -22,33 +23,35 @@ interface CostData {
 }
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  opus:   { input: 15,   output: 75   },
-  sonnet: { input: 3,    output: 15   },
-  haiku:  { input: 0.25, output: 1.25 },
+  opus: { input: 15, output: 75 },
+  sonnet: { input: 3, output: 15 },
+  haiku: { input: 0.25, output: 1.25 },
 }
 
 const MODEL_COLORS: Record<string, string> = {
-  opus:   '#AF52DE',
+  opus: '#AF52DE',
   sonnet: '#007AFF',
-  haiku:  '#34C759',
+  haiku: '#34C759',
 }
 
 function getModelKey(model: string): string {
   const m = model.toLowerCase()
-  if (m.includes('opus'))   return 'opus'
+  if (m.includes('opus')) return 'opus'
   if (m.includes('sonnet')) return 'sonnet'
-  if (m.includes('haiku'))  return 'haiku'
+  if (m.includes('haiku')) return 'haiku'
   return 'opus'
 }
 
 function getModelLabel(key: string): string {
-  if (key === 'opus')   return 'Opus'
+  if (key === 'opus') return 'Opus'
   if (key === 'sonnet') return 'Sonnet'
-  if (key === 'haiku')  return 'Haiku'
+  if (key === 'haiku') return 'Haiku'
   return key
 }
 
-const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps) {
+const DailySpend = memo(function DailySpend({ sessions }: DagsForbrugProps) {
+  const { t } = useTranslation()
+
   const costData = useMemo<CostData>(() => {
     const today = new Date()
     const isSameDay = (ts: number) => {
@@ -83,7 +86,7 @@ const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps
       const name =
         s.displayName ||
         s.label ||
-        (s.key === 'agent:main:main' ? 'Hovedagent' : s.key.split(':').pop() || 'Session')
+        (s.key === 'agent:main:main' ? t('dashboard.mainAgent', 'Main Agent') : s.key.split(':').pop() || 'Session')
 
       sessionCosts.push({ name, cost, model: getModelLabel(modelKey) })
     }
@@ -99,7 +102,7 @@ const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps
       }))
 
     return { hasData: sessionCosts.length > 0, totalCost, top3, barData }
-  }, [sessions])
+  }, [sessions, t])
 
   return (
     <Card className="mb-8">
@@ -112,28 +115,28 @@ const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps
           <Icon name="chart-bar" size={14} style={{ color: '#FF9F0A' }} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">Dagens Forbrug</p>
-          <p className="caption text-xs">Estimeret omkostning i dag</p>
+          <p className="text-sm font-semibold text-white">{t('pages.apiUsage.estimatedCost', 'Estimated cost')}</p>
+          <p className="caption text-xs">{t('dashboard.tokenCostOverview', 'Token and cost overview')}</p>
         </div>
       </div>
 
       {!costData.hasData ? (
         <div className="text-center py-8 text-white/50 text-sm">
           <p style={{ color: 'rgba(255,255,255,0.3)' }}>&mdash;</p>
-          <p className="mt-1">Ingen forbrugsdata for i dag</p>
+          <p className="mt-1">{t('pages.apiUsage.noTokenData', 'No token data yet')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Total forbrug */}
+          {/* Total usage */}
           <div className="flex flex-col items-center justify-center">
-            <p className="caption text-xs mb-1">Total i dag</p>
+            <p className="caption text-xs mb-1">{t('pages.apiUsage.totalTokens', 'Total tokens')}</p>
             <p className="text-3xl font-bold text-white">${costData.totalCost.toFixed(2)}</p>
-            <p className="caption text-xs mt-1">USD estimeret</p>
+            <p className="caption text-xs mt-1">USD {t('common.loading', 'estimated')}</p>
           </div>
 
-          {/* Top 3 sessioner */}
+          {/* Top 3 sessions */}
           <div>
-            <p className="caption text-xs mb-3">Top sessioner</p>
+            <p className="caption text-xs mb-3">{t('pages.weekly.recentSessionsTitle', 'Recent sessions')}</p>
             <div className="space-y-2">
               {costData.top3.map((s, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
@@ -150,9 +153,9 @@ const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps
             </div>
           </div>
 
-          {/* Bar chart pr. model */}
+          {/* Bar chart per model */}
           <div>
-            <p className="caption text-xs mb-3">Fordelt pr. model</p>
+            <p className="caption text-xs mb-3">{t('pages.apiUsage.modelsInUse', 'Models in use')}</p>
             {costData.barData.length > 0 ? (
               <BarChart data={costData.barData} height={120} showValues />
             ) : (
@@ -165,4 +168,4 @@ const DagensForbrug = memo(function DagensForbrug({ sessions }: DagsForbrugProps
   )
 })
 
-export default DagensForbrug
+export default DailySpend

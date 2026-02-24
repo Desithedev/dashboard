@@ -26,11 +26,11 @@ interface NotificationState {
 const NotificationContext = createContext<NotificationState>({
   notifications: [],
   unreadCount: 0,
-  addNotification: () => {},
-  markAsRead: () => {},
-  markAllAsRead: () => {},
-  clearAll: () => {},
-  dismissNotification: () => {},
+  addNotification: () => { },
+  markAsRead: () => { },
+  markAllAsRead: () => { },
+  clearAll: () => { },
+  dismissNotification: () => { },
 })
 
 export function useNotifications() {
@@ -44,14 +44,14 @@ function loadNotifications(): Notification[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch { }
   return []
 }
 
 function saveNotifications(notifications: Notification[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications.slice(0, MAX_NOTIFICATIONS)))
-  } catch {}
+  } catch { }
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -112,15 +112,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (prevConnected.current && !isConnected) {
       addNotification({
         type: 'error',
-        title: 'Gateway forbindelse tabt',
-        message: 'Forbindelsen til OpenClaw Gateway er gået ned. Tjek serverstatus.',
+        title: 'Gateway connection lost',
+        message: 'The connection to OpenClaw Gateway is down. Check server status.',
         source: 'system',
       })
     } else if (!prevConnected.current && isConnected) {
       addNotification({
         type: 'success',
-        title: 'Gateway forbundet',
-        message: 'Forbindelsen til OpenClaw Gateway er genoprettet.',
+        title: 'Gateway connected',
+        message: 'The connection to OpenClaw Gateway has been restored.',
         source: 'system',
       })
     }
@@ -138,8 +138,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           if (key.includes('subagent')) {
             addNotification({
               type: 'info',
-              title: 'Ny subagent startet',
-              message: `${name} er blevet oprettet.`,
+              title: 'New subagent started',
+              message: `${name} has been created.`,
               source: 'agents',
             })
           }
@@ -159,8 +159,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (!prevCronErrors.current.has(errorKey)) {
           addNotification({
             type: 'error',
-            title: 'Cron job fejlede',
-            message: `"${job.name || job.label || 'Ukendt job'}" fejlede: ${job.lastError || 'Ukendt fejl'}`,
+            title: 'Cron job failed',
+            message: `"${job.name || job.label || 'Unknown job'}" failed: ${job.lastError || 'Unknown error'}`,
             source: 'cron',
           })
         }
@@ -178,8 +178,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           (window as any)[warnKey] = true
           addNotification({
             type: 'warning',
-            title: 'Høj kontekstbrug',
-            message: `Session "${session.displayName || session.label || session.key}" bruger ${Math.round(session.contextTokens / 1000)}k kontekst-tokens.`,
+            title: 'High context usage',
+            message: `Session "${session.displayName || session.label || session.key}" is using ${Math.round(session.contextTokens / 1000)}k context tokens.`,
             source: 'system',
           })
         }

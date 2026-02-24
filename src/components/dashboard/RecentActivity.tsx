@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 import ActivityEventRow, { type ActivityEvent } from './ActivityEventRow'
@@ -10,17 +11,19 @@ interface RecentActivityProps {
 }
 
 const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: RecentActivityProps) {
+  const { t } = useTranslation()
+
   const events = useMemo<ActivityEvent[]>(() => {
     const allEvents: ActivityEvent[] = []
 
     sessions.forEach(s => {
       const isActive = Date.now() - s.updatedAt < 120000
       const sessionType = s.key.includes('subagent')
-        ? 'Subagent'
+        ? t('dashboard.subAgent', 'Sub-agent')
         : s.key.includes('main')
-        ? 'Hovedagent'
-        : 'Session'
-      const agentName = s.displayName || s.label || s.key.split(':')[1] || 'Unavngiven'
+          ? t('dashboard.mainAgent', 'Main Agent')
+          : t('dashboard.session', 'Session')
+      const agentName = s.displayName || s.label || s.key.split(':')[1] || t('dashboard.unnamed', 'Unnamed')
 
       if (isActive) {
         allEvents.push({
@@ -28,8 +31,8 @@ const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: Rece
           type: 'session_start',
           timestamp: s.updatedAt,
           icon: 'play',
-          title: `${agentName} startede`,
-          description: `${sessionType} · ${s.channel || 'ingen kanal'}`,
+          title: t('dashboard.eventStarted', '{{name}} started', { name: agentName }),
+          description: `${sessionType} · ${s.channel || t('dashboard.noChannel', 'no channel')}`,
         })
       } else {
         allEvents.push({
@@ -37,8 +40,8 @@ const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: Rece
           type: 'session_end',
           timestamp: s.updatedAt,
           icon: 'checkmark-circle',
-          title: `${agentName} afsluttede`,
-          description: `${sessionType} · ${s.contextTokens ? `${Math.round(s.contextTokens / 1000)}k tokens` : 'Faerdig'}`,
+          title: t('dashboard.eventFinished', '{{name}} finished', { name: agentName }),
+          description: `${sessionType} · ${s.contextTokens ? `${Math.round(s.contextTokens / 1000)}k tokens` : t('common.completed', 'Finished')}`,
         })
       }
     })
@@ -52,10 +55,10 @@ const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: Rece
             type: 'cron_run',
             timestamp: lastRunTime,
             icon: 'timer',
-            title: `${job.name || 'Planlagt job'} koerte`,
+            title: t('dashboard.eventRan', '{{name}} ran', { name: job.name || t('cronJobs.title', 'Scheduled job') }),
             description: typeof job.schedule === 'object'
-              ? (job.schedule?.expr || job.schedule?.kind || 'Planlagt')
-              : (job.schedule || 'Ukendt tidsplan'),
+              ? (job.schedule?.expr || job.schedule?.kind || t('dashboard.eventRan', 'Scheduled'))
+              : (job.schedule || t('dashboard.unknown', 'Unknown schedule')),
           })
         }
       }
@@ -64,15 +67,15 @@ const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: Rece
     return allEvents
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 10)
-  }, [sessions, cronJobs])
+  }, [sessions, cronJobs, t])
 
   if (events.length === 0) {
     return (
       <div className="mb-8">
-        <Card title="Seneste Aktivitet" subtitle="Unified activity feed">
+        <Card title={t('dashboard.recentActivity', 'Recent Activity')} subtitle="Unified activity feed">
           <div className="text-center py-12 text-white/50 text-sm">
             <Icon name="info-circle" size={32} className="mb-3 opacity-30" style={{ display: 'inline-flex' }} />
-            <p>Ingen aktivitet endnu</p>
+            <p>{t('dashboard.noActivityYet', 'No activity yet')}</p>
           </div>
         </Card>
       </div>
@@ -81,7 +84,7 @@ const RecentActivity = memo(function RecentActivity({ sessions, cronJobs }: Rece
 
   return (
     <div className="mb-8">
-      <Card title="Seneste Aktivitet" subtitle={`${events.length} seneste haendelser`}>
+      <Card title={t('dashboard.recentActivity', 'Recent Activity')} subtitle={t('dashboard.recentEvents', '{{count}} recent events', { count: events.length })}>
         <div className="space-y-1">
           {events.map((event, index) => (
             <ActivityEventRow key={event.id} event={event} isLast={index === events.length - 1} />

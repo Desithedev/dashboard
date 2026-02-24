@@ -1,10 +1,12 @@
 import { ReactNode, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Sidebar from './Sidebar'
 import Icon from './Icon'
 import MaisonFlyout from './MaisonFlyout'
 import NotificationCenter from './NotificationCenter'
 import ScrollToTop from './ScrollToTop'
 import OfflineBanner from './OfflineBanner'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { useScrollToTop } from '../hooks/useScrollToTop'
 
 interface LayoutProps {
@@ -14,10 +16,11 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, activePage, onNavigate }: LayoutProps) {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [maisonOpen, setMaisonOpen] = useState(false)
 
-  // Scroll restoration: scroll til top når siden skifter
+  // Scroll restoration: scroll to top when the page changes
   useScrollToTop(activePage)
 
   const handleNavigate = useCallback((page: string) => {
@@ -31,8 +34,8 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
   const handleMaisonClose = useCallback(() => setMaisonOpen(false), [])
 
   return (
-    <div style={{ 
-      background: 'linear-gradient(135deg, #08080c 0%, #10101a 50%, #0c0c14 100%)', 
+    <div style={{
+      background: 'linear-gradient(135deg, #08080c 0%, #10101a 50%, #0c0c14 100%)',
       minHeight: '100vh',
       position: 'relative'
     }}>
@@ -62,7 +65,7 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           e.currentTarget.style.top = '-40px'
         }}
       >
-        Spring til indhold
+        {t('common.skipToContent', 'Spring til indhold')}
       </a>
       {/* Ambient glow effects */}
       <div style={{
@@ -124,15 +127,15 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
         />
       )}
 
-      {/* Floating scroll-to-top knap — vises på alle sider */}
+      {/* Floating scroll-to-top button — shown on all pages */}
       <ScrollToTop />
 
       {/* Main content - offset by sidebar width on desktop only */}
       <div className="lg:pl-60" style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
         {/* Mobile header */}
-        <header 
-          className="lg:hidden sticky top-0 z-30 flex items-center h-14 px-4 border-b"
-          style={{ 
+        <header
+          className="lg:hidden sticky top-0 z-30 flex items-center h-14 px-4 border-b gap-3"
+          style={{
             backdropFilter: 'blur(40px)',
             WebkitBackdropFilter: 'blur(40px)',
             background: 'rgba(8, 8, 12, 0.8)',
@@ -145,14 +148,16 @@ export default function Layout({ children, activePage, onNavigate }: LayoutProps
           >
             <Icon name="menu" size={22} className="text-white/80" />
           </button>
-          <span className="ml-3 font-semibold text-white text-sm" style={{ flex: 1 }}>
-            Mission Kontrol
+          <span className="font-semibold text-white text-sm" style={{ flex: 1 }}>
+            {t('dashboard.title', 'Mission Kontrol')}
           </span>
+          <LanguageSwitcher />
           <NotificationCenter />
         </header>
 
         {/* Desktop notification bell */}
-        <div className="hidden lg:flex items-center justify-end h-12 px-8" style={{ position: 'sticky', top: 0, zIndex: 30 }}>
+        <div className="hidden lg:flex items-center justify-end h-12 px-8 gap-4" style={{ position: 'sticky', top: 0, zIndex: 30 }}>
+          <LanguageSwitcher />
           <NotificationCenter />
         </div>
 

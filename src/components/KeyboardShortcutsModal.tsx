@@ -1,9 +1,10 @@
 /**
  * KeyboardShortcutsModal.tsx
  *
- * Glassmorphism hjælpe-modal der viser alle keyboard shortcuts.
- * Åbnes med `?` (kun uden aktivt inputfelt), lukkes med Escape eller klik udenfor.
+ * Glassmorphism help modal showing all keyboard shortcuts.
+ * Opened with `?` (only when no input field is active), closed with Escape or clicking outside.
  */
+import { useTranslation, Trans } from 'react-i18next'
 import Icon from './Icon'
 import { NUMBER_SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 
@@ -14,19 +15,7 @@ interface KeyboardShortcutsModalProps {
   onClose: () => void
 }
 
-// ── Hjælpere ─────────────────────────────────────────────────────────────────
-
-const PAGE_LABELS: Record<string, string> = {
-  dashboard: 'Oversigt',
-  tasks: 'Opgaver',
-  agents: 'Agenter',
-  skills: 'Færdigheder',
-  communication: 'Kommunikation',
-  journal: 'Journal',
-  documents: 'Dokumenter',
-  intelligence: 'Intelligens',
-  settings: 'Indstillinger',
-}
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Stiliseret tastatur-tast */
 function Kbd({ children }: { children: React.ReactNode }) {
@@ -55,7 +44,7 @@ function Kbd({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** En enkelt genvej-række: taster til venstre, beskrivelse til højre */
+/** Single shortcut row: keys on the left, description on the right */
 function ShortcutRow({
   keys,
   label,
@@ -86,7 +75,7 @@ function ShortcutRow({
   )
 }
 
-/** Separator mellom taster, fx "+" eller "/" */
+/** Separator between keys, e.g. "+" or "/" */
 function Sep({ char = '/' }: { char?: string }) {
   return (
     <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, padding: '0 1px' }}>
@@ -101,7 +90,20 @@ export default function KeyboardShortcutsModal({
   open,
   onClose,
 }: KeyboardShortcutsModalProps) {
+  const { t } = useTranslation()
   if (!open) return null
+
+  const PAGE_LABELS: Record<string, string> = {
+    dashboard: t('shortcuts.pages.dashboard', 'Dashboard'),
+    tasks: t('shortcuts.pages.tasks', 'Tasks'),
+    agents: t('shortcuts.pages.agents', 'Agents'),
+    skills: t('shortcuts.pages.skills', 'Skills'),
+    communication: t('shortcuts.pages.communication', 'Communication'),
+    journal: t('shortcuts.pages.journal', 'Journal'),
+    documents: t('shortcuts.pages.documents', 'Documents'),
+    intelligence: t('shortcuts.pages.intelligence', 'Intelligence'),
+    settings: t('shortcuts.pages.settings', 'Settings'),
+  }
 
   const navShortcuts = Object.entries(NUMBER_SHORTCUTS).map(([key, pageId]) => ({
     key,
@@ -110,7 +112,7 @@ export default function KeyboardShortcutsModal({
   }))
 
   return (
-    /* Baggrunds-overlay – klik udenfor lukker */
+    /* Background overlay – click outside to close */
     <div
       onClick={onClose}
       style={{
@@ -127,11 +129,11 @@ export default function KeyboardShortcutsModal({
         overflowY: 'auto',
       }}
     >
-      {/* Modal-boks – stop propagation så klik inde i modalen ikke lukker */}
+      {/* Modal box – stop propagation so clicks inside don't close */}
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Tastaturgenveje"
+        aria-label={t('shortcuts.title', 'Keyboard Shortcuts')}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
@@ -183,7 +185,7 @@ export default function KeyboardShortcutsModal({
                   letterSpacing: '-0.01em',
                 }}
               >
-                Tastaturgenveje
+                {t('shortcuts.title', 'Keyboard Shortcuts')}
               </div>
               <div
                 style={{
@@ -192,7 +194,7 @@ export default function KeyboardShortcutsModal({
                   marginTop: 2,
                 }}
               >
-                Tryk Esc for at lukke
+                {t('shortcuts.closeHint', 'Press Esc to close')}
               </div>
             </div>
           </div>
@@ -200,7 +202,7 @@ export default function KeyboardShortcutsModal({
           {/* Luk-knap */}
           <button
             onClick={onClose}
-            aria-label="Luk"
+            aria-label={t('common.cancel', 'Cancel')}
             style={{
               width: 32,
               height: 32,
@@ -216,15 +218,15 @@ export default function KeyboardShortcutsModal({
               transition: 'background 0.15s, color 0.15s',
             }}
             onMouseEnter={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background =
+              ; (e.currentTarget as HTMLButtonElement).style.background =
                 'rgba(255,255,255,0.12)'
-              ;(e.currentTarget as HTMLButtonElement).style.color = '#fff'
+                ; (e.currentTarget as HTMLButtonElement).style.color = '#fff'
             }}
             onMouseLeave={(e) => {
-              ;(e.currentTarget as HTMLButtonElement).style.background =
+              ; (e.currentTarget as HTMLButtonElement).style.background =
                 'rgba(255,255,255,0.06)'
-              ;(e.currentTarget as HTMLButtonElement).style.color =
-                'rgba(255,255,255,0.65)'
+                ; (e.currentTarget as HTMLButtonElement).style.color =
+                  'rgba(255,255,255,0.65)'
             }}
           >
             <Icon name="xmark" size={16} />
@@ -271,13 +273,13 @@ export default function KeyboardShortcutsModal({
                     letterSpacing: '0.06em',
                   }}
                 >
-                  Globalt
+                  {t('shortcuts.global', 'Global')}
                 </span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <ShortcutRow
-                  label="Kommandopalet"
+                  label={t('shortcuts.palette', 'Command Palette')}
                   keys={[
                     <Kbd>Cmd</Kbd>,
                     <Sep char="+" />,
@@ -289,15 +291,15 @@ export default function KeyboardShortcutsModal({
                   ]}
                 />
                 <ShortcutRow
-                  label="Vis denne hjælp"
+                  label={t('shortcuts.showHelp', 'Show this help')}
                   keys={[<Kbd>?</Kbd>]}
                 />
                 <ShortcutRow
-                  label="Vis genveje (alternativ)"
+                  label={t('shortcuts.showHelpAlt', 'Show shortcuts (alternative)')}
                   keys={[<Kbd>Ctrl</Kbd>, <Sep char="+" />, <Kbd>/</Kbd>]}
                 />
                 <ShortcutRow
-                  label="Luk overlays og modaler"
+                  label={t('shortcuts.closeOverlays', 'Close overlays and modals')}
                   keys={[<Kbd>Esc</Kbd>]}
                 />
               </div>
@@ -334,7 +336,7 @@ export default function KeyboardShortcutsModal({
                     letterSpacing: '0.06em',
                   }}
                 >
-                  Sidenavigation
+                  {t('shortcuts.navigation', 'Page Navigation')}
                 </span>
               </div>
 
@@ -383,7 +385,7 @@ export default function KeyboardShortcutsModal({
                   lineHeight: 1.4,
                 }}
               >
-                Tal-genveje virker kun uden aktivt inputfelt.
+                {t('shortcuts.navHint', 'Number shortcuts only work when no input field is active.')}
               </p>
             </section>
           </div>
@@ -407,9 +409,11 @@ export default function KeyboardShortcutsModal({
               style={{ color: '#818cf8', flexShrink: 0 }}
             />
             <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, lineHeight: 1.5 }}>
-              Brug <strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>⌘K</strong> /
-              {' '}<strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Ctrl+K</strong> til
-              hurtigt at søge og navigere med kommandopaletten.
+              <Trans i18nKey="shortcuts.tip">
+                Use <strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>⌘K</strong> /
+                {' '}<strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>Ctrl+K</strong> to
+                quickly search and navigate with the command palette.
+              </Trans>
             </span>
           </div>
         </div>

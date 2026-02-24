@@ -3,7 +3,8 @@ import Icon from './Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import ConnectionStatus from './ConnectionStatus'
 import { useKeyboardShortcutsContext } from './KeyboardShortcuts'
-
+import { useTranslation, Trans } from 'react-i18next'
+import { t } from 'i18next'
 interface SidebarProps {
   active: string
   onNavigate: (page: string) => void
@@ -25,46 +26,46 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    heading: 'Overblik',
+    heading: 'overview',
     items: [
-      { id: 'dashboard', label: 'Oversigt', icon: 'grid' },
-      { id: 'communication', label: 'Kommunikation', icon: 'chat-bubble' },
-      { id: 'journal', label: 'Journal', icon: 'list' },
+      { id: 'dashboard', label: 'dashboard', icon: 'grid' },
+      { id: 'communication', label: 'communication', icon: 'chat-bubble' },
+      { id: 'journal', label: 'journal', icon: 'list' },
     ],
   },
   {
-    heading: 'Arbejde',
+    heading: 'work',
     items: [
-      { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
-      { id: 'documents', label: 'Dokumenter', icon: 'doc' },
-      { id: 'agents', label: 'Agenter', icon: 'person-circle' },
-      { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
+      { id: 'tasks', label: 'tasks', icon: 'checklist' },
+      { id: 'documents', label: 'documents', icon: 'doc' },
+      { id: 'agents', label: 'agents', icon: 'person-circle' },
+      { id: 'skills', label: 'skills', icon: 'sparkle' },
     ],
   },
   {
-    heading: 'Analyse',
+    heading: 'analysis',
     items: [
-      { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
-      { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
-      { id: 'clients', label: 'Projekter', icon: 'folder' },
-      { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
+      { id: 'intelligence', label: 'intelligence', icon: 'lightbulb' },
+      { id: 'weekly', label: 'weekly', icon: 'calendar-week' },
+      { id: 'clients', label: 'clients', icon: 'folder' },
+      { id: 'api', label: 'api', icon: 'chart-bar' },
     ],
   },
   {
-    heading: 'Drift',
+    heading: 'operations',
     items: [
-      { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
-      { id: 'upload', label: 'Fil Upload', icon: 'upload' },
-      { id: 'workshop', label: 'Værksted', icon: 'wrench' },
-      { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
-      { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
+      { id: 'cron', label: 'cron', icon: 'clock' },
+      { id: 'upload', label: 'upload', icon: 'upload' },
+      { id: 'workshop', label: 'workshop', icon: 'wrench' },
+      { id: 'index', label: 'index', icon: 'magnifying-glass' },
+      { id: 'evals', label: 'evals', icon: 'gauge' },
     ],
   },
   {
-    heading: 'System',
+    heading: 'system',
     items: [
-      { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
-      { id: 'settings', label: 'Indstillinger', icon: 'gear' },
+      { id: 'notifications', label: 'notifications', icon: 'bell' },
+      { id: 'settings', label: 'settings', icon: 'gear' },
     ],
   },
 ]
@@ -98,6 +99,7 @@ const Badge = memo(function Badge({ count }: { count: number }) {
 const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onMaisonClick }: SidebarProps) {
   const { isConnected, lastUpdated, isRefreshing, sessions, cronJobs } = useLiveData()
   const { openCmd } = useKeyboardShortcutsContext()
+  const { t, i18n } = useTranslation()
   const [pulse, setPulse] = useState(true)
 
   // Calculate badge counts
@@ -110,7 +112,7 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
     return () => clearInterval(interval)
   }, [])
 
-  const now = new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })
+  const now = new Date().toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })
 
   // Badge counts per nav item — memoized to avoid creating new functions per render
   const getBadgeCount = useCallback((id: string): number => {
@@ -138,9 +140,9 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
       {/* Maison — top of sidebar */}
       <div className="px-4 pt-6 pb-3">
         <div className="flex items-center justify-between">
-          <div 
+          <div
             role="button"
-            aria-label="Åbn Maison kontrolpanel"
+            aria-label={t('sidebar.openMaison', 'Open Maison control panel')}
             tabIndex={0}
             className="flex items-center gap-3 flex-1 cursor-pointer rounded-xl px-3 py-3 transition-all duration-200 hover:bg-white/[0.04]"
             style={{ background: 'rgba(255,255,255,0.02)' }}
@@ -152,9 +154,9 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
               }
             }}
           >
-            <div 
+            <div
               className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ 
+              style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.08)',
               }}
@@ -170,12 +172,21 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-white">Maison</p>
-                <span className={`w-2 h-2 rounded-full transition-opacity duration-700 ${pulse ? 'opacity-100' : 'opacity-40'}`} 
-                      style={{ background: '#30D158' }} />
+              <p className="text-sm font-semibold text-white">Maison</p>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-green-500 tracking-wider uppercase">
+                  {t('common.active', 'active')}
+                </span>
               </div>
-              <p className="text-[10px] text-white/30">{now} · aktiv</p>
+              <p className="text-[10px] text-white/30 font-medium">
+                {new Date().toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                })}
+              </p>
             </div>
             <Icon name="chevron-right" size={10} className="text-white/15" />
           </div>
@@ -183,7 +194,7 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
           {/* Close button - mobile only */}
           <button
             onClick={onClose}
-            aria-label="Luk menu"
+            aria-label={t('sidebar.closeMenu', 'Close menu')}
             className="lg:hidden ml-2"
             style={{ padding: 8 }}
           >
@@ -192,11 +203,11 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
         </div>
       </div>
 
-      <nav role="navigation" aria-label="Hovednavigation" className="flex-1 px-2 overflow-y-auto">
+      <nav role="navigation" aria-label={t('sidebar.mainNav', 'Main navigation')} className="flex-1 px-2 overflow-y-auto">
         {navGroups.map(group => (
           <div key={group.heading}>
             <p className="text-[10px] uppercase tracking-wider text-white/25 px-3 pt-4 pb-1" aria-hidden="true">
-              {group.heading}
+              {t(`nav.group.${group.heading}`)}
             </p>
             <div className="space-y-0.5">
               {group.items.map(item => {
@@ -229,7 +240,7 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
                       />
                     )}
                     <Icon name={item.icon} size={20} className={active === item.id ? 'text-blue-400' : 'text-white/50'} />
-                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <span style={{ flex: 1 }}>{t(`nav.item.${item.label}`)}</span>
                     <Badge count={badgeCount} />
                   </a>
                 )
@@ -243,7 +254,7 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
         {/* ⌘K kommandopalet-genvej */}
         <button
           onClick={openCmd}
-          aria-label="Åbn kommandopalet (⌘K)"
+          aria-label={t('sidebar.commandPalette', 'Open command palette (⌘K)')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -261,7 +272,7 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
         >
           <Icon name="command" size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
           <span style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'left' }}>
-            Kommandopalet
+            {t('sidebar.commandPalette', 'Command Palette')}
           </span>
           <kbd style={{
             padding: '1px 5px',
@@ -280,10 +291,10 @@ const Sidebar = memo(function Sidebar({ active, onNavigate, isOpen, onClose, onM
           <ConnectionStatus />
           <span className="text-[11px] text-white/50">
             {isRefreshing ? (
-              <span style={{ color: 'rgba(0,122,255,0.7)' }}>Opdaterer...</span>
-            ) : isConnected ? 'Live' : 'Offline'}
+              <span style={{ color: 'rgba(0,122,255,0.7)' }}>{t('common.refreshing', 'Refreshing...')}</span>
+            ) : isConnected ? t('common.live', 'Live') : t('common.offline', 'Offline')}
             {lastUpdated && isConnected && !isRefreshing && (
-              <span className="text-white/30"> · {lastUpdated.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span className="text-white/30"> · {lastUpdated.toLocaleTimeString(i18n.language === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             )}
           </span>
         </div>

@@ -1,6 +1,8 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render } from '@testing-library/react'
+// @ts-ignore
+import { screen, fireEvent } from '@testing-library/react'
 import './mocks'
 import Sidebar from '../components/Sidebar'
 
@@ -17,85 +19,85 @@ function renderSidebar(overrides: Partial<React.ComponentProps<typeof Sidebar>> 
 
 describe('Sidebar', () => {
   describe('Rendering', () => {
-    it('renderer navigation-elementet', () => {
+    it('renders the navigation element', () => {
       renderSidebar()
       expect(screen.getByRole('navigation')).toBeInTheDocument()
     })
 
-    it('viser alle 5 navigationgrupper', () => {
+    it('shows all 5 navigation groups', () => {
       renderSidebar()
-      expect(screen.getByText('Overblik')).toBeInTheDocument()
-      expect(screen.getByText('Arbejde')).toBeInTheDocument()
-      expect(screen.getByText('Analyse')).toBeInTheDocument()
-      expect(screen.getByText('Drift')).toBeInTheDocument()
-      expect(screen.getByText('System')).toBeInTheDocument()
+      expect(screen.getByText(/overview/i)).toBeInTheDocument()
+      expect(screen.getByText(/work/i)).toBeInTheDocument()
+      expect(screen.getByText(/analysis/i)).toBeInTheDocument()
+      expect(screen.getByText(/operations/i)).toBeInTheDocument()
+      expect(screen.getByText(/system/i)).toBeInTheDocument()
     })
 
-    it('viser alle sidelinks', () => {
+    it('shows all side links', () => {
       renderSidebar()
-      expect(screen.getByText('Oversigt')).toBeInTheDocument()
-      expect(screen.getByText('Opgaver')).toBeInTheDocument()
-      expect(screen.getByText('Indstillinger')).toBeInTheDocument()
-      expect(screen.getByText('Agenter')).toBeInTheDocument()
+      expect(screen.getByText(/dashboard/i)).toBeInTheDocument()
+      expect(screen.getByText(/tasks/i)).toBeInTheDocument()
+      expect(screen.getByText(/settings/i)).toBeInTheDocument()
+      expect(screen.getByText(/agents/i)).toBeInTheDocument()
     })
 
-    it('viser Maison knappen', () => {
+    it('shows the Maison button', () => {
       renderSidebar()
       expect(screen.getByRole('button', { name: /maison/i })).toBeInTheDocument()
     })
 
-    it('viser "Mission Kontrol" version string', () => {
+    it('shows "Mission Kontrol" version string', () => {
       renderSidebar()
       expect(screen.getByText(/mission kontrol/i)).toBeInTheDocument()
     })
   })
 
-  describe('Aktiv tilstand', () => {
-    it('markerer aktivt element med aria-current="page"', () => {
+  describe('Active state', () => {
+    it('marks active element with aria-current="page"', () => {
       renderSidebar({ active: 'tasks' })
-      const taskLink = screen.getByRole('link', { name: /opgaver/i })
+      const taskLink = screen.getByRole('link', { name: /tasks/i })
       expect(taskLink).toHaveAttribute('aria-current', 'page')
     })
 
-    it('inaktive elementer har IKKE aria-current', () => {
+    it('inactive elements do NOT have aria-current', () => {
       renderSidebar({ active: 'tasks' })
-      const dashLink = screen.getByRole('link', { name: /oversigt/i })
+      const dashLink = screen.getByRole('link', { name: /dashboard/i })
       expect(dashLink).not.toHaveAttribute('aria-current', 'page')
     })
 
-    it('skifter aktiv side ved klik', () => {
+    it('changes active page on click', () => {
       const onNavigate = vi.fn()
       renderSidebar({ active: 'dashboard', onNavigate })
-      fireEvent.click(screen.getByRole('link', { name: /opgaver/i }))
+      fireEvent.click(screen.getByRole('link', { name: /tasks/i }))
       expect(onNavigate).toHaveBeenCalledWith('tasks')
     })
   })
 
   describe('Navigation', () => {
-    it('kalder onNavigate med korrekt id', () => {
+    it('calls onNavigate with correct id', () => {
       const onNavigate = vi.fn()
       renderSidebar({ onNavigate })
-      fireEvent.click(screen.getByRole('link', { name: /agenter/i }))
+      fireEvent.click(screen.getByRole('link', { name: /agents/i }))
       expect(onNavigate).toHaveBeenCalledWith('agents')
     })
 
-    it('forhindrer default link-navigation', () => {
+    it('prevents default link navigation', () => {
       const onNavigate = vi.fn()
       renderSidebar({ onNavigate })
-      const link = screen.getByRole('link', { name: /oversigt/i })
-      const event = fireEvent.click(link)
-      // click returnerer true hvis preventDefault ikke kaldt, false hvis kaldt
+      const link = screen.getByRole('link', { name: /dashboard/i })
+      fireEvent.click(link)
+      // click returns true if preventDefault not called, false if called
       expect(onNavigate).toHaveBeenCalled()
     })
 
-    it('kalder onMaisonClick ved klik på Maison', () => {
+    it('calls onMaisonClick on Maison click', () => {
       const onMaisonClick = vi.fn()
       renderSidebar({ onMaisonClick })
       fireEvent.click(screen.getByRole('button', { name: /maison/i }))
       expect(onMaisonClick).toHaveBeenCalledTimes(1)
     })
 
-    it('kalder onMaisonClick ved Enter-tast på Maison', () => {
+    it('calls onMaisonClick on Enter key on Maison', () => {
       const onMaisonClick = vi.fn()
       renderSidebar({ onMaisonClick })
       const maisonBtn = screen.getByRole('button', { name: /maison/i })
@@ -103,39 +105,39 @@ describe('Sidebar', () => {
       expect(onMaisonClick).toHaveBeenCalledTimes(1)
     })
 
-    it('kalder onClose ved klik på luk-knap (mobil)', () => {
+    it('calls onClose on close button click (mobile)', () => {
       const onClose = vi.fn()
       renderSidebar({ onClose })
-      const closeBtn = screen.getByRole('button', { name: /luk menu/i })
+      const closeBtn = screen.getByRole('button', { name: /close menu/i })
       fireEvent.click(closeBtn)
       expect(onClose).toHaveBeenCalledTimes(1)
     })
   })
 
   describe('Badge counts', () => {
-    it('viser badge for agenter med korrekt antal', () => {
+    it('shows badge for agents with correct count', () => {
       renderSidebar()
-      // mockLiveData har 1 subagent (kind !== 'main')
+      // mockLiveData has 1 subagent (kind !== 'main')
       const badge = screen.getByText('1')
       expect(badge).toBeInTheDocument()
     })
 
-    it('viser badge for cron med aktive jobs', () => {
+    it('shows badge for cron with active jobs', () => {
       renderSidebar()
-      // mockLiveData har 2 enabled cron jobs
+      // mockLiveData has 2 enabled cron jobs
       const badge = screen.getByText('2')
       expect(badge).toBeInTheDocument()
     })
   })
 
-  describe('Synlighed', () => {
-    it('er synlig når isOpen=true (lg: altid synlig)', () => {
+  describe('Visibility', () => {
+    it('is visible when isOpen=true (lg: always visible)', () => {
       const { container } = renderSidebar({ isOpen: true })
       const aside = container.querySelector('aside')
       expect(aside).toHaveClass('translate-x-0')
     })
 
-    it('er skjult når isOpen=false', () => {
+    it('is hidden when isOpen=false', () => {
       const { container } = renderSidebar({ isOpen: false })
       const aside = container.querySelector('aside')
       expect(aside).toHaveClass('-translate-x-full')

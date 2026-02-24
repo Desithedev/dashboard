@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
+import i18n from '../i18n'
 import { fetchSessions, fetchStatus, fetchCronJobs, fetchConfig, fetchInstalledSkills, getGatewayToken, ApiSession, CronJobApi, SkillInfo } from './openclaw'
 
 interface LiveData {
@@ -36,6 +37,8 @@ export function useLiveData() {
 }
 
 const CACHE_KEY = 'openclaw-live-cache'
+const ACTIVE_POLL_MS = 2500
+const HIDDEN_POLL_MS = 15000
 
 function loadCache(): { sessions: ApiSession[], statusText: string | null, cronJobs: CronJobApi[], gatewayConfig: Record<string, any> | null, skills: SkillInfo[] } {
   try {
@@ -73,6 +76,9 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   const [gatewayConfig, setGatewayConfig] = useState<Record<string, any> | null>(cached.current.gatewayConfig)
   const [skills, setSkills] = useState<SkillInfo[]>(cached.current.skills)
   const [consecutiveErrors, setConsecutiveErrors] = useState(0)
+  const inFlightRefresh = useRef(false)
+  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const latestSnapshotRef = useRef(cached.current)
   
   // Track previous data hash to only update when data actually changes
   const prevSessionsHash = useRef<string>('')
@@ -84,13 +90,21 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
   // Track if this is first load (show loading only on first load)
   const isFirstLoad = useRef(true)
 
+  useEffect(() => {
+    latestSnapshotRef.current = { sessions, statusText, cronJobs, gatewayConfig, skills }
+  }, [sessions, statusText, cronJobs, gatewayConfig, skills])
+
   const refresh = useCallback(async () => {
+    if (inFlightRefresh.current) return
+
     const token = getGatewayToken()
     if (!token) {
       setIsConnected(false)
       return
     }
 
+    inFlightRefresh.current = true
+    if (isFirstLoad.current) setIsLoading(true)
     setIsRefreshing(true)
     try {
       const [sessionsData, statusData, cronData, configData, skillsData] = await Promise.all([
@@ -158,49 +172,79 @@ export function LiveDataProvider({ children }: { children: ReactNode }) {
         isFirstLoad.current = false
         
         // Persist to localStorage so data survives refresh
+        const nextSnapshot = {
+          sessions: sessionsData ? sessionsData.sessions : latestSnapshotRef.current.sessions,
+          statusText: statusData || latestSnapshotRef.current.statusText,
+          cronJobs: cronData || latestSnapshotRef.current.cronJobs,
+          gatewayConfig: configData || latestSnapshotRef.current.gatewayConfig,
+          skills: skillsData || latestSnapshotRef.current.skills,
+        }
+        latestSnapshotRef.current = nextSnapshot
         saveCache(
-          sessionsData ? sessionsData.sessions : sessions,
-          statusData || statusText,
-          cronData || cronJobs,
-          configData || gatewayConfig,
-          skillsData || skills
+          nextSnapshot.sessions,
+          nextSnapshot.statusText,
+          nextSnapshot.cronJobs,
+          nextSnapshot.gatewayConfig,
+          nextSnapshot.skills
         )
       } else {
         setIsConnected(false)
-        setError('Kunne ikke oprette forbindelse til Gateway')
+        setError(i18n.t('connection.gatewayError', 'Could not connect to Gateway'))
         setConsecutiveErrors(prev => prev + 1)
       }
     } catch {
       setIsConnected(false)
-      setError('Kunne ikke oprette forbindelse til Gateway')
+      setError(i18n.t('connection.gatewayError', 'Could not connect to Gateway'))
       setConsecutiveErrors(prev => prev + 1)
     } finally {
       setIsRefreshing(false)
+      setIsLoading(false)
+      inFlightRefresh.current = false
     }
   }, [])
 
   useEffect(() => {
-    refresh()
-    
-    // Poll every 15 seconds (reduced from 5s to save resources)
-    const id = setInterval(() => {
-      // Only poll if page is visible (Page Visibility API)
-      if (!document.hidden) {
-        refresh()
+    let stopped = false
+
+    const clearPoll = () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current)
+        pollTimeoutRef.current = null
       }
-    }, 15000)
+    }
+
+    const scheduleNext = () => {
+      if (stopped) return
+      clearPoll()
+      const delay = document.hidden ? HIDDEN_POLL_MS : ACTIVE_POLL_MS
+      pollTimeoutRef.current = setTimeout(async () => {
+        await refresh()
+        scheduleNext()
+      }, delay)
+    }
+
+    refresh().finally(scheduleNext)
     
     // Also refresh when page becomes visible again
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         refresh()
       }
+      scheduleNext()
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    const handleOnline = () => {
+      refresh()
+      scheduleNext()
+    }
+    window.addEventListener('online', handleOnline)
     
     return () => {
-      clearInterval(id)
+      stopped = true
+      clearPoll()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('online', handleOnline)
     }
   }, [refresh])
 

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from '../components/Icon'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -25,24 +26,24 @@ function loadCache(): Article[] {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch { }
   return []
 }
 
 function saveCache(articles: Article[]) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(articles)) } catch {}
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(articles)) } catch { }
 }
 
 /* ── Markdown Renderer ───────────────────────── */
 function renderMarkdown(text: string): string {
   if (!text) return ''
-  
+
   const lines = text.split('\n')
   const html: string[] = []
   let inList = false
   let inTable = false
   let tableRows: string[][] = []
-  
+
   function inlineFormat(s: string): string {
     return s
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -50,11 +51,11 @@ function renderMarkdown(text: string): string {
       .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
       .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#5AC8FA;text-decoration:none">$1</a>')
   }
-  
+
   function flushList() {
     if (inList) { html.push('</ul>'); inList = false }
   }
-  
+
   function flushTable() {
     if (tableRows.length > 0) {
       html.push('<div style="overflow-x:auto;margin:12px 0"><table style="width:100%;border-collapse:collapse;font-size:12px">')
@@ -75,10 +76,10 @@ function renderMarkdown(text: string): string {
       inTable = false
     }
   }
-  
+
   for (const line of lines) {
     const trimmed = line.trim()
-    
+
     // Table rows
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       flushList()
@@ -93,15 +94,15 @@ function renderMarkdown(text: string): string {
     } else if (inTable) {
       flushTable()
     }
-    
+
     // Headings
     if (trimmed.startsWith('### ')) { flushList(); html.push(`<h3 style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);margin:12px 0 4px">${inlineFormat(trimmed.slice(4))}</h3>`); continue }
     if (trimmed.startsWith('## ')) { flushList(); html.push(`<h2 style="font-size:16px;font-weight:700;color:#fff;margin:16px 0 6px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:6px">${inlineFormat(trimmed.slice(3))}</h2>`); continue }
     if (trimmed.startsWith('# ')) { flushList(); html.push(`<h1 style="font-size:20px;font-weight:700;color:#fff;margin:20px 0 8px">${inlineFormat(trimmed.slice(2))}</h1>`); continue }
-    
+
     // HR
     if (trimmed === '---' || trimmed === '***') { flushList(); html.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0" />'); continue }
-    
+
     // List items
     if (trimmed.match(/^[-*]\s/) || trimmed.match(/^\d+\.\s/)) {
       if (!inList) { html.push('<ul style="margin:8px 0;padding-left:20px;color:rgba(255,255,255,0.7)">'); inList = true }
@@ -109,42 +110,30 @@ function renderMarkdown(text: string): string {
       html.push(`<li style="font-size:13px;line-height:1.8">${inlineFormat(text)}</li>`)
       continue
     }
-    
+
     // Empty line
     if (trimmed === '') { flushList(); continue }
-    
+
     // Paragraph
     flushList()
     html.push(`<p style="font-size:13px;line-height:1.7;color:rgba(255,255,255,0.7);margin:6px 0">${inlineFormat(trimmed)}</p>`)
   }
-  
+
   flushList()
   flushTable()
-  
+
   return html.join('\n')
 }
 
 /* ── Helpers ─────────────────────────────────── */
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) return 'I dag'
-  if (diffDays === 1) return 'I går'
-  if (diffDays < 7) return `${diffDays} dage siden`
-  
-  return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })
-}
-
 function relevanceColor(r: string) {
   return r === 'high' ? '#30D158' : r === 'medium' ? '#FF9F0A' : 'rgba(255,255,255,0.4)'
 }
 
 function categoryColor(c: string) {
   const colors: Record<string, string> = {
-    'AI': '#007AFF', 'SaaS': '#AF52DE', 'Restaurant': '#FF6B35',
-    'Automation': '#30D158', 'Marketing': '#FF9F0A', 'Tech': '#5AC8FA',
+    'ai': '#007AFF', 'saas': '#AF52DE', 'restaurant': '#FF6B35',
+    'automation': '#30D158', 'marketing': '#FF9F0A', 'tech': '#5AC8FA',
   }
   return colors[c] || '#636366'
 }
@@ -152,20 +141,20 @@ function categoryColor(c: string) {
 /* ── Parse articles from AI response ─────────── */
 function parseArticlesFromResponse(text: string, query: string): Article[] {
   const articles: Article[] = []
-  
+
   const lines = text.split('\n')
   let currentArticle: Partial<Article> = {}
   let articleIndex = 0
-  
+
   for (const line of lines) {
     const trimmed = line.trim()
-    
+
     const numberedMatch = trimmed.match(/^\d+[\.\)]\s*\*?\*?(.+?)\*?\*?\s*$/)
     const headerMatch = trimmed.match(/^#{1,3}\s+(.+)$/)
     const boldMatch = trimmed.match(/^\*\*(.+?)\*\*/)
-    
+
     const titleMatch = numberedMatch || headerMatch || boldMatch
-    
+
     if (titleMatch && titleMatch[1].length > 10 && titleMatch[1].length < 200) {
       if (currentArticle.title) {
         articles.push({
@@ -193,7 +182,7 @@ function parseArticlesFromResponse(text: string, query: string): Article[] {
       }
     }
   }
-  
+
   if (currentArticle.title) {
     articles.push({
       id: `art-${Date.now()}-${articleIndex}`,
@@ -207,31 +196,31 @@ function parseArticlesFromResponse(text: string, query: string): Article[] {
       isNew: true,
     })
   }
-  
+
   if (articles.length === 0 && text.length > 50) {
     articles.push({
       id: `art-${Date.now()}-0`,
       title: query,
       summary: text.slice(0, 500),
       source: 'AI Analyse',
-      category: 'AI',
+      category: 'ai',
       relevance: 'high',
       timestamp: new Date().toISOString(),
       isNew: true,
     })
   }
-  
+
   return articles
 }
 
 function guessCategory(text: string, query: string): string {
   const t = (text + ' ' + query).toLowerCase()
-  if (t.includes('restaurant') || t.includes('food') || t.includes('dining')) return 'Restaurant'
-  if (t.includes('ai') || t.includes('artificial') || t.includes('llm') || t.includes('gpt') || t.includes('claude')) return 'AI'
-  if (t.includes('saas') || t.includes('software') || t.includes('platform')) return 'SaaS'
-  if (t.includes('automat') || t.includes('workflow')) return 'Automation'
-  if (t.includes('market') || t.includes('growth') || t.includes('seo')) return 'Marketing'
-  return 'Tech'
+  if (t.includes('restaurant') || t.includes('food') || t.includes('dining')) return 'restaurant'
+  if (t.includes('ai') || t.includes('artificial') || t.includes('llm') || t.includes('gpt') || t.includes('claude')) return 'ai'
+  if (t.includes('saas') || t.includes('software') || t.includes('platform')) return 'saas'
+  if (t.includes('automat') || t.includes('workflow')) return 'automation'
+  if (t.includes('market') || t.includes('growth') || t.includes('seo')) return 'marketing'
+  return 'tech'
 }
 
 /* ── API call to search ──────────────────────── */
@@ -240,16 +229,16 @@ async function searchArticles(query: string): Promise<string> {
     default: async (q: string) => {
       const url = localStorage.getItem('openclaw-gateway-url') || 'http://127.0.0.1:63362'
       const token = localStorage.getItem('openclaw-gateway-token') || ''
-      
+
       let fetchFn: typeof fetch = fetch
       if (typeof window !== 'undefined' && '__TAURI__' in window) {
         const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
         fetchFn = tauriFetch
       }
-      
+
       const resolvedUrl = (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') && url.includes('ts.net'))
         ? '/api/gateway' : url
-      
+
       const res = await fetchFn(`${resolvedUrl}/tools/invoke`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -267,14 +256,28 @@ async function searchArticles(query: string): Promise<string> {
 
 /* ── Main Page ───────────────────────────────── */
 export default function Intelligence() {
-  usePageTitle('Intelligence')
-  
+  const { t, i18n } = useTranslation()
+  const currentLang = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+  usePageTitle(t('intelligence.title'))
+
   const { isConnected } = useLiveData()
   const [articles, setArticles] = useState<Article[]>(loadCache)
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
+
+  const formatDate = useCallback((dateStr: string): string => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return t('dates.today')
+    if (diffDays === 1) return t('dates.yesterday')
+    if (diffDays < 7) return t('dates.daysAgo', { count: diffDays })
+
+    return date.toLocaleDateString(currentLang, { day: 'numeric', month: 'short' })
+  }, [t, currentLang])
 
   // Auto-load analyses from pre-generated static JSON
   useEffect(() => {
@@ -312,30 +315,30 @@ export default function Intelligence() {
 
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) return
-    
+
     setIsSearching(true)
-    
+
     try {
       const searches = [
         query,
         query + ' latest news articles',
         query + ' tools platforms solutions',
       ]
-      
+
       const allArticles: Article[] = []
-      
+
       for (const q of searches) {
         try {
           const result = await searchArticles(q)
           const parsed = parseArticlesFromResponse(result, query)
           allArticles.push(...parsed)
-        } catch {}
+        } catch { }
       }
-      
+
       // Deduplicate by title similarity
       const unique: Article[] = []
       for (const art of allArticles) {
-        const isDupe = unique.some(u => 
+        const isDupe = unique.some(u =>
           u.title.toLowerCase().includes(art.title.toLowerCase().slice(0, 30)) ||
           art.title.toLowerCase().includes(u.title.toLowerCase().slice(0, 30))
         )
@@ -343,13 +346,13 @@ export default function Intelligence() {
           unique.push(art)
         }
       }
-      
+
       setArticles(prev => {
         const updated = [...unique.slice(0, 15), ...prev].slice(0, 100)
         saveCache(updated)
         return updated
       })
-      
+
       if (unique.length > 0) {
         setSelectedArticle(unique[0])
       }
@@ -365,8 +368,8 @@ export default function Intelligence() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <Icon name="exclamation-triangle" size={48} className="mx-auto mb-4 opacity-30" />
-          <h3 className="text-lg font-semibold text-white mb-2">Ingen forbindelse til Gateway</h3>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Gå til Indstillinger for at konfigurere</p>
+          <h3 className="text-lg font-semibold text-white mb-2">{t('intelligence.noConnection')}</h3>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{t('intelligence.goSettings')}</p>
         </div>
       </div>
     )
@@ -377,7 +380,7 @@ export default function Intelligence() {
     return (
       <div className="h-full flex flex-col">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-white mb-4">Intelligens</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">{t('intelligence.title')}</h1>
           <div className="flex gap-2">
             <div className="flex-1 px-4 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', height: 42 }}></div>
             <div className="px-5 py-2.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', width: 80 }}></div>
@@ -401,7 +404,7 @@ export default function Intelligence() {
       {/* Header & Search */}
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-4">
-          <h1 className="text-2xl font-bold text-white">Intelligens</h1>
+          <h1 className="text-2xl font-bold text-white">{t('intelligence.title')}</h1>
           <DataFreshness className="ml-auto" />
         </div>
         <div className="flex gap-2">
@@ -410,7 +413,7 @@ export default function Intelligence() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && searchQuery.trim()) { performSearch(searchQuery); setSearchQuery('') } }}
-            placeholder="Søg efter artikler, trends, teknologier..."
+            placeholder={t('intelligence.searchPlaceholder')}
             className="flex-1 px-4 py-2.5 rounded-lg text-sm text-white"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', outline: 'none' }}
           />
@@ -418,13 +421,13 @@ export default function Intelligence() {
             onClick={() => { if (searchQuery.trim()) { performSearch(searchQuery); setSearchQuery('') } }}
             disabled={isSearching || !searchQuery.trim()}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-all"
-            style={{ 
+            style={{
               background: isSearching ? 'rgba(0,122,255,0.4)' : '#007AFF',
               opacity: !searchQuery.trim() ? 0.5 : 1,
               cursor: !searchQuery.trim() ? 'not-allowed' : 'pointer'
             }}
           >
-            {isSearching ? 'Søger...' : 'Søg'}
+            {isSearching ? t('intelligence.searching') : t('intelligence.search')}
           </button>
           <button
             onClick={() => loadAnalyses()}
@@ -432,7 +435,7 @@ export default function Intelligence() {
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-            title="Genindlæs analyser fra memory"
+            title={t('intelligence.reloadAnalyses')}
           >
             <Icon name="arrow-path" size={16} />
           </button>
@@ -445,22 +448,22 @@ export default function Intelligence() {
         <div className="w-80 flex-shrink-0 overflow-y-auto rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="p-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {articles.length} artikler
+              {t('intelligence.articlesCount', { count: articles.length })}
             </p>
           </div>
-          
+
           {articles.length === 0 && !isLoadingInitial && (
             <div className="p-8 text-center">
               <Icon name="document" size={32} className="mx-auto mb-3 opacity-20" />
               <p className="text-xs font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                Ingen artikler endnu
+                {t('intelligence.noArticles')}
               </p>
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                Søg for at finde artikler
+                {t('intelligence.searchPrompt')}
               </p>
             </div>
           )}
-          
+
           {articles.map(article => (
             <div
               key={article.id}
@@ -478,7 +481,7 @@ export default function Intelligence() {
                   background: `${categoryColor(article.category)}20`,
                   color: categoryColor(article.category),
                 }}>
-                  {article.category}
+                  {t(`intelligence.categories.${article.category}`)}
                 </span>
                 <span className="text-[10px] ml-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   {formatDate(article.timestamp)}
@@ -488,7 +491,7 @@ export default function Intelligence() {
                 {article.title}
               </h4>
               <p className="text-[10px] leading-relaxed line-clamp-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                {article.source}
+                {article.source === 'AI Analyse' ? t('intelligence.sourceAiAnalyse') : article.source}
               </p>
             </div>
           ))}
@@ -503,11 +506,11 @@ export default function Intelligence() {
                   background: `${categoryColor(selectedArticle.category)}20`,
                   color: categoryColor(selectedArticle.category),
                 }}>
-                  {selectedArticle.category}
+                  {t(`intelligence.categories.${selectedArticle.category}`)}
                 </span>
                 {selectedArticle.isNew && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,122,255,0.15)', color: '#007AFF' }}>
-                    NY
+                    {t('intelligence.newBadge')}
                   </span>
                 )}
                 <span className="text-xs ml-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -523,13 +526,13 @@ export default function Intelligence() {
                 <div className="flex items-center gap-1.5">
                   <Icon name="globe" size={12} style={{ color: 'rgba(255,255,255,0.4)' }} />
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    {selectedArticle.source}
+                    {selectedArticle.source === 'AI Analyse' ? t('intelligence.sourceAiAnalyse') : selectedArticle.source}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full" style={{ background: relevanceColor(selectedArticle.relevance) }} />
                   <span className="text-xs" style={{ color: relevanceColor(selectedArticle.relevance) }}>
-                    {selectedArticle.relevance === 'high' ? 'Høj relevans' : selectedArticle.relevance === 'medium' ? 'Medium relevans' : 'Lav relevans'}
+                    {t(`intelligence.relevance${selectedArticle.relevance.charAt(0).toUpperCase() + selectedArticle.relevance.slice(1)}`)}
                   </span>
                 </div>
               </div>
@@ -548,7 +551,7 @@ export default function Intelligence() {
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.1)' }}
                   >
                     <Icon name="arrow-up-right" size={14} />
-                    Åbn original artikel
+                    {t('intelligence.openOriginal')}
                   </a>
                 </div>
               )}
@@ -558,7 +561,7 @@ export default function Intelligence() {
               <div className="text-center">
                 <Icon name="document" size={48} className="mx-auto mb-4 opacity-20" />
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  Vælg en artikel fra listen
+                  {t('intelligence.selectArticle')}
                 </p>
               </div>
             </div>

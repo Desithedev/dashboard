@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 
 interface ErrorStateProps {
@@ -8,15 +9,18 @@ interface ErrorStateProps {
 }
 
 /**
- * Genbrugelig inline fejl-state til sider der fetcher data.
- * Vis når et API-kald fejler – med ikon, besked og valgfri retry-knap.
+ * Reusable inline error state for data fetching pages.
+ * Shown when an API call fails – with icon, message and optional retry button.
  */
 export default function ErrorState({
-  title = 'Noget gik galt',
-  message = 'Der opstod en fejl. Prøv at hente data igen.',
+  title,
+  message,
   onRetry,
   compact = false,
 }: ErrorStateProps) {
+  const { t } = useTranslation()
+  const displayTitle = title || t('common.errors.title', 'Something went wrong')
+  const displayMessage = message || t('common.errors.message', 'An error occurred. Please try to fetch data again.')
   return (
     <div
       style={{
@@ -28,7 +32,7 @@ export default function ErrorState({
         textAlign: 'center',
       }}
     >
-      {/* Ikon */}
+      {/* Icon */}
       <div
         style={{
           width: compact ? '40px' : '56px',
@@ -50,7 +54,7 @@ export default function ErrorState({
         />
       </div>
 
-      {/* Titel */}
+      {/* Title */}
       <p
         style={{
           fontSize: compact ? '14px' : '15px',
@@ -60,10 +64,10 @@ export default function ErrorState({
           lineHeight: '1.3',
         }}
       >
-        {title}
+        {displayTitle}
       </p>
 
-      {/* Besked */}
+      {/* Message */}
       <p
         style={{
           fontSize: compact ? '12px' : '13px',
@@ -73,7 +77,7 @@ export default function ErrorState({
           maxWidth: '300px',
         }}
       >
-        {message}
+        {displayMessage}
       </p>
 
       {/* Retry-knap */}
@@ -104,7 +108,7 @@ export default function ErrorState({
           }}
         >
           <Icon name="arrow-path" size={13} />
-          Prøv igen
+          {t('common.retry', 'Try again')}
         </button>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 import { useToast } from './Toast'
 import { useLiveData } from '../api/LiveDataContext'
@@ -10,24 +11,24 @@ interface CommandPaletteProps {
   onNavigate: (page: string) => void
 }
 
-const navItems = [
-  { id: 'dashboard', label: 'Oversigt', icon: 'grid' },
-  { id: 'communication', label: 'Kommunikation', icon: 'chat-bubble' },
-  { id: 'journal', label: 'Journal', icon: 'list' },
-  { id: 'tasks', label: 'Opgaver', icon: 'checklist' },
-  { id: 'documents', label: 'Dokumenter', icon: 'doc' },
-  { id: 'agents', label: 'Agenter', icon: 'person-circle' },
-  { id: 'skills', label: 'Færdigheder', icon: 'sparkle' },
-  { id: 'intelligence', label: 'Intelligens', icon: 'lightbulb' },
-  { id: 'weekly', label: 'Ugerapport', icon: 'calendar-week' },
-  { id: 'clients', label: 'Projekter', icon: 'folder' },
-  { id: 'cron', label: 'Planlagte Jobs', icon: 'clock' },
-  { id: 'api', label: 'API Forbrug', icon: 'chart-bar' },
-  { id: 'workshop', label: 'Værksted', icon: 'wrench' },
-  { id: 'index', label: 'Søgning', icon: 'magnifying-glass' },
-  { id: 'evals', label: 'Evalueringer', icon: 'gauge' },
-  { id: 'notifications', label: 'Notifikationer', icon: 'bell' },
-  { id: 'settings', label: 'Indstillinger', icon: 'gear' },
+const navItemIds = [
+  { id: 'dashboard', icon: 'grid' },
+  { id: 'communication', icon: 'chat-bubble' },
+  { id: 'journal', icon: 'list' },
+  { id: 'tasks', icon: 'checklist' },
+  { id: 'documents', icon: 'doc' },
+  { id: 'agents', icon: 'person-circle' },
+  { id: 'skills', icon: 'sparkle' },
+  { id: 'intelligence', icon: 'lightbulb' },
+  { id: 'weekly', icon: 'calendar-week' },
+  { id: 'clients', icon: 'folder' },
+  { id: 'cron', icon: 'clock' },
+  { id: 'api', icon: 'chart-bar' },
+  { id: 'workshop', icon: 'wrench' },
+  { id: 'index', icon: 'magnifying-glass' },
+  { id: 'evals', icon: 'gauge' },
+  { id: 'notifications', icon: 'bell' },
+  { id: 'settings', icon: 'gear' },
 ]
 
 // Reverse lookup: page id → shortcut number
@@ -46,33 +47,34 @@ function fuzzyMatch(query: string, text: string): boolean {
   return qi === q.length
 }
 
-type ActionItem = {
-  id: string
-  label: string
-  icon: string
-  execute: (ctx: ActionContext) => void | Promise<void>
-}
-
 type ActionContext = {
   showToast: (type: 'success' | 'error' | 'info' | 'warning', msg: string) => void
   refresh: () => Promise<void>
   onClose: () => void
+  t: (key: string) => string
 }
 
-const actions: ActionItem[] = [
+type ActionDef = {
+  id: string
+  labelKey: string
+  icon: string
+  execute: (ctx: ActionContext) => void | Promise<void>
+}
+
+const actionDefs: ActionDef[] = [
   {
     id: 'copy-gateway-url',
-    label: 'Kopier Gateway URL',
+    labelKey: 'commandPalette.actions.copyGateway',
     icon: 'clipboard',
-    execute: async ({ showToast, onClose }) => {
+    execute: async ({ showToast, onClose, t }) => {
       await navigator.clipboard.writeText('srv1356942.tail9aaaf1.ts.net')
-      showToast('success', 'Kopieret!')
+      showToast('success', t('commandPalette.actions.copied'))
       onClose()
     },
   },
   {
     id: 'open-github',
-    label: 'Åbn GitHub',
+    labelKey: 'commandPalette.actions.openGitHub',
     icon: 'code',
     execute: ({ onClose }) => {
       window.open('https://github.com/MartinSarvio/Mission-Kontrol', '_blank', 'noopener,noreferrer')
@@ -81,7 +83,7 @@ const actions: ActionItem[] = [
   },
   {
     id: 'open-vercel',
-    label: 'Åbn Vercel',
+    labelKey: 'commandPalette.actions.openVercel',
     icon: 'rocket',
     execute: ({ onClose }) => {
       window.open('https://mission-kontrol.vercel.app', '_blank', 'noopener,noreferrer')
@@ -90,31 +92,42 @@ const actions: ActionItem[] = [
   },
   {
     id: 'refresh-data',
-    label: 'Genindlæs data',
+    labelKey: 'commandPalette.actions.refreshData',
     icon: 'arrow-path',
-    execute: async ({ refresh, showToast, onClose }) => {
+    execute: async ({ refresh, showToast, onClose, t }) => {
       onClose()
       await refresh()
-      showToast('success', 'Data genindlæst')
+      showToast('success', t('commandPalette.actions.dataRefreshed'))
     },
   },
   {
     id: 'toggle-theme',
-    label: 'Skift tema',
+    labelKey: 'commandPalette.actions.toggleTheme',
     icon: 'moon',
-    execute: ({ showToast, onClose }) => {
-      showToast('info', 'Tema skiftet')
+    execute: ({ showToast, onClose, t }) => {
+      showToast('info', t('commandPalette.actions.themeToggled'))
       onClose()
     },
   },
 ]
 
 export default function CommandPalette({ open, onClose, onNavigate }: CommandPaletteProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const { showToast } = useToast()
   const { refresh } = useLiveData()
+
+  const navItems = navItemIds.map(item => ({
+    ...item,
+    label: t(`nav.item.${item.id}`),
+  }))
+
+  const actions = actionDefs.map(a => ({
+    ...a,
+    label: t(a.labelKey),
+  }))
 
   const filteredNav = query
     ? navItems.filter(i => fuzzyMatch(query, i.label) || fuzzyMatch(query, i.id))
@@ -124,7 +137,6 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
     ? actions.filter(a => fuzzyMatch(query, a.label) || fuzzyMatch(query, a.id))
     : actions
 
-  // Flat list for keyboard navigation: nav items first, then actions
   const totalCount = filteredNav.length + filteredActions.length
 
   const goNav = useCallback((id: string) => {
@@ -133,14 +145,15 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
     onClose()
     setQuery('')
     if (item) {
-      showToast('info', `Navigeret til ${item.label}`)
+      showToast('info', `${t('commandPalette.navigatedTo')} ${item.label}`)
     }
-  }, [onNavigate, onClose, showToast])
+  }, [navItems, onNavigate, onClose, showToast, t])
 
-  const runAction = useCallback((action: ActionItem) => {
+  const runAction = useCallback((action: typeof actions[0]) => {
     setQuery('')
-    action.execute({ showToast, refresh, onClose })
-  }, [showToast, refresh, onClose])
+    const def = actionDefs.find(d => d.id === action.id)
+    def?.execute({ showToast, refresh, onClose, t })
+  }, [showToast, refresh, onClose, t, actions])
 
   useEffect(() => {
     if (open) {
@@ -189,7 +202,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Kommandopalet"
+        aria-label={t('commandPalette.label')}
         style={{
           width: '100%', maxWidth: 540,
           background: 'rgba(14,14,22,0.92)',
@@ -210,7 +223,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Søg..."
+            placeholder={t('commandPalette.placeholder')}
             style={{
               flex: 1, background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: 16, fontFamily: 'inherit',
@@ -227,7 +240,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
         <div role="listbox" style={{ maxHeight: 380, overflowY: 'auto', padding: '6px 0' }}>
           {totalCount === 0 && (
             <div style={{ padding: '24px 18px', textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>
-              Ingen resultater
+              {t('commandPalette.noResults')}
             </div>
           )}
 
@@ -236,17 +249,14 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
             <>
               <div style={{
                 padding: '4px 18px 2px',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
+                fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'rgba(255,255,255,0.3)',
               }}>
-                Sider
+                {t('commandPalette.sectionPages')}
               </div>
               {filteredNav.map((item, i) => {
-                const globalIndex = i
-                const isSelected = globalIndex === selected
+                const isSelected = i === selected
                 const shortcut = PAGE_TO_SHORTCUT[item.id]
                 return (
                   <div
@@ -254,7 +264,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
                     role="option"
                     aria-selected={isSelected}
                     onClick={() => goNav(item.id)}
-                    onMouseEnter={() => setSelected(globalIndex)}
+                    onMouseEnter={() => setSelected(i)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       padding: '10px 18px', cursor: 'pointer',
@@ -286,15 +296,13 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
             <>
               <div style={{
                 padding: filteredNav.length > 0 ? '8px 18px 2px' : '4px 18px 2px',
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
+                fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
                 color: 'rgba(255,255,255,0.3)',
                 borderTop: filteredNav.length > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                 marginTop: filteredNav.length > 0 ? 4 : 0,
               }}>
-                Handlinger
+                {t('commandPalette.sectionActions')}
               </div>
               {filteredActions.map((action, i) => {
                 const globalIndex = filteredNav.length + i
@@ -313,19 +321,11 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
                       transition: 'background 0.1s',
                     }}
                   >
-                    <Icon
-                      name={action.icon}
-                      size={18}
-                      style={{ color: isSelected ? '#a78bfa' : 'rgba(255,255,255,0.4)' }}
-                    />
+                    <Icon name={action.icon} size={18} style={{ color: isSelected ? '#a78bfa' : 'rgba(255,255,255,0.4)' }} />
                     <span style={{ flex: 1, color: isSelected ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 14 }}>
                       {action.label}
                     </span>
-                    <Icon
-                      name="zap"
-                      size={13}
-                      style={{ color: isSelected ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.15)' }}
-                    />
+                    <Icon name="zap" size={13} style={{ color: isSelected ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.15)' }} />
                   </div>
                 )
               })}
@@ -341,11 +341,11 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
           background: 'rgba(255,255,255,0.02)',
         }}>
           {[
-            { keys: ['↑', '↓'], label: 'naviger' },
-            { keys: ['↵'], label: 'vælg' },
-            { keys: ['Esc'], label: 'luk' },
+            { keys: ['↑', '↓'], labelKey: 'commandPalette.hintNavigate' },
+            { keys: ['↵'], labelKey: 'commandPalette.hintSelect' },
+            { keys: ['Esc'], labelKey: 'commandPalette.hintClose' },
           ].map(hint => (
-            <div key={hint.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div key={hint.labelKey} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               {hint.keys.map(k => (
                 <kbd key={k} style={{
                   padding: '1px 6px', borderRadius: 5, fontSize: 11, fontWeight: 600,
@@ -354,7 +354,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
                   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
                 }}>{k}</kbd>
               ))}
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{hint.label}</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{t(hint.labelKey)}</span>
             </div>
           ))}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -364,7 +364,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
               border: '1px solid rgba(255,255,255,0.1)',
               fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
             }}>⌘K</kbd>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>for at åbne</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{t('commandPalette.hintOpen')}</span>
           </div>
         </div>
       </div>

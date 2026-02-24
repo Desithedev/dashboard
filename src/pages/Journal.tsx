@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from '../components/Icon'
 import EmptyState from '../components/EmptyState'
 import { fetchMemoryFiles, fetchAllSessions, MemoryEntry, TranscriptSession } from '../api/openclaw'
@@ -24,16 +25,16 @@ function extractDatePart(dateStr: string): string {
   return match ? match[1] : dateStr
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, i18n: any): string {
   try {
     const clean = extractDatePart(dateStr)
     const date = new Date(clean + 'T12:00:00')
     if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('da-DK', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    return date.toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     })
   } catch {
     return dateStr
@@ -178,6 +179,7 @@ function JournalFreshness({
   isRefreshing: boolean
   onRefresh: () => void
 }) {
+  const { t } = useTranslation()
   const [secondsAgo, setSecondsAgo] = useState<number | null>(null)
 
   useEffect(() => {
@@ -193,18 +195,18 @@ function JournalFreshness({
 
   const text =
     secondsAgo === null
-      ? 'Aldrig opdateret'
+      ? t('journal.neverUpdated', 'Never updated')
       : secondsAgo < 5
-      ? 'Opdateret lige nu'
-      : secondsAgo < 60
-      ? `Opdateret for ${secondsAgo} sek. siden`
-      : `Opdateret for ${Math.floor(secondsAgo / 60)} min. siden`
+        ? t('journal.updatedJustNow', 'Updated just now')
+        : secondsAgo < 60
+          ? t('journal.updatedSecondsAgo', 'Updated {{count}} sec. ago', { count: secondsAgo })
+          : t('journal.updatedMinutesAgo', 'Updated {{count}} min. ago', { count: Math.floor(secondsAgo / 60) })
 
   const dotColor =
     secondsAgo === null ? '#636366'
-    : secondsAgo < 60 ? '#30D158'
-    : secondsAgo < 120 ? '#FF9F0A'
-    : '#FF3B30'
+      : secondsAgo < 60 ? '#30D158'
+        : secondsAgo < 120 ? '#FF9F0A'
+          : '#FF3B30'
 
   return (
     <div
@@ -236,7 +238,7 @@ function JournalFreshness({
       <button
         onClick={onRefresh}
         disabled={isRefreshing}
-        title="Genindlæs journal"
+        title={t('common.refresh')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -279,14 +281,15 @@ function JournalFreshness({
 
 /* ── Session Card ────────────────────────────── */
 function SessionCard({ session, forceExpanded }: { session: TranscriptSession; forceExpanded?: boolean }) {
+  const { t } = useTranslation()
   const [isExpanded, setIsExpanded] = useState(false)
   const expanded = forceExpanded !== undefined ? forceExpanded : isExpanded
-  
+
   const agentColor = session.agent === 'main' ? '#007AFF' : '#AF52DE'
   const agentIcon = session.agent === 'main' ? 'brain' : 'robot'
-  
+
   return (
-    <div 
+    <div
       className="rounded-xl overflow-hidden cursor-pointer transition-all"
       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
       onClick={() => setIsExpanded(!isExpanded)}
@@ -296,7 +299,7 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: `${agentColor}20` }}
             >
@@ -307,14 +310,14 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
                 {session.label || `${session.agent}/${session.sessionId.substring(0, 8)}`}
               </h4>
               <div className="flex items-center gap-2 mt-0.5">
-                <span 
+                <span
                   className="text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: `${agentColor}20`, color: agentColor }}
                 >
                   {session.agent}
                 </span>
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {session.messageCount} beskeder
+                  {t('journal.messagesCount', { count: session.messageCount })}
                 </span>
                 {session.updatedAt && (
                   <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -324,32 +327,32 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
               </div>
             </div>
           </div>
-          <Icon 
-            name={expanded ? 'chevron-down' : 'chevron-right'} 
-            size={16} 
-            style={{ color: 'rgba(255,255,255,0.3)' }} 
+          <Icon
+            name={expanded ? 'chevron-down' : 'chevron-right'}
+            size={16}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           />
         </div>
-        
+
         {session.firstMessage && !expanded && (
           <p className="text-xs mt-2 line-clamp-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {session.firstMessage}
           </p>
         )}
-        
+
         {expanded && (
           <div className="mt-3 pt-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             {session.firstMessage && (
               <div>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  Første besked
+                  {t('journal.firstMessage', 'First message')}
                 </p>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
                   {session.firstMessage}
                 </p>
               </div>
             )}
-            
+
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -359,22 +362,22 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
                   {session.sessionId.substring(0, 8)}
                 </p>
               </div>
-              
+
               {session.model && (
                 <div>
                   <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     Model
                   </p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    {session.model.split('/').pop()?.split('-')[0]}
+                    {session.model.split('/').pop()}
                   </p>
                 </div>
               )}
-              
+
               {session.spawnedBy && (
                 <div>
                   <p className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    Spawned By
+                    {t('common.spawnedBy')}
                   </p>
                   <p className="text-xs" style={{ color: 'rgba(255,255,255,0.6)' }}>
                     {session.spawnedBy}
@@ -391,13 +394,14 @@ function SessionCard({ session, forceExpanded }: { session: TranscriptSession; f
 
 /* ── Day Content ─────────────────────────────── */
 function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-6">
       {/* Memory content */}
       {day.memories && day.memories.length > 0 && day.memories.map((mem, i) => {
-        const title = extractTitle(mem.content) || mem.filename.replace('.md', '').replace(/^\d{4}-\d{2}-\d{2}-?/, '') || 'Daglig Note'
+        const title = extractTitle(mem.content) || mem.filename.replace('.md', '').replace(/^\d{4}-\d{2}-\d{2}-?/, '') || t('journal.dailyNote', 'Daily Note')
         return (
-          <div 
+          <div
             key={i}
             className="rounded-xl p-6"
             style={{ background: 'rgba(255,255,255,0.03)' }}
@@ -410,21 +414,21 @@ function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean 
           </div>
         )
       })}
-      
+
       {/* Sessions */}
       {day.sessions.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Icon name="checklist" size={18} style={{ color: '#AF52DE' }} />
-            <h3 className="text-base font-bold text-white">Aktivitet</h3>
-            <span 
+            <h3 className="text-base font-bold text-white">{t('journal.activity', 'Activity')}</h3>
+            <span
               className="text-xs font-semibold px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(175,82,222,0.2)', color: '#AF52DE' }}
             >
               {day.sessions.length}
             </span>
           </div>
-          
+
           <div className="space-y-3">
             {day.sessions.map(session => (
               <SessionCard key={session.sessionId} session={session} forceExpanded={allExpanded ? true : undefined} />
@@ -432,13 +436,13 @@ function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean 
           </div>
         </div>
       )}
-      
+
       {/* Empty state */}
       {!day.memory && day.sessions.length === 0 && (
         <EmptyState
           icon="calendar-week"
-          title="Ingen aktivitet denne dag"
-          description="Ingen sessions eller noter registreret"
+          title={t('journal.noActivity', 'No activity this day')}
+          description={t('journal.noActivityDesc', 'No sessions or notes recorded')}
         />
       )}
     </div>
@@ -446,23 +450,24 @@ function DayContent({ day, allExpanded }: { day: DayData; allExpanded?: boolean 
 }
 
 /* ── Date Sidebar ────────────────────────────── */
-function DateSidebar({ 
-  dates, 
-  selectedDate, 
-  onSelectDate 
-}: { 
+function DateSidebar({
+  dates,
+  selectedDate,
+  onSelectDate
+}: {
   dates: string[]
   selectedDate: string | null
-  onSelectDate: (date: string) => void 
+  onSelectDate: (date: string) => void
 }) {
+  const { i18n, t } = useTranslation()
   return (
     <div className="h-full flex flex-col">
       <div className="mb-4">
         <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          Datoer
+          {t('journal.dates', 'Dates')}
         </h3>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto space-y-1">
         {dates.map(date => {
           const isSelected = date === selectedDate
@@ -487,7 +492,7 @@ function DateSidebar({
                 }
               }}
             >
-              <div className="text-sm">{formatDate(date)}</div>
+              <div className="text-sm">{formatDate(date, i18n)}</div>
             </button>
           )
         })}
@@ -498,8 +503,9 @@ function DateSidebar({
 
 /* ── Main Page ──────────────────────────────── */
 export default function Journal() {
-  usePageTitle('Journal')
-  
+  const { t, i18n } = useTranslation()
+  usePageTitle(t('journal.title', 'Journal'))
+
   const [memoryFiles, setMemoryFiles] = useState<MemoryEntry[]>([])
   const [allSessions, setAllSessions] = useState<TranscriptSession[]>([])
   const [loading, setLoading] = useState(true)
@@ -514,7 +520,7 @@ export default function Journal() {
   const [pendingSessions, setPendingSessions] = useState<TranscriptSession[] | null>(null)
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false)
 
-  // Refs til at undgå stale closures i polling
+  // Refs to avoid stale closures in polling
   const isRefreshingRef = useRef(false)
   const memoryCountRef = useRef(0)
   const sessionsCountRef = useRef(0)
@@ -523,7 +529,7 @@ export default function Journal() {
   useEffect(() => { memoryCountRef.current = memoryFiles.length }, [memoryFiles.length])
   useEffect(() => { sessionsCountRef.current = allSessions.length }, [allSessions.length])
 
-  // Ny data tilgængelig?
+  // New data available?
   const hasNewData = pendingMemory !== null || pendingSessions !== null
 
   const applyPendingData = useCallback(() => {
@@ -555,7 +561,7 @@ export default function Journal() {
         if (sessChanged) setPendingSessions(sessions)
       }
     } catch (err) {
-      console.error('Journal background refresh fejlede:', err)
+      console.error('Journal background refresh failed:', err)
     } finally {
       isRefreshingRef.current = false
       setIsBackgroundRefreshing(false)
@@ -569,7 +575,7 @@ export default function Journal() {
         backgroundRefresh()
       }
     }, 30000)
-    // Refresh også når siden bliver synlig igen
+    // Refresh also when the page becomes visible again
     const handleVisibility = () => {
       if (!document.hidden) backgroundRefresh()
     }
@@ -582,10 +588,10 @@ export default function Journal() {
 
   // Hent data ved mount
   useEffect(() => {
-    // Prøv cache først
+    // Try cache first
     const cachedMemory = localStorage.getItem(CACHE_KEY_MEMORY)
     const cachedSessions = localStorage.getItem(CACHE_KEY_SESSIONS)
-    
+
     if (cachedMemory) {
       try {
         setMemoryFiles(JSON.parse(cachedMemory))
@@ -593,7 +599,7 @@ export default function Journal() {
         console.error('Failed to parse cached memory:', e)
       }
     }
-    
+
     if (cachedSessions) {
       try {
         setAllSessions(JSON.parse(cachedSessions))
@@ -602,7 +608,7 @@ export default function Journal() {
       }
     }
 
-    // Hent frisk data
+    // Load fresh data
     setLoading(true)
     Promise.all([
       fetchMemoryFiles(),
@@ -614,8 +620,8 @@ export default function Journal() {
         setLastRefreshed(new Date())
         localStorage.setItem(CACHE_KEY_MEMORY, JSON.stringify(memory))
         localStorage.setItem(CACHE_KEY_SESSIONS, JSON.stringify(sessions))
-        
-        // Set default selected date til seneste
+
+        // Set default selected date to latest
         if (!selectedDate && memory.length > 0) {
           setSelectedDate(memory[0].date)
         } else if (!selectedDate && sessions.length > 0) {
@@ -641,20 +647,20 @@ export default function Journal() {
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  // Grupper data efter dato og filtrer baseret på søgning
+  // Group data by date and filter based on search
   const dayDataMap = useMemo(() => {
     const map = new Map<string, DayData>()
     const searchLower = debouncedSearchTerm.toLowerCase().trim()
-    
-    // Tilføj memory entries (group by YYYY-MM-DD)
+
+    // Add memory entries (group by YYYY-MM-DD)
     for (const mem of memoryFiles) {
       const dateKey = extractDatePart(mem.date)
-      
-      // Filtrer hvis der er søgning
+
+      // Filter if search is active
       if (searchLower && !mem.content.toLowerCase().includes(searchLower)) {
         continue
       }
-      
+
       if (!map.has(dateKey)) {
         map.set(dateKey, { date: dateKey, sessions: [], memories: [] })
       }
@@ -663,44 +669,44 @@ export default function Journal() {
       if (!day.memories) day.memories = []
       day.memories.push(mem)
     }
-    
-    // Tilføj sessions grupperet efter dato
+
+    // Add sessions grouped by date
     for (const session of allSessions) {
       const dateKey = getDateKey(session.updatedAt || session.startedAt || Date.now())
-      
-      // Filtrer hvis der er søgning
+
+      // Filter if search is active
       if (searchLower) {
         const matchesLabel = session.label?.toLowerCase().includes(searchLower)
         const matchesFirstMessage = session.firstMessage?.toLowerCase().includes(searchLower)
         const matchesSessionId = session.sessionId.toLowerCase().includes(searchLower)
-        
+
         if (!matchesLabel && !matchesFirstMessage && !matchesSessionId) {
           continue
         }
       }
-      
+
       if (!map.has(dateKey)) {
         map.set(dateKey, { date: dateKey, sessions: [] })
       }
       map.get(dateKey)!.sessions.push(session)
     }
-    
-    // Fjern dage uden indhold
+
+    // Remove empty days
     for (const [dateKey, day] of map.entries()) {
       if (day.sessions.length === 0 && (!day.memories || day.memories.length === 0)) {
         map.delete(dateKey)
       }
     }
-    
+
     return map
   }, [memoryFiles, allSessions, debouncedSearchTerm])
 
-  // Sorter datoer (nyeste først)
+  // Sort dates (newest first)
   const sortedDates = useMemo(() => {
     return Array.from(dayDataMap.keys()).sort((a, b) => b.localeCompare(a))
   }, [dayDataMap])
 
-  // Sæt default date hvis ikke valgt
+  // Set default date if none selected
   useEffect(() => {
     if (!selectedDate && sortedDates.length > 0) {
       setSelectedDate(sortedDates[0])
@@ -728,7 +734,7 @@ export default function Journal() {
         `}</style>
         <div className="mb-6">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{t('journal.title')}</h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <JournalFreshness
                 lastRefreshed={lastRefreshed}
@@ -753,16 +759,16 @@ export default function Journal() {
                 }}
               >
                 <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-                {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+                {allExpanded ? t('common.collapse', 'Collapse') : t('common.expandAll', 'Expand all')}
               </button>
             </div>
           </div>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Kronologisk dagbog over sessions og noter
+            {t('journal.subtitle', 'Chronological diary of sessions and notes')}
           </p>
         </div>
-        
-        {/* Søgefelt */}
+
+        {/* Search field */}
         <div className="mb-6">
           <div
             style={{
@@ -771,21 +777,21 @@ export default function Journal() {
               alignItems: 'center',
             }}
           >
-            <Icon 
-              name="search" 
-              size={16} 
-              style={{ 
+            <Icon
+              name="search"
+              size={16}
+              style={{
                 position: 'absolute',
                 left: '14px',
                 color: 'rgba(255,255,255,0.4)',
                 pointerEvents: 'none'
-              }} 
+              }}
             />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Søg i journal..."
+              placeholder={t('journal.searchPlaceholder', 'Search journal...')}
               style={{
                 width: '100%',
                 background: 'rgba(255,255,255,0.06)',
@@ -835,17 +841,17 @@ export default function Journal() {
             )}
           </div>
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center">
           <EmptyState
             icon={debouncedSearchTerm ? 'magnifying-glass' : 'calendar-week'}
-            title={debouncedSearchTerm ? 'Ingen resultater fundet' : 'Ingen journalindlæg endnu'}
+            title={debouncedSearchTerm ? t('journal.noResultsTitle') : t('journal.emptyTitle')}
             description={
               debouncedSearchTerm
-                ? `Ingen indlæg matcher "${debouncedSearchTerm}"`
-                : 'Sessions og noter vises her, når der er aktivitet'
+                ? t('journal.noMatch', { query: debouncedSearchTerm })
+                : t('journal.emptyDescription')
             }
-            action={debouncedSearchTerm ? { label: 'Ryd søgning', onClick: () => setSearchTerm('') } : undefined}
+            action={debouncedSearchTerm ? { label: t('journal.clearSearch'), onClick: () => setSearchTerm('') } : undefined}
           />
         </div>
       </div>
@@ -866,7 +872,7 @@ export default function Journal() {
       `}</style>
       <div className="mb-6">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-          <h1 className="text-2xl font-bold text-white mb-1">Journal</h1>
+          <h1 className="text-2xl font-bold text-white mb-1">{t('journal.title')}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <JournalFreshness
               lastRefreshed={lastRefreshed}
@@ -891,12 +897,12 @@ export default function Journal() {
               }}
             >
               <Icon name={allExpanded ? 'chevron-down' : 'chevron-right'} size={14} />
-              {allExpanded ? 'Fold sammen' : 'Udvid alle'}
+              {allExpanded ? t('common.collapse') : t('common.expandAll')}
             </button>
           </div>
         </div>
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          {sortedDates.length} dage · {allSessions.length} sessions · {memoryFiles.length} noter
+          {t('journal.subtitle', { days: sortedDates.length, sessions: allSessions.length, notes: memoryFiles.length })}
         </p>
 
         {/* Nye opdateringer banner */}
@@ -917,7 +923,7 @@ export default function Journal() {
           >
             <Icon name="arrow-path" size={13} style={{ color: '#5AC8FA' }} />
             <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
-              Nye opdateringer tilgængelige
+              {t('journal.newUpdates')}
             </span>
             <button
               onClick={applyPendingData}
@@ -935,11 +941,11 @@ export default function Journal() {
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.35)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,122,255,0.25)' }}
             >
-              Indlæs
+              {t('journal.loadUpdates')}
             </button>
             <button
               onClick={() => { setPendingMemory(null); setPendingSessions(null) }}
-              title="Afvis"
+              title="Reject"
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -956,7 +962,7 @@ export default function Journal() {
         )}
       </div>
 
-      {/* Søgefelt */}
+      {/* Search field */}
       <div className="mb-6">
         <div
           style={{
@@ -965,21 +971,21 @@ export default function Journal() {
             alignItems: 'center',
           }}
         >
-          <Icon 
-            name="search" 
-            size={16} 
-            style={{ 
+          <Icon
+            name="search"
+            size={16}
+            style={{
               position: 'absolute',
               left: '14px',
               color: 'rgba(255,255,255,0.4)',
               pointerEvents: 'none'
-            }} 
+            }}
           />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Søg i journal..."
+            placeholder={t('journal.searchPlaceholder')}
             style={{
               width: '100%',
               background: 'rgba(255,255,255,0.06)',
@@ -1033,10 +1039,10 @@ export default function Journal() {
       <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-6 min-h-0">
         {/* Sidebar */}
         <div className="md:col-span-1 overflow-y-auto">
-          <DateSidebar 
-            dates={sortedDates} 
-            selectedDate={selectedDate} 
-            onSelectDate={setSelectedDate} 
+          <DateSidebar
+            dates={sortedDates}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
           />
         </div>
 
@@ -1046,21 +1052,21 @@ export default function Journal() {
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-white mb-1">
-                  {formatDate(currentDayData.date)}
+                  {formatDate(currentDayData.date, i18n)}
                 </h2>
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {currentDayData.sessions.length} sessions
-                  {currentDayData.memory && ' · Memory note'}
+                  {t('journal.messagesCount', { count: currentDayData.sessions.length })}
+                  {currentDayData.memory && ` · ${t('journal.memoryNote')}`}
                 </p>
               </div>
-              
+
               <DayContent day={currentDayData} allExpanded={allExpanded} />
             </div>
           ) : (
             <EmptyState
               icon="calendar-week"
-              title="Vælg en dato"
-              description="Klik på en dato i sidebaren for at se aktiviteten"
+              title={t('journal.selectDateTitle')}
+              description={t('journal.selectDateDescription')}
             />
           )}
         </div>

@@ -14,14 +14,14 @@
   --glass-radius: 6px;
   --glass-radius-sm: 4px;
   --transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   --bg-primary: #08080c;
   --bg-secondary: #10101a;
   --bg-tertiary: #0c0c14;
   --text-primary: rgba(255, 255, 255, 0.92);
   --text-secondary: rgba(255, 255, 255, 0.55);
   --text-tertiary: rgba(255, 255, 255, 0.3);
-  
+
   --accent-blue: #007AFF;
   --accent-green: #30D158;
   --accent-purple: #AF52DE;
@@ -30,9 +30,13 @@
 }
 
 @layer base {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     color-scheme: dark;
   }
+
   body {
     font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -41,7 +45,11 @@
     background-attachment: fixed;
     color: var(--text-primary);
   }
-  input, textarea, select, button {
+
+  input,
+  textarea,
+  select,
+  button {
     color: inherit;
     background: transparent;
   }
@@ -327,30 +335,76 @@ select.input option {
 }
 
 /* Custom scrollbar - dark */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
 @keyframes slide-in {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
+
 .animate-slide-in {
   animation: slide-in 0.25s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.animate-fadeIn { animation: fadeIn 300ms ease-out both; }
 
-@keyframes slideIn { from { opacity: 0; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
+.animate-fadeIn {
+  animation: fadeIn 300ms ease-out both;
+}
 
-@keyframes badgeFadeIn { 
-  from { opacity: 0; transform: scale(0.6); } 
-  to { opacity: 1; transform: scale(1); } 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes badgeFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Sideovergang animation — smooth fade + slide-up ved navigation (200ms) */
@@ -359,6 +413,7 @@ select.input option {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -372,18 +427,34 @@ select.input option {
 
 /* Card mount animation */
 @keyframes cardSlideUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
 .animate-card-in {
   animation: cardSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* Skeleton pulse */
 @keyframes skeletonPulse {
-  0%, 100% { opacity: 0.06; }
-  50% { opacity: 0.12; }
+
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+
+  50% {
+    opacity: 0.12;
+  }
 }
+
 .skeleton-pulse {
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--glass-radius);
@@ -392,35 +463,83 @@ select.input option {
 
 /* DataFreshness animations */
 @keyframes df-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.75); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
 }
+
 @keyframes df-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
-.df-dot-pulse { animation: df-pulse 2s ease-in-out infinite; }
-.df-spin { animation: df-spin 0.8s linear infinite; }
+
+.df-dot-pulse {
+  animation: df-pulse 2s ease-in-out infinite;
+}
+
+.df-spin {
+  animation: df-spin 0.8s linear infinite;
+}
 
 /* System Puls — pulserende statusprik */
 @keyframes sys-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--pulse-color, #30D158); }
-  50% { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--pulse-color, #30D158);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
-.sys-pulse-dot { animation: sys-pulse 2s ease-in-out infinite; }
+
+.sys-pulse-dot {
+  animation: sys-pulse 2s ease-in-out infinite;
+}
 
 /* Modal fade + scale animation */
 @keyframes modalFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
+
 @keyframes modalScaleIn {
-  from { opacity: 0; transform: scale(0.95) translateY(10px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
+
 .modal-backdrop {
   animation: modalFadeIn 0.2s ease-out both;
 }
+
 .modal-panel {
   animation: modalScaleIn 0.22s cubic-bezier(0.34, 1.2, 0.64, 1) both;
   will-change: opacity, transform;
@@ -428,7 +547,8 @@ select.input option {
 
 /* ── Responsive / Mobile ─────────────────────────────────────── */
 @media (max-width: 767px) {
-  /* Reduceret card padding på mobil */
+
+  /* Reduced card padding on mobile */
   .card {
     padding: 14px 16px;
   }
@@ -439,7 +559,7 @@ select.input option {
     min-width: 0;
   }
 
-  /* Justerede font-sizes på small screens */
+  /* Adjusted font-sizes on small screens */
   .page-title {
     font-size: 22px;
   }
@@ -456,7 +576,7 @@ select.input option {
     font-size: 11px;
   }
 
-  /* Tabel: reducer celle-padding på mobil */
+  /* Table: reduced cell padding on mobile */
   .overflow-x-auto td,
   .overflow-x-auto th {
     padding-left: 12px;
@@ -471,7 +591,8 @@ select.input option {
 }
 
 @media (max-width: 479px) {
-  /* Endnu smallere skærme */
+
+  /* Even smaller screens */
   .card {
     padding: 12px 14px;
   }

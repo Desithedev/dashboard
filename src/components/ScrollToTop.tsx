@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import Icon from './Icon'
 
-// ScrollToTop — floating knap der vises når brugeren har scrollet 300px ned.
-// Apple HIG-inspireret glassmorphism design med smooth fade-in/fade-out.
+// ScrollToTop — floating button that appears when the user has scrolled 300px down.
+// Controlled via pure React state and useEffect (no window pollution). glassmorphism design med smooth fade-in/fade-out.
 
-const SCROLL_THRESHOLD = 300 // px før knappen vises
+const SCROLL_THRESHOLD = 300 // px before the button appears
 
 export default function ScrollToTop() {
   const [visible, setVisible] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [pressed, setPressed] = useState(false)
 
-  // Lyt på scroll-events og opdater synlighed
+  // Listen for scroll events and update visibility
   useEffect(() => {
     const handleScroll = () => {
       setVisible(window.scrollY > SCROLL_THRESHOLD)
@@ -26,7 +26,7 @@ export default function ScrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  // Beregn dynamiske styles baseret på tilstand
+  // Calculate dynamic styles based on state
   const buttonStyle: React.CSSProperties = {
     position: 'fixed',
     bottom: 32,

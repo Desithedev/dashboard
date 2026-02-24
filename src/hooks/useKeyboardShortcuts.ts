@@ -8,7 +8,7 @@ interface KeyboardShortcutsOptions {
   isCommandPaletteOpen: boolean
 }
 
-// Map af tal til sider (1-9)
+// Map of numbers to pages (1-9)
 const NUMBER_SHORTCUTS: Record<string, string> = {
   '1': 'dashboard',
   '2': 'tasks',
@@ -30,43 +30,43 @@ export function useKeyboardShortcuts({
 }: KeyboardShortcutsOptions) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Tjek om vi er i et input-felt
+      // Check if we are in an input field
       const target = e.target as HTMLElement
-      const isInputFocused = 
-        target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
+      const isInputFocused =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      // Cmd+K / Ctrl+K → Åbn Command Palette
+      // Cmd+K / Ctrl+K → Open Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         onCommandK()
         return
       }
 
-      // Escape → Luk modals/command palette
+      // Escape → Close modals/command palette
       if (e.key === 'Escape') {
         e.preventDefault()
         onEscape()
         return
       }
 
-      // Ctrl+/ → Vis shortcuts overlay
+      // Ctrl+/ → Show shortcuts overlay
       if (e.ctrlKey && e.key === '/') {
         e.preventDefault()
         onHelp()
         return
       }
 
-      // ? → Toggle keyboard shortcuts oversigt (kun når intet input-felt er fokuseret)
-      // Browser sender typisk e.key === '?' (Shift + /)
+      // ? → Toggle keyboard shortcuts overview (only when no input field is focused)
+      // Browser typically sends e.key === '?' (Shift + /)
       if (!isInputFocused && !isCommandPaletteOpen && e.key === '?') {
         e.preventDefault()
         onHelp()
         return
       }
 
-      // Numeriske shortcuts (1-9) - KUN når intet input-felt er fokuseret
+      // Numerical shortcuts (1-9) - ONLY when no input field is focused
       if (!isInputFocused && !isCommandPaletteOpen) {
         const page = NUMBER_SHORTCUTS[e.key]
         if (page) {
@@ -81,5 +81,5 @@ export function useKeyboardShortcuts({
   }, [onCommandK, onEscape, onNavigate, onHelp, isCommandPaletteOpen])
 }
 
-// Eksporter shortcut map så CommandPalette kan vise dem
+// Export shortcut map so CommandPalette can show them
 export { NUMBER_SHORTCUTS }

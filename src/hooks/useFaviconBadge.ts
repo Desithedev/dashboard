@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useLiveData } from '../api/LiveDataContext'
 
-// SVG favicon indhold (spejl af /public/favicon.svg)
+// SVG favicon content (mirror of /public/favicon.svg)
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" fill="#0a0a0f"/>
   <g fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -10,11 +10,11 @@ const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
 </svg>`
 
 /**
- * Hook der dynamisk opdaterer favicon med en status-dot overlay via Canvas API.
- * Grøn dot (●) = Gateway forbundet
- * Rød dot (●)  = Gateway ikke forbundet
+ * Hook that dynamically updates the favicon with a status dot overlay via Canvas API.
+ * Green dot (●) = Gateway connected
+ * Red dot (●)   = Gateway not connected
  *
- * Placér denne hook i en komponent der er child af LiveDataProvider.
+ * Place this hook in a component that is a child of LiveDataProvider.
  */
 export function useFaviconBadge() {
   const { isConnected } = useLiveData()
@@ -31,16 +31,16 @@ export function useFaviconBadge() {
 
     const img = new Image()
     img.onload = () => {
-      // Tegn SVG-favicon
+      // Draw SVG favicon
       ctx.drawImage(img, 0, 0, 64, 64)
       URL.revokeObjectURL(objectUrl)
 
-      // Dot position: nederste højre hjørne
+      // Dot position: bottom right corner
       const dotX = 49
       const dotY = 49
       const dotRadius = 9
 
-      // Mørk ring baggrund for kontrast mod alle baggrunde
+      // Dark ring background for contrast against all backgrounds
       ctx.beginPath()
       ctx.arc(dotX, dotY, dotRadius + 2.5, 0, Math.PI * 2)
       ctx.fillStyle = '#0a0a0f'
@@ -52,7 +52,7 @@ export function useFaviconBadge() {
       ctx.fillStyle = isConnected ? '#30d158' : '#ff453a'
       ctx.fill()
 
-      // Sæt favicon
+      // Set favicon
       const dataUrl = canvas.toDataURL('image/png')
       let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
       if (!link) {

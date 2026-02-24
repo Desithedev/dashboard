@@ -1,16 +1,17 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLiveData } from '../api/LiveDataContext'
 import { useToast } from './Toast'
 
 /**
- * ConnectionToast overvåger LiveDataContext og viser toast-notifikationer
- * ved API-fejl (første gang) og ved genoprettet forbindelse.
- * Undgår spam ved kun at vise én fejl-toast indtil forbindelsen genoprettes.
+ * ConnectionToast monitors LiveDataContext and shows toast notifications
+ * when the API connection is lost (first time) and when restored.
  */
 export default function ConnectionToast() {
-  const { isConnected, error } = useLiveData()
+  const { isConnected } = useLiveData()
   const { showToast } = useToast()
-  
+  const { t } = useTranslation()
+
   const wasConnected = useRef<boolean | null>(null)
   const hasShownErrorToast = useRef(false)
 
@@ -23,18 +24,18 @@ export default function ConnectionToast() {
 
     // Connection lost → show error toast (only once)
     if (wasConnected.current && !isConnected && !hasShownErrorToast.current) {
-      showToast('error', 'Kunne ikke oprette forbindelse til Gateway')
+      showToast('error', t('connection.lostToast'))
       hasShownErrorToast.current = true
     }
 
     // Connection recovered → show success toast
     if (!wasConnected.current && isConnected) {
-      showToast('success', 'Forbindelse til Gateway genoprettet')
+      showToast('success', t('connection.restoredToast'))
       hasShownErrorToast.current = false
     }
 
     wasConnected.current = isConnected
-  }, [isConnected, showToast])
+  }, [isConnected, showToast, t])
 
   return null
 }

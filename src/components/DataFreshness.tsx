@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 import { useLiveData } from '../api/LiveDataContext'
 
@@ -6,15 +7,16 @@ interface DataFreshnessProps {
   className?: string
 }
 
-function formatSecondsAgo(secs: number | null): string {
-  if (secs === null) return 'Ingen data'
-  if (secs < 5) return 'lige nu'
-  if (secs < 60) return `${secs} sek. siden`
-  if (secs < 3600) return `${Math.floor(secs / 60)} min. siden`
-  return `${Math.floor(secs / 3600)}t siden`
+function formatSecondsAgo(secs: number | null, t: any): string {
+  if (secs === null) return t('common.noData', 'No data')
+  if (secs < 5) return t('common.justNow', 'just now')
+  if (secs < 60) return t('common.secondsAgo', '{{count}}s ago', { count: secs })
+  if (secs < 3600) return t('common.minutesAgo', '{{count}}m ago', { count: Math.floor(secs / 60) })
+  return t('common.hoursAgo', '{{count}}h ago', { count: Math.floor(secs / 3600) })
 }
 
 export default function DataFreshness({ className = '' }: DataFreshnessProps) {
+  const { t } = useTranslation()
   const { lastUpdated, isRefreshing, refresh } = useLiveData()
   const [secondsAgo, setSecondsAgo] = useState<number | null>(null)
 
@@ -36,12 +38,12 @@ export default function DataFreshness({ className = '' }: DataFreshnessProps) {
     secondsAgo === null
       ? '#636366'
       : secondsAgo < 10
-      ? '#30D158'   // frisk — grøn
-      : secondsAgo < 30
-      ? '#30D158'   // stadig frisk — grøn
-      : secondsAgo < 60
-      ? '#FF9F0A'   // stale — gul
-      : '#FF3B30'   // meget stale — rød
+        ? '#30D158'   // fresh — green
+        : secondsAgo < 30
+          ? '#30D158'   // still fresh — green
+          : secondsAgo < 60
+            ? '#FF9F0A'   // stale — yellow
+            : '#FF3B30'   // very stale — red
 
   const isPulsing = secondsAgo !== null && secondsAgo < 10
 
@@ -87,14 +89,14 @@ export default function DataFreshness({ className = '' }: DataFreshnessProps) {
           minWidth: 0,
         }}
       >
-        {formatSecondsAgo(secondsAgo)}
+        {formatSecondsAgo(secondsAgo, t)}
       </span>
 
       {/* Refresh button */}
       <button
         onClick={() => refresh()}
         disabled={isRefreshing}
-        title="Genindlæs data"
+        title={t('common.reloadData', 'Reload data')}
         style={{
           display: 'flex',
           alignItems: 'center',

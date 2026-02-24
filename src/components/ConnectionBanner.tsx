@@ -1,28 +1,33 @@
 import { useLiveData } from '../api/LiveDataContext'
 import Icon from './Icon'
+import { useTranslation } from 'react-i18next'
 
 /**
- * ConnectionBanner — Persistent offline-indikator
+ * ConnectionBanner — Persistent offline indicator
  *
- * Vises som en fast, tynd banner øverst i indholds-området når Gateway
- * er utilgængelig. Forsvinder automatisk ved genoprettet forbindelse.
+ * Appears as a fixed, thin banner at the top of the content area when the Gateway
+ * is unavailable. Disappears automatically when the connection is restored.
  *
- * Bruger fixed positioning og påvirker IKKE layoutet.
- * På desktop forskydes banneren med sidebarens bredde (240 px / lg:left-60).
+ * Uses fixed positioning and does NOT affect the layout.
+ * On desktop, the banner is offset by the sidebar width (240 px / lg:left-60).
  */
 export default function ConnectionBanner() {
   const { isConnected, refresh, isRefreshing, lastUpdated, consecutiveErrors } = useLiveData()
+  const { t } = useTranslation()
 
-  // Vis kun banneren hvis vi aktivt har opdaget manglende forbindelse:
   //   – enten har vi haft mindst én succesfuld forbindelse (lastUpdated)
-  //   – eller vi har fået mindst én fejl (consecutiveErrors > 0)
-  // Det undgår et falsk "flash" ved første sideindlæsning.
+  //   – or we have received at least one error (consecutiveErrors > 0)
+  // This avoids a false "flash" on first page load.
   const shouldShow = !isConnected && (lastUpdated !== null || consecutiveErrors > 0)
 
   return (
     <div
       aria-live="polite"
-      aria-label={shouldShow ? 'Ingen forbindelse til Gateway' : undefined}
+      aria-label={
+        shouldShow
+          ? t('connection.offlineBannerLabel', 'Connection to Gateway lost')
+          : undefined
+      }
       className="lg:left-60"
       style={{
         position: 'fixed',
@@ -35,7 +40,7 @@ export default function ConnectionBanner() {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        // Glassmorphism rødt tema
+        // Glassmorphism red theme
         background: 'rgba(255, 59, 48, 0.13)',
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
@@ -62,13 +67,16 @@ export default function ConnectionBanner() {
           letterSpacing: '-0.01em',
         }}
       >
-        Ingen forbindelse til Gateway
+        {t(
+          'connection.offlineBannerMsg',
+          'Connection to Gateway lost — attempting to reconnect...'
+        )}
       </span>
 
       <button
         onClick={refresh}
         disabled={isRefreshing}
-        aria-label="Prøv at genoprette forbindelsen"
+        aria-label={t('connection.offlineBannerLabel', 'Connection to Gateway lost')}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -106,7 +114,7 @@ export default function ConnectionBanner() {
             transform: isRefreshing ? 'rotate(360deg)' : 'rotate(0deg)',
           }}
         />
-        Prøv igen
+        {t('dashboard.retry', 'Try again')}
       </button>
     </div>
   )

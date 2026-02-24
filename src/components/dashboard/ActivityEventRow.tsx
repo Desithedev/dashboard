@@ -21,13 +21,13 @@ const ActivityEventRow = memo(function ActivityEventRow({ event, isLast }: Activ
 
   const iconColor =
     event.type === 'session_start' ? '#34C759' :
-    event.type === 'session_end'   ? '#007AFF' :
-    event.type === 'cron_run'      ? '#FF9F0A' :
-    '#FF3B30'
+      event.type === 'session_end' ? '#007AFF' :
+        event.type === 'cron_run' ? '#FF9F0A' :
+          '#FF3B30'
 
   return (
     <div className="relative flex gap-3 py-3">
-      {/* Timeline-linje */}
+      {/* Timeline line */}
       {!isLast && (
         <div
           style={{
@@ -38,7 +38,7 @@ const ActivityEventRow = memo(function ActivityEventRow({ event, isLast }: Activ
         />
       )}
 
-      {/* Ikon-cirkel */}
+      {/* Icon circle */}
       <div
         style={{
           position: 'relative', flexShrink: 0,
@@ -52,7 +52,7 @@ const ActivityEventRow = memo(function ActivityEventRow({ event, isLast }: Activ
         <Icon name={event.icon} size={12} style={{ color: iconColor }} />
       </div>
 
-      {/* Indhold */}
+      {/* Content */}
       <div className="flex-1 min-w-0 pt-0.5">
         <div className="flex items-start justify-between gap-2 mb-0.5">
           <p className="text-sm font-medium text-white truncate">{event.title}</p>

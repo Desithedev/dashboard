@@ -3,7 +3,7 @@ import { timeAgo } from '../utils/timeAgo'
 
 /**
  * Formatér en dato som dansk relativ tidsstreng.
- * Delegerer til den fælles timeAgo utility i src/utils/timeAgo.ts.
+ * Delegates to the common timeAgo utility in src/utils/timeAgo.ts.
  */
 export function formatRelativeTime(date: string | Date | number): string {
   return timeAgo(date)

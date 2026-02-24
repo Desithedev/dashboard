@@ -7,17 +7,19 @@ import { DashboardSkeleton } from '../components/SkeletonLoader'
 import { useLiveData } from '../api/LiveDataContext'
 import { fetchSystemInfo } from '../api/openclaw'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useTranslation } from 'react-i18next'
 import { useResourceHistory } from '../hooks/useResourceHistory'
 
 // Dashboard-widgets
+// Dashboard-widgets
 import StatCards from '../components/dashboard/StatCards'
 import SystemPuls from '../components/dashboard/SystemPuls'
-import HurtigeHandlinger from '../components/dashboard/HurtigeHandlinger'
-import DagensForbrug from '../components/dashboard/DagensForbrug'
-import SystemhelbRed from '../components/dashboard/SystemhelbRed'
+import QuickNav from '../components/dashboard/QuickNav'
+import DailySpend from '../components/dashboard/DailySpend'
+import SystemHealth from '../components/dashboard/SystemHealth'
 import SystemInfoGrid from '../components/dashboard/SystemInfoGrid'
-import KanalerOgJobs from '../components/dashboard/KanalerOgJobs'
-import LiveAktivitetOgSessioner from '../components/dashboard/LiveAktivitetOgSessioner'
+import ChannelsAndJobs from '../components/dashboard/ChannelsAndJobs'
+import LiveActivity from '../components/dashboard/LiveActivity'
 import QuickActions from '../components/dashboard/QuickActions'
 import RecentActivity from '../components/dashboard/RecentActivity'
 
@@ -30,12 +32,12 @@ const LAYOUT_KEY = 'mk-dashboard-layout'
 const DEFAULT_WIDGET_ORDER = [
   'stat-cards',
   'system-puls',
-  'hurtige-handlinger',
-  'dagens-forbrug',
-  'systemhelb-red',
+  'quick-nav',
+  'daily-spend',
+  'system-health',
   'system-info-grid',
-  'kanaler-og-jobs',
-  'live-aktivitet',
+  'channels-and-jobs',
+  'live-activity',
   'quick-actions',
   'recent-activity',
 ]
@@ -64,7 +66,8 @@ function saveLayout(order: string[]) {
 }
 
 export default function Dashboard() {
-  usePageTitle('Dashboard')
+  const { t, i18n } = useTranslation()
+  usePageTitle(t('pages.dashboard.header', 'Dashboard'))
 
   const {
     isConnected, isLoading, error, lastUpdated,
@@ -133,7 +136,7 @@ export default function Dashboard() {
     saveLayout(defaultOrder)
   }, [])
 
-  // ── Opdater hilsen hvert minut ───────────────────────────────────
+  // ── Update greeting every minute ───────────────────────────────────
   useEffect(() => {
     const now = Date.now()
     const msToNextMinute = 60000 - (now % 60000)
@@ -145,17 +148,17 @@ export default function Dashboard() {
     return () => { clearTimeout(timeoutId); clearInterval(intervalId) }
   }, [])
 
-  const greeting = useMemo(() => getTimeGreeting(), [minuteTick])
+  const greeting = useMemo(() => getTimeGreeting(t), [minuteTick, t])
 
   useEffect(() => {
     if (isConnected) {
-      fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => {})
+      fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => { })
     }
   }, [isConnected])
 
   const handleReload = useCallback(() => { window.location.reload() }, [])
 
-  // ── Tidlig retur: indlæser ───────────────────────────────────────
+  // ── Early return: loading ───────────────────────────────────────
   if (isLoading && sessions.length === 0) {
     return <DashboardSkeleton />
   }
@@ -164,20 +167,20 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-white/70 mb-2">Kunne ikke hente data</p>
+          <p className="text-white/70 mb-2">{t('dashboard.errorTitle', 'Could not fetch data')}</p>
           <p className="text-sm text-white/40 mb-4">{error}</p>
           <button
             onClick={handleReload}
             style={{ background: '#007AFF', color: '#fff', padding: '8px 20px', borderRadius: 10, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
           >
-            Prøv igen
+            {t('dashboard.retry', 'Try again')}
           </button>
         </div>
       </div>
     )
   }
 
-  // ── Afledte værdier ──────────────────────────────────────────────
+  // ── Derived values ──────────────────────────────────────────────
   const parsedStatus = useMemo(
     () => (statusText ? parseStatusText(statusText) : {}),
     [statusText]
@@ -191,7 +194,7 @@ export default function Dashboard() {
   const { runningCount, completedCount } = useMemo(() => {
     const now = Date.now()
     return {
-      runningCount:   sessions.filter(s => (now - s.updatedAt) < 120000).length,
+      runningCount: sessions.filter(s => (now - s.updatedAt) < 120000).length,
       completedCount: sessions.filter(s => (now - s.updatedAt) >= 120000).length,
     }
   }, [sessions])
@@ -223,13 +226,13 @@ export default function Dashboard() {
     }
 
     const extractInOut = (s: Record<string, unknown>): { input: number; output: number } | null => {
-      const directIn  = (s?.inputTokens ?? s?.promptTokens ?? s?.tokensIn ?? s?.inTokens) as number | undefined
+      const directIn = (s?.inputTokens ?? s?.promptTokens ?? s?.tokensIn ?? s?.inTokens) as number | undefined
       const directOut = (s?.outputTokens ?? s?.completionTokens ?? s?.tokensOut ?? s?.outTokens) as number | undefined
       if (Number.isFinite(directIn) && Number.isFinite(directOut)) {
         return { input: Number(directIn), output: Number(directOut) }
       }
       const usage = s?.usage as Record<string, unknown> | undefined
-      const usageIn  = (usage?.input_tokens ?? usage?.prompt_tokens ?? usage?.inputTokens) as number | undefined
+      const usageIn = (usage?.input_tokens ?? usage?.prompt_tokens ?? usage?.inputTokens) as number | undefined
       const usageOut = (usage?.output_tokens ?? usage?.completion_tokens ?? usage?.outputTokens) as number | undefined
       if (Number.isFinite(usageIn) && Number.isFinite(usageOut)) {
         return { input: Number(usageIn), output: Number(usageOut) }
@@ -243,7 +246,7 @@ export default function Dashboard() {
       const io = extractInOut(s)
       if (!io) continue
       rowsWithTokens++
-      totalInput  += io.input
+      totalInput += io.input
       totalOutput += io.output
     }
 
@@ -264,21 +267,23 @@ export default function Dashboard() {
       return num
     }
 
-    const inMatch  = tokensText.match(/([\d.]+[kM]?)\s*in/)
+    const inMatch = tokensText.match(/([\d.]+[kM]?)\s*in/)
     const outMatch = tokensText.match(/([\d.]+[kM]?)\s*out/)
-    const tIn  = inMatch  ? parseTokenValue(inMatch[1])  : 0
+    const tIn = inMatch ? parseTokenValue(inMatch[1]) : 0
     const tOut = outMatch ? parseTokenValue(outMatch[1]) : 0
 
     const cUSD = (tIn / 1_000_000 * 15) + (tOut / 1_000_000 * 75)
     const cDKK = cUSD * 7
-    const fCost = cDKK < 1 ? `${(cDKK * 100).toFixed(0)} øre` : `${cDKK.toFixed(2)} kr`
+    const fCost = cDKK < 1
+      ? `${(cDKK * 100).toFixed(0)} ${t('common.currency.ore', 'ore')}`
+      : `${cDKK.toFixed(2)} ${t('common.currency.dkk', 'kr')}`
 
     return {
-      tokensValue:   inMatch ? inMatch[1] : '0',
+      tokensValue: inMatch ? inMatch[1] : '0',
       formattedCost: fCost,
-      tokensIn:  tIn,
+      tokensIn: tIn,
       tokensOut: tOut,
-      costUSD:   cUSD,
+      costUSD: cUSD,
     }
   }, [parsedStatus.tokens])
 
@@ -299,10 +304,10 @@ export default function Dashboard() {
       />
     ),
     'system-puls': <SystemPuls />,
-    'hurtige-handlinger': <HurtigeHandlinger />,
-    'dagens-forbrug': <DagensForbrug sessions={sessions} />,
-    'systemhelb-red': (
-      <SystemhelbRed
+    'quick-nav': <QuickNav />,
+    'daily-spend': <DailySpend sessions={sessions} />,
+    'system-health': (
+      <SystemHealth
         systemInfo={systemInfo}
         ramPct={ramPct}
         diskPctValue={diskPctValue}
@@ -323,18 +328,18 @@ export default function Dashboard() {
         costUSD={costUSD}
       />
     ),
-    'kanaler-og-jobs': (
-      <KanalerOgJobs
+    'channels-and-jobs': (
+      <ChannelsAndJobs
         channels={channels}
         cronJobs={cronJobs}
         cronActiveCount={cronActiveCount}
       />
     ),
-    'live-aktivitet': <LiveAktivitetOgSessioner sessions={sessions} />,
+    'live-activity': <LiveActivity sessions={sessions} />,
     'quick-actions': (
       <QuickActions
         onHealthcheck={() => {
-          fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => {})
+          fetchSystemInfo().then(info => setSystemInfo(info || {})).catch(() => { })
         }}
       />
     ),
@@ -353,15 +358,15 @@ export default function Dashboard() {
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400"
             style={{ background: 'rgba(255,149,0,0.1)' }}
           >
-            Ikke forbundet
+            {t('dashboard.notConnectedBadge', 'Not connected')}
           </span>
         )}
         <DataFreshness className="ml-auto" />
 
-        {/* Reset layout knap */}
+        {/* Reset layout button */}
         <button
           onClick={handleResetLayout}
-          title="Nulstil widget-rækkefølge"
+          title={t('dashboard.resetLayoutTitle', 'Reset widget order')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -390,18 +395,30 @@ export default function Dashboard() {
           }}
         >
           <Icon name="arrow-counterclockwise" size={13} />
-          <span className="hidden sm:inline">Nulstil layout</span>
+          <span className="hidden sm:inline">{t('dashboard.resetLayout', 'Reset layout')}</span>
         </button>
       </div>
       <p className="text-sm mb-6 sm:mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        Oversigt &mdash; {new Date().toLocaleDateString('da-DK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        {t('dashboard.overviewToday', {
+          defaultValue: 'Overview — {{date}}',
+          date: new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'vi-VN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          }),
+        })}
       </p>
 
       {!isConnected ? (
         <Card>
           <div className="text-center py-8">
-            <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-            <p className="text-sm text-white/50">Gå til Indstillinger for at konfigurere API forbindelse</p>
+            <p className="text-white/70 mb-2">
+              {t('dashboard.notConnectedTitle', 'No connection to Gateway')}
+            </p>
+            <p className="text-sm text-white/50">
+              {t('dashboard.notConnectedDescription', 'Go to Settings to configure API connection.')}
+            </p>
           </div>
         </Card>
       ) : (
@@ -438,7 +455,7 @@ export default function Dashboard() {
                   position: 'relative',
                 }}
               >
-                {/* Drop-target indikator-bjælke øverst */}
+                {/* Drop-target indicator bar top */}
                 {isDropTarget && (
                   <div
                     style={{
@@ -455,7 +472,7 @@ export default function Dashboard() {
                   />
                 )}
 
-                {/* Drag-håndtag hint — vises kun ved hover */}
+                {/* Drag-handle hint — only shown on hover */}
                 <div
                   style={{
                     position: 'absolute',

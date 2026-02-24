@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import { DonutChart } from '../Chart'
 import type { SystemInfo } from './types'
@@ -24,56 +25,58 @@ const SystemInfoGrid = memo(function SystemInfoGrid({
   tokensOut,
   costUSD,
 }: SystemInfoGridProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-      {/* Systeminformation */}
-      <Card title="System">
+      {/* System information */}
+      <Card title={t('dashboard.system.systemInformation', 'System')}>
         <div className="space-y-2 text-sm min-w-0">
           {parsedStatus.version && (
             <div className="flex justify-between">
-              <span className="caption">Version</span>
+              <span className="caption">{t('dashboard.system.version', 'Version')}</span>
               <span className="font-medium truncate ml-2">{parsedStatus.version}</span>
             </div>
           )}
           {parsedStatus.runtime && (
             <div className="flex justify-between">
-              <span className="caption">Runtime</span>
+              <span className="caption">{t('dashboard.system.runtime', 'Runtime')}</span>
               <span className="font-medium truncate ml-2">{parsedStatus.runtime}</span>
             </div>
           )}
           {parsedStatus.session && (
             <div className="flex justify-between gap-2 min-w-0">
-              <span className="caption flex-shrink-0">Session</span>
+              <span className="caption flex-shrink-0">{t('dashboard.system.session', 'Session')}</span>
               <span className="font-medium truncate">{parsedStatus.session}</span>
             </div>
           )}
           {parsedStatus.queue && (
             <div className="flex justify-between">
-              <span className="caption">Koe</span>
+              <span className="caption">{t('dashboard.system.queue', 'Queue')}</span>
               <span className="font-medium truncate ml-2">{parsedStatus.queue}</span>
             </div>
           )}
           {systemInfo.host && (
             <div className="flex justify-between">
-              <span className="caption">Vaert</span>
+              <span className="caption">{t('dashboard.system.host', 'Host')}</span>
               <span className="font-medium truncate ml-2">{systemInfo.host}</span>
             </div>
           )}
           {systemInfo.os && (
             <div className="flex justify-between">
-              <span className="caption">OS</span>
+              <span className="caption">{t('dashboard.system.os', 'OS')}</span>
               <span className="font-medium truncate ml-2">{systemInfo.os}</span>
             </div>
           )}
           {systemInfo.ramUsed && systemInfo.ramTotal && (
             <div className="flex justify-between">
-              <span className="caption">RAM</span>
+              <span className="caption">{t('dashboard.system.ram', 'RAM')}</span>
               <span className="font-medium truncate ml-2">{systemInfo.ramUsed} / {systemInfo.ramTotal}</span>
             </div>
           )}
           {systemInfo.diskUsed && systemInfo.diskTotal && (
             <div className="flex justify-between">
-              <span className="caption">Disk</span>
+              <span className="caption">{t('dashboard.system.disk', 'Disk')}</span>
               <span className="font-medium truncate ml-2">
                 {systemInfo.diskUsed} / {systemInfo.diskTotal} ({systemInfo.diskPercent}%)
               </span>
@@ -81,33 +84,33 @@ const SystemInfoGrid = memo(function SystemInfoGrid({
           )}
           {systemInfo.uptime && (
             <div className="flex justify-between">
-              <span className="caption">Oppetid</span>
+              <span className="caption">{t('dashboard.system.uptime', 'Uptime')}</span>
               <span className="font-medium truncate ml-2">{systemInfo.uptime}</span>
             </div>
           )}
         </div>
       </Card>
 
-      {/* Agentstatus donut */}
-      <Card title="Agentstatus" className="col-span-1">
+      {/* Agent status donut */}
+      <Card title={t('dashboard.system.agentStatus', 'Agent Status')} className="col-span-1">
         {runningCount === 0 && completedCount === 0 ? (
-          <div className="text-center py-8 text-white/50 text-sm">Ingen sessioner</div>
+          <div className="text-center py-8 text-white/50 text-sm">{t('dashboard.system.noSessions', 'No sessions')}</div>
         ) : (
           <DonutChart segments={[
-            { value: runningCount || 1, color: '#34C759', label: 'Kørende' },
-            { value: completedCount || 0, color: '#007AFF', label: 'Afsluttet' },
+            { value: runningCount || 1, color: '#34C759', label: t('common.running', 'Running') },
+            { value: completedCount || 0, color: '#007AFF', label: t('common.completed', 'Completed') },
           ].filter(s => s.value > 0)} />
         )}
       </Card>
 
-      {/* Estimeret forbrug */}
-      <Card title="Estimeret Forbrug">
+      {/* Estimated consumption */}
+      <Card title={t('pages.apiUsage.estimatedCost', 'Estimated Cost')}>
         <div className="text-center py-8 min-w-0">
           <p className="text-3xl font-bold text-white mb-2">{formattedCost}</p>
-          <p className="caption mb-4">Aktuel session</p>
+          <p className="caption mb-4">{t('dashboard.system.currentSession', 'Current session')}</p>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between items-center">
-              <span className="caption">Input tokens</span>
+              <span className="caption">{t('dashboard.status.tokensIn', 'Input tokens')}</span>
               <span className="font-medium">
                 {tokensIn >= 1_000_000
                   ? `${(tokensIn / 1_000_000).toFixed(2)}M`
@@ -115,7 +118,7 @@ const SystemInfoGrid = memo(function SystemInfoGrid({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="caption">Output tokens</span>
+              <span className="caption">{t('dashboard.status.tokensOut', 'Output tokens')}</span>
               <span className="font-medium">
                 {tokensOut >= 1_000_000
                   ? `${(tokensOut / 1_000_000).toFixed(2)}M`
@@ -123,7 +126,7 @@ const SystemInfoGrid = memo(function SystemInfoGrid({
               </span>
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-white/10">
-              <span className="caption">Estimeret USD</span>
+              <span className="caption">{t('dashboard.status.estimatedUsd', 'Estimated USD')}</span>
               <span className="font-medium">${costUSD.toFixed(4)}</span>
             </div>
           </div>

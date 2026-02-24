@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 import { useToast } from '../../hooks/useToast'
@@ -8,6 +9,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions = memo(function QuickActions({ onHealthcheck }: QuickActionsProps) {
+  const { t } = useTranslation()
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const [confirmRestart, setConfirmRestart] = useState(false)
   const toast = useToast()
@@ -29,35 +31,35 @@ const QuickActions = memo(function QuickActions({ onHealthcheck }: QuickActionsP
 
   return (
     <div className="mb-8">
-      <Card title="Hurtige Genveje" subtitle="Almindelige handlinger">
+      <Card title={t('dashboard.quickActions', 'Quick Actions')} subtitle={t('dashboard.quickActionsSubtitle', 'Common actions')}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          {/* Genstart Gateway */}
+          {/* Restart Gateway */}
           {confirmRestart ? (
             <div style={{ ...btnBase, flexDirection: 'column', gap: 8, background: 'rgba(255,59,48,0.1)', borderColor: 'rgba(255,59,48,0.3)' }}>
-              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Bekraeft genstart?</span>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{t('dashboard.confirmRestart', 'Confirm restart?')}</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => {
                     setConfirmRestart(false)
                     handleAction('restart', async () => {
-                      toast.warning('Genstarter Gateway...')
+                      toast.warning(t('dashboard.restartingGateway', 'Restarting Gateway...'))
                       try {
                         await fetch('/api/gateway/restart', {
                           method: 'POST',
                           headers: { 'Authorization': `Bearer ${localStorage.getItem('gateway_token') || ''}` },
                         })
-                      } catch {}
+                      } catch { }
                     })
                   }}
                   style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#FF3B30', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
-                  Ja, genstart
+                  {t('dashboard.yesRestart', 'Yes, restart')}
                 </button>
                 <button
                   onClick={() => setConfirmRestart(false)}
                   style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 13, cursor: 'pointer' }}
                 >
-                  Annuller
+                  {t('common.cancel', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -69,44 +71,44 @@ const QuickActions = memo(function QuickActions({ onHealthcheck }: QuickActionsP
               onClick={() => setConfirmRestart(true)}
               disabled={loadingAction === 'restart'}
             >
-              <Icon name="restart" size={16} /> {loadingAction === 'restart' ? 'Genstarter...' : 'Genstart Gateway'}
+              <Icon name="restart" size={16} /> {loadingAction === 'restart' ? t('dashboard.restarting', 'Restarting...') : t('dashboard.restartGateway', 'Restart Gateway')}
             </button>
           )}
 
-          {/* Ryd Cache */}
+          {/* Clear Cache */}
           <button
             style={btnBase}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
             onClick={() => handleAction('cache', async () => {
-              toast.info('Cache ryddet — genindlaeder...')
+              toast.info(t('dashboard.clearingCache', 'Cache cleared — reloading...'))
               localStorage.clear()
               window.location.reload()
             })}
             disabled={loadingAction === 'cache'}
           >
-            <Icon name="xmark" size={16} /> {loadingAction === 'cache' ? 'Rydder...' : 'Ryd Cache'}
+            <Icon name="xmark" size={16} /> {loadingAction === 'cache' ? t('dashboard.clearing', 'Clearing...') : t('dashboard.clearCache', 'Clear Cache')}
           </button>
 
-          {/* Kør Healthcheck */}
+          {/* Run Healthcheck */}
           <button
             style={btnBase}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-            onClick={() => handleAction('health', async () => { onHealthcheck(); toast.success('Healthcheck startet') })}
+            onClick={() => handleAction('health', async () => { onHealthcheck(); toast.success(t('dashboard.healthcheckStarted', 'Healthcheck started')) })}
             disabled={loadingAction === 'health'}
           >
-            <Icon name="gauge" size={16} /> {loadingAction === 'health' ? 'Tjekker...' : 'Koer Healthcheck'}
+            <Icon name="gauge" size={16} /> {loadingAction === 'health' ? t('dashboard.checking', 'Checking...') : t('dashboard.runHealthcheck', 'Run Healthcheck')}
           </button>
 
-          {/* Abn GitHub */}
+          {/* Open GitHub */}
           <button
             style={btnBase}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
             onClick={() => window.open('https://github.com/MartinSarvio/mission-kontrol', '_blank')}
           >
-            <Icon name="globe" size={16} /> Aabn GitHub
+            <Icon name="globe" size={16} /> {t('dashboard.openGithub', 'Open GitHub')}
           </button>
         </div>
       </Card>

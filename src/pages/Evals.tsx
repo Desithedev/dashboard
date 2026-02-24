@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import PageHeader from '../components/PageHeader'
@@ -15,8 +16,9 @@ interface Eval {
 }
 
 export default function Evals() {
-  usePageTitle('Evalueringer')
-  
+  const { t, i18n } = useTranslation()
+  usePageTitle(t('evals.title', 'Evaluations'))
+
   const [evals, setEvals] = useState<Eval[]>([])
   const [isLoadingEvals, setIsLoadingEvals] = useState(true)
   const [evalsError, setEvalsError] = useState<string | null>(null)
@@ -34,9 +36,9 @@ export default function Evals() {
       setEvalsError(null)
       try {
         const res = await fetch('/evals-suite.json', { cache: 'no-cache' })
-        if (!res.ok) throw new Error(`Kunne ikke hente eval-suite (HTTP ${res.status})`)
+        if (!res.ok) throw new Error(`${t('evals.loadError', 'Could not fetch eval-suite')} (HTTP ${res.status})`)
         const data = await res.json()
-        if (!Array.isArray(data)) throw new Error('Ugyldigt eval-suite format (forventede en liste)')
+        if (!Array.isArray(data)) throw new Error(t('evals.invalidFormat', 'Invalid eval-suite format (expected a list)'))
 
         const parsed: Eval[] = data
           .filter(Boolean)
@@ -59,7 +61,7 @@ export default function Evals() {
         if (cancelled) return
         setEvals([])
         setSelectedEval(null)
-        setEvalsError(err instanceof Error ? err.message : 'Kunne ikke hente eval-suite')
+        setEvalsError(err instanceof Error ? err.message : t('evals.loadError', 'Could not fetch eval-suite'))
       } finally {
         if (!cancelled) setIsLoadingEvals(false)
       }
@@ -69,16 +71,16 @@ export default function Evals() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   const runEvaluation = async (evalItem: Eval) => {
     setIsRunning(true)
     try {
-      const result = await invokeToolRaw('sessions_spawn', { 
+      const result = await invokeToolRaw('sessions_spawn', {
         task: evalItem.prompt,
         label: `eval:${evalItem.id}`
       }) as any
-      
+
       setResults(prev => ({
         ...prev,
         [evalItem.id]: {
@@ -93,7 +95,7 @@ export default function Evals() {
         ...prev,
         [evalItem.id]: {
           status: 'error',
-          error: err instanceof Error ? err.message : 'Ukendt fejl',
+          error: err instanceof Error ? err.message : 'Unknown error',
           timestamp: new Date().toISOString()
         }
       }))
@@ -115,47 +117,47 @@ export default function Evals() {
   return (
     <div className="animate-page-in">
       <PageHeader
-        title="Evalueringer"
-        description={`Evalueringsdatasæt og kvalitetssporing · ${evals.length} test cases`}
-        breadcrumb={[{ label: 'Dashboard', href: '#dashboard' }, { label: 'Evalueringer' }]}
+        title={t('evals.title', 'Evaluations')}
+        description={t('evals.description', 'Evaluation datasets and quality tracking · {{count}} test cases', { count: evals.length })}
+        breadcrumb={[{ label: t('dashboard.header', 'Dashboard'), href: '#dashboard' }, { label: t('evals.title', 'Evaluations') }]}
         actions={<DataFreshness />}
       />
 
       <div className="flex flex-wrap gap-3 mb-6">
-        <button 
+        <button
           onClick={() => selectedEval && runEvaluation(selectedEval)}
           disabled={!selectedEval || isRunning || isRunningAll}
-          style={{ 
-            minHeight: '44px', 
-            background: !selectedEval || isRunning || isRunningAll ? 'rgba(0,122,255,0.4)' : '#007AFF', 
-            color: '#fff', 
-            padding: '8px 16px', 
-            borderRadius: '12px', 
-            fontSize: '14px', 
-            fontWeight: 500, 
-            border: 'none', 
+          style={{
+            minHeight: '44px',
+            background: !selectedEval || isRunning || isRunningAll ? 'rgba(0,122,255,0.4)' : '#007AFF',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 500,
+            border: 'none',
             cursor: !selectedEval || isRunning || isRunningAll ? 'not-allowed' : 'pointer',
             opacity: !selectedEval ? 0.5 : 1
           }}
         >
-          {isRunning ? 'Kører...' : 'Kør Evaluering'}
+          {isRunning ? t('evals.running', 'Running...') : t('evals.runEval', 'Run Evaluation')}
         </button>
-        <button 
+        <button
           onClick={runAllEvaluations}
           disabled={isRunningAll || isRunning}
-          style={{ 
-            minHeight: '44px', 
-            background: isRunningAll || isRunning ? 'rgba(0,122,255,0.05)' : 'rgba(0,122,255,0.1)', 
-            color: '#007AFF', 
-            padding: '8px 16px', 
-            borderRadius: '12px', 
-            fontSize: '14px', 
-            fontWeight: 500, 
-            border: '1px solid rgba(0,122,255,0.2)', 
+          style={{
+            minHeight: '44px',
+            background: isRunningAll || isRunning ? 'rgba(0,122,255,0.05)' : 'rgba(0,122,255,0.1)',
+            color: '#007AFF',
+            padding: '8px 16px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 500,
+            border: '1px solid rgba(0,122,255,0.2)',
             cursor: isRunningAll || isRunning ? 'not-allowed' : 'pointer'
           }}
         >
-          {isRunningAll ? 'Kører Alle...' : 'Kør Alle'}
+          {isRunningAll ? t('evals.runningAll', 'Running All...') : t('evals.runAll', 'Run All')}
         </button>
       </div>
 
@@ -166,7 +168,7 @@ export default function Evals() {
           <div className="text-center py-12 px-4">
             <Icon name="exclamation-triangle" size={40} className="text-red-400 mx-auto mb-4" />
             <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Kunne ikke indlæse evalueringer
+              {t('evals.loadErrorTitle', 'Could not load evaluations')}
             </p>
             <p className="caption max-w-md mx-auto mb-4">{evalsError}</p>
             <button
@@ -183,7 +185,7 @@ export default function Evals() {
                 cursor: 'pointer'
               }}
             >
-              Prøv igen
+              {t('common.retry', 'Try again')}
             </button>
           </div>
         </Card>
@@ -197,31 +199,31 @@ export default function Evals() {
 
             return (
               <Card key={evalItem.id} style={{ animationDelay: `${evalIdx * 50}ms` }}>
-                <div 
+                <div
                   className="cursor-pointer"
                   onClick={() => setSelectedEval(evalItem)}
                 >
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-start gap-3 flex-1">
-                      <div 
+                      <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ 
+                        style={{
                           background: isSelected ? 'rgba(0,122,255,0.15)' : 'rgba(255,255,255,0.06)',
                           border: isSelected ? '2px solid #007AFF' : 'none'
                         }}
                       >
-                        <Icon 
-                          name="gauge" 
-                          size={20} 
+                        <Icon
+                          name="gauge"
+                          size={20}
                           style={{ color: isSelected ? '#007AFF' : 'rgba(255,255,255,0.4)' }}
                         />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-sm font-semibold">{evalItem.name}</p>
-                          <span 
+                          <span
                             className="text-[10px] font-medium px-2 py-0.5 rounded"
-                            style={{ 
+                            style={{
                               background: 'rgba(255,255,255,0.06)',
                               color: 'rgba(255,255,255,0.4)'
                             }}
@@ -230,39 +232,39 @@ export default function Evals() {
                           </span>
                         </div>
                         <p className="caption line-clamp-2 mb-2">{evalItem.prompt}</p>
-                        
+
                         {result && (
-                          <div className="mt-2 p-2 rounded-lg text-xs" style={{ 
-                            background: result.status === 'success' 
-                              ? 'rgba(52,199,89,0.08)' 
+                          <div className="mt-2 p-2 rounded-lg text-xs" style={{
+                            background: result.status === 'success'
+                              ? 'rgba(52,199,89,0.08)'
                               : 'rgba(255,59,48,0.08)',
-                            border: `1px solid ${result.status === 'success' 
-                              ? 'rgba(52,199,89,0.2)' 
+                            border: `1px solid ${result.status === 'success'
+                              ? 'rgba(52,199,89,0.2)'
                               : 'rgba(255,59,48,0.2)'}`
                           }}>
                             <div className="flex items-center gap-2">
-                              <span style={{ 
-                                color: result.status === 'success' ? '#34C759' : '#FF3B30' 
+                              <span style={{
+                                color: result.status === 'success' ? '#34C759' : '#FF3B30'
                               }}>
                                 {result.status === 'success' ? '✓' : '✗'}
                               </span>
                               <span style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                {result.status === 'success' 
-                                  ? `Session: ${result.sessionKey}` 
-                                  : `Fejl: ${result.error}`}
+                                {result.status === 'success'
+                                  ? t('evals.session', 'Session: {{sessionKey}}', { sessionKey: result.sessionKey })
+                                  : t('evals.error', 'Error: {{message}}', { message: result.error })}
                               </span>
                             </div>
                             <p className="mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                              {new Date(result.timestamp).toLocaleString('da-DK')}
+                              {new Date(result.timestamp).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
                             </p>
                           </div>
                         )}
                       </div>
                     </div>
-                    <Icon 
-                      name="chevron-right" 
-                      size={16} 
-                      className="text-white/30 flex-shrink-0" 
+                    <Icon
+                      name="chevron-right"
+                      size={16}
+                      className="text-white/30 flex-shrink-0"
                     />
                   </div>
                 </div>
@@ -277,11 +279,10 @@ export default function Evals() {
           <div className="text-center py-16 px-4">
             <Icon name="gauge" size={40} className="text-white/30 mx-auto mb-4" />
             <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Ingen evalueringer endnu
+              {t('evals.noEvalsTitle', 'No evaluations yet')}
             </p>
             <p className="caption max-w-md mx-auto">
-              Evalueringer giver dig mulighed for at måle agentkvalitet over tid med standardiserede testdatasæt.
-              Opret et datasæt og kør din første evaluering for at komme i gang.
+              {t('evals.noEvalsDescription', 'Evaluations let you measure agent quality over time with standardized test datasets. Create a dataset and run your first evaluation to get started.')}
             </p>
           </div>
         </Card>

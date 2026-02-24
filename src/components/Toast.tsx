@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     setVisible(prev => {
       const next = prev.filter(t => t.id !== id)
-      // Træk fra kø hvis der er plads
+      // Pull from queue if there is space
       if (queueRef.current.length > 0 && next.length < MAX_VISIBLE) {
         const toAdd = queueRef.current.splice(0, MAX_VISIBLE - next.length)
         toAdd.forEach(t => scheduleRemoval(t.id))
@@ -69,7 +69,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         scheduleRemoval(id)
         return [...prev, item]
       } else {
-        // Læg i kø
+        // Put in queue
         queueRef.current = [...queueRef.current, item]
         return prev
       }
@@ -143,7 +143,7 @@ function ToastItemView({
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  // Fade-out 300ms før dismiss
+  // Fade-out 300ms before dismiss
   useEffect(() => {
     const exitTimer = setTimeout(() => setPhase('exit'), TOAST_DURATION - 300)
     return () => clearTimeout(exitTimer)
@@ -165,8 +165,8 @@ function ToastItemView({
     phase === 'enter'
       ? 'translateX(calc(100% + 24px))'
       : phase === 'exit'
-      ? 'translateX(calc(100% + 24px))'
-      : 'translateX(0)'
+        ? 'translateX(calc(100% + 24px))'
+        : 'translateX(0)'
 
   const opacity = phase === 'visible' ? 1 : 0
 

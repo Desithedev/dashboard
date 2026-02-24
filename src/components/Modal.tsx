@@ -23,22 +23,22 @@ export default function Modal({ open, onClose, title, children, description }: M
   const titleId = useId()
   const descId = useId()
 
-  // Gem trigger-elementet når modal åbner
+  // Save trigger element when modal opens
   useEffect(() => {
     if (open) {
       triggerRef.current = document.activeElement
     }
   }, [open])
 
-  // Returnér focus til trigger-elementet ved lukning
+  // Return focus to the trigger element on close
   useEffect(() => {
     if (!open && triggerRef.current) {
-      ;(triggerRef.current as HTMLElement).focus?.()
+      ; (triggerRef.current as HTMLElement).focus?.()
       triggerRef.current = null
     }
   }, [open])
 
-  // Sæt fokus på første fokuserbare element når modal åbner
+  // Set focus on first focusable element when modal opens
   useEffect(() => {
     if (!open || !dialogRef.current) return
     const raf = requestAnimationFrame(() => {
@@ -85,7 +85,7 @@ export default function Modal({ open, onClose, title, children, description }: M
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])
 
-  // Lyt på programmatisk modal-close event
+  // Listen for programmatic modal-close event
   useEffect(() => {
     if (!open) return
     const handler = () => onClose()
@@ -134,7 +134,7 @@ export default function Modal({ open, onClose, title, children, description }: M
           </h2>
           <button
             onClick={onClose}
-            aria-label="Luk"
+            aria-label="Close"
             className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'rgba(255,255,255,0.08)' }}
           >

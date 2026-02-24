@@ -1,4 +1,5 @@
 import Icon from './Icon'
+import { useTranslation } from 'react-i18next'
 import { NUMBER_SHORTCUTS } from '../hooks/useKeyboardShortcuts'
 
 interface KeyboardShortcutsHelpProps {
@@ -6,17 +7,7 @@ interface KeyboardShortcutsHelpProps {
   onClose: () => void
 }
 
-const PAGE_LABELS: Record<string, string> = {
-  dashboard: 'Oversigt',
-  tasks: 'Opgaver',
-  agents: 'Agenter',
-  skills: 'Færdigheder',
-  communication: 'Kommunikation',
-  journal: 'Journal',
-  documents: 'Dokumenter',
-  intelligence: 'Intelligens',
-  settings: 'Indstillinger',
-}
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
@@ -38,7 +29,20 @@ function Kbd({ children }: { children: React.ReactNode }) {
 }
 
 export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcutsHelpProps) {
+  const { t } = useTranslation()
   if (!open) return null
+
+  const PAGE_LABELS: Record<string, string> = {
+    dashboard: t('shortcuts.pages.dashboard', 'Dashboard'),
+    tasks: t('shortcuts.pages.tasks', 'Tasks'),
+    agents: t('shortcuts.pages.agents', 'Agents'),
+    skills: t('shortcuts.pages.skills', 'Skills'),
+    communication: t('shortcuts.pages.communication', 'Communication'),
+    journal: t('shortcuts.pages.journal', 'Journal'),
+    documents: t('shortcuts.pages.documents', 'Documents'),
+    intelligence: t('shortcuts.pages.intelligence', 'Intelligence'),
+    settings: t('shortcuts.pages.settings', 'Settings'),
+  }
 
   const navShortcuts = Object.entries(NUMBER_SHORTCUTS)
     .map(([key, pageId]) => ({
@@ -65,7 +69,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Keyboard shortcuts"
+        aria-label={t('shortcuts.title', 'Keyboard shortcuts')}
         style={{
           width: '100%',
           maxWidth: 860,
@@ -105,14 +109,14 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
               <Icon name="command" size={18} style={{ color: '#60a5fa' }} />
             </div>
             <div className="min-w-0">
-              <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>Keyboard shortcuts</div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>Tryk Esc for at lukke</div>
+              <div style={{ color: '#fff', fontSize: 16, fontWeight: 700, lineHeight: 1.2 }}>{t('shortcuts.title', 'Keyboard shortcuts')}</div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 }}>{t('shortcuts.closeHint', 'Press Esc to close')}</div>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            aria-label="Luk"
+            aria-label={t('common.cancel', 'Cancel')}
             style={{
               width: 34,
               height: 34,
@@ -141,7 +145,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
                 padding: 14,
               }}
             >
-              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Globalt</div>
+              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{t('shortcuts.global', 'Global')}</div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 10, alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -151,17 +155,17 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
                   <Kbd>Ctrl</Kbd>
                   <Kbd>K</Kbd>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Åbn kommandopalet</div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('shortcuts.palette', 'Open command palette')}</div>
 
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <Kbd>Esc</Kbd>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Luk overlays og modals</div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('shortcuts.closeOverlays', 'Close overlays and modals')}</div>
 
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <Kbd>?</Kbd>
                 </div>
-                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>Vis denne oversigt</div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{t('shortcuts.showHelp', 'Show this overview')}</div>
               </div>
             </div>
 
@@ -174,7 +178,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
                 padding: 14,
               }}
             >
-              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Navigation</div>
+              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{t('shortcuts.navigation', 'Navigation')}</div>
 
               <div
                 style={{
@@ -205,7 +209,7 @@ export default function KeyboardShortcutsHelp({ open, onClose }: KeyboardShortcu
               </div>
 
               <div style={{ marginTop: 10, color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>
-                Tip: Tal-genveje virker kun når du ikke skriver i et inputfelt.
+                {t('shortcuts.navHint', 'Tip: Number shortcuts only work when you are not typing in an input field.')}
               </div>
             </div>
           </div>

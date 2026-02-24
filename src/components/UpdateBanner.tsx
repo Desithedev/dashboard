@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 
 const CURRENT_VERSION = '1.1.1'
@@ -25,6 +26,7 @@ function compareVersions(a: string, b: string): number {
 }
 
 export default function UpdateBanner() {
+  const { t, i18n } = useTranslation()
   const [release, setRelease] = useState<Release | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const [dmgUrl, setDmgUrl] = useState<string>('')
@@ -40,16 +42,16 @@ export default function UpdateBanner() {
         const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
         if (!res.ok) return
         const data: Release = await res.json()
-        
+
         const latestVersion = data.tag_name.replace(/^v/, '')
         if (compareVersions(latestVersion, CURRENT_VERSION) > 0) {
           if (dismissedVersion === latestVersion) return
-          
+
           const dmg = data.assets.find(a => a.name.endsWith('.dmg'))
           if (dmg) setDmgUrl(dmg.browser_download_url)
           setRelease(data)
         }
-      } catch {}
+      } catch { }
     }
 
     checkUpdate()
@@ -84,10 +86,10 @@ export default function UpdateBanner() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white mb-0.5">
-            Ny version tilgængelig
+            {t('common.updates.newAvailable', 'New version available')}
           </p>
           <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            v{version} · {new Date(release.published_at).toLocaleDateString('da-DK')}
+            v{version} · {new Date(release.published_at).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
           </p>
           <div className="flex gap-2">
             {dmgUrl ? (
@@ -101,7 +103,7 @@ export default function UpdateBanner() {
                 onMouseLeave={e => { e.currentTarget.style.background = '#007AFF' }}
               >
                 <Icon name="arrow-down" size={12} />
-                Download .dmg
+                {t('common.updates.downloadDmg', 'Download .dmg')}
               </a>
             ) : (
               <a
@@ -111,7 +113,7 @@ export default function UpdateBanner() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all"
                 style={{ background: '#007AFF' }}
               >
-                Se release
+                {t('common.updates.viewRelease', 'View release')}
               </a>
             )}
             <button
@@ -121,7 +123,7 @@ export default function UpdateBanner() {
               onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
             >
-              Senere
+              {t('common.updates.later', 'Later')}
             </button>
           </div>
         </div>

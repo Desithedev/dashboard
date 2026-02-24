@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../components/Card'
 import Icon from '../components/Icon'
 import Table, { Column } from '../components/Table'
@@ -28,7 +29,7 @@ interface CronJobRow {
   [key: string]: unknown
 }
 
-/** Beregn næste kørsel fra schedule-feltet hvis API ikke angiver nextRun */
+/** Calculate next run from the schedule field if API doesn't specify nextRun */
 function calcNextRun(job: { schedule?: any; lastRun?: string; nextRun?: string }): string | null {
   if (job.nextRun) return job.nextRun
 
@@ -70,17 +71,17 @@ function calcNextRun(job: { schedule?: any; lastRun?: string; nextRun?: string }
   return null
 }
 
-function formatSchedule(schedule: unknown): string {
-  if (!schedule) return 'Ukendt'
+function formatSchedule(schedule: unknown, t: any): string {
+  if (!schedule) return t('cronJobs.schedule.unknown')
   if (typeof schedule === 'string') return schedule
   if (typeof schedule === 'object' && schedule !== null) {
     const s = schedule as Record<string, unknown>
     if (s.everyMs) {
       const ms = s.everyMs as number
-      if (ms < 60_000) return `Hvert ${ms / 1000}s`
-      if (ms < 3_600_000) return `Hvert ${ms / 60_000} min`
-      if (ms < 86_400_000) return `Hver ${ms / 3_600_000} time`
-      return `Hver ${ms / 86_400_000} dag`
+      if (ms < 60_000) return t('cronJobs.schedule.everySeconds', { count: ms / 1000 })
+      if (ms < 3_600_000) return t('cronJobs.schedule.everyMinutes', { count: ms / 60_000 })
+      if (ms < 86_400_000) return t('cronJobs.schedule.everyHours', { count: ms / 3_600_000 })
+      return t('cronJobs.schedule.everyDays', { count: ms / 86_400_000 })
     }
     return (s.expr as string) || (s.kind as string) || JSON.stringify(s)
   }
@@ -107,6 +108,7 @@ function JobHistoryPanel({
   isRunning: boolean
   isToggling: boolean
 }) {
+  const { t } = useTranslation()
   const isEnabled = job.enabled !== false
   const nextRun = calcNextRun(job)
 
@@ -130,7 +132,7 @@ function JobHistoryPanel({
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-white truncate">{job.name || job.id}</h2>
                 <p className="text-xs font-mono mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {formatSchedule(job.schedule)}
+                  {formatSchedule(job.schedule, t)}
                 </p>
               </div>
             </div>
@@ -147,13 +149,13 @@ function JobHistoryPanel({
           <div className="grid grid-cols-2 gap-2 mb-4">
             {job.lastRun && (
               <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Sidst kørt</p>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('cronJobs.lastRun')}</p>
                 <p className="text-xs text-white">{formatRelativeTime(job.lastRun)}</p>
               </div>
             )}
             {nextRun && (
               <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Næste kørsel</p>
+                <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('cronJobs.nextRun')}</p>
                 <p className="text-xs" style={{ color: '#34C759' }}>{formatRelativeTime(nextRun)}</p>
               </div>
             )}
@@ -182,7 +184,7 @@ function JobHistoryPanel({
               }}
             >
               <Icon name={isRunning ? 'arrow-path' : 'play'} size={14} className={isRunning ? 'animate-spin' : ''} />
-              Kør nu
+              {t('cronJobs.runNow')}
             </button>
             <button
               onClick={onToggle}
@@ -208,7 +210,7 @@ function JobHistoryPanel({
                 ? <Icon name="arrow-path" size={14} className="animate-spin" />
                 : <Icon name={isEnabled ? 'pause' : 'play'} size={14} />
               }
-              {isEnabled ? 'Deaktiver' : 'Aktiver'}
+              {isEnabled ? t('cronJobs.disable') : t('cronJobs.enable')}
             </button>
           </div>
         </div>
@@ -217,18 +219,18 @@ function JobHistoryPanel({
         <div className="flex-1 p-6">
           <p className="caption mb-3" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Icon name="clock" size={12} />
-            Seneste 5 kørsler
+            {t('cronJobs.historyTitle')}
           </p>
 
           {loadingRuns ? (
             <div className="text-center py-10">
               <Icon name="arrow-path" size={20} className="text-white/30 animate-spin mx-auto" />
-              <p className="caption mt-2">Indlæser historik...</p>
+              <p className="caption mt-2">{t('cronJobs.historyLoading')}</p>
             </div>
           ) : runs.length === 0 ? (
             <div className="text-center py-10 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
               <Icon name="clock" size={20} className="text-white/20 mx-auto mb-2" />
-              <p className="caption">Ingen kørsler registreret endnu</p>
+              <p className="caption">{t('cronJobs.noHistory')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -284,7 +286,8 @@ function JobHistoryPanel({
 }
 
 export default function CronJobs() {
-  usePageTitle('Planlagte Jobs')
+  const { t } = useTranslation()
+  usePageTitle(t('cronJobs.title'))
 
   const { isConnected, cronJobs, isLoading, refresh } = useLiveData()
   const { showToast } = useToast()
@@ -295,7 +298,7 @@ export default function CronJobs() {
   const [runningJobs, setRunningJobs] = useState<Record<string, boolean>>({})
   const [togglingJobs, setTogglingJobs] = useState<Record<string, boolean>>({})
 
-  // Auto-refresh hvert 10. sekund — kun når siden er synlig
+  // Auto-refresh every 10 seconds — only when page is visible
   useEffect(() => {
     const id = setInterval(() => {
       if (!document.hidden) {
@@ -310,10 +313,10 @@ export default function CronJobs() {
     rawJobs.map((j: any) => ({
       ...j,
       id: String(j.id ?? j.jobId ?? j.name ?? Math.random()),
-      name: j.name || j.id || 'Unavngiven',
+      name: j.name || j.id || t('cronJobs.unnamed'),
       enabled: j.enabled !== false,
     })),
-    [rawJobs]
+    [rawJobs, t]
   )
 
   const selectedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) ?? null : null
@@ -338,47 +341,47 @@ export default function CronJobs() {
     setRunningJobs(prev => ({ ...prev, [jobId]: true }))
     try {
       await invokeToolRaw('cron', { action: 'run', jobId })
-      showToast('success', 'Job startet')
+      showToast('success', t('cronJobs.jobStarted'))
       setRuns(prev => ({ ...prev, [jobId]: [] }))
       setTimeout(() => {
         fetchCronRuns(jobId)
           .then(data => setRuns(prev => ({ ...prev, [jobId]: (data || []).slice(0, 5) })))
-          .catch(() => {})
+          .catch(() => { })
         refresh()
       }, 1500)
     } catch (err: any) {
-      showToast('error', `Kunne ikke starte job: ${err?.message || 'Ukendt fejl'}`)
+      showToast('error', t('cronJobs.errors.startFailed', { message: err?.message || t('cronJobs.errors.unknown') }))
     } finally {
       setRunningJobs(prev => ({ ...prev, [jobId]: false }))
     }
-  }, [runningJobs, showToast, refresh])
+  }, [runningJobs, showToast, refresh, t])
 
   const toggleEnabled = useCallback(async (jobId: string, currentEnabled: boolean) => {
     if (togglingJobs[jobId]) return
     setTogglingJobs(prev => ({ ...prev, [jobId]: true }))
     try {
       await invokeToolRaw('cron', { action: 'update', jobId, enabled: !currentEnabled })
-      showToast('success', currentEnabled ? 'Job deaktiveret' : 'Job aktiveret')
+      showToast('success', currentEnabled ? t('cronJobs.jobDisabled') : t('cronJobs.jobEnabled'))
       refresh()
     } catch (err: any) {
-      showToast('error', `Kunne ikke opdatere job: ${err?.message || 'Ukendt fejl'}`)
+      showToast('error', t('cronJobs.errors.updateFailed', { message: err?.message || t('cronJobs.errors.unknown') }))
     } finally {
       setTogglingJobs(prev => ({ ...prev, [jobId]: false }))
     }
-  }, [togglingJobs, showToast, refresh])
+  }, [togglingJobs, showToast, refresh, t])
 
   const columns: Column<CronJobRow>[] = useMemo(() => [
     {
       key: 'status',
-      header: 'Status',
-      exportValue: (job) => job.enabled !== false ? 'Aktiv' : 'Inaktiv',
+      header: t('cronJobs.columns.status'),
+      exportValue: (job) => job.enabled !== false ? t('cronJobs.statusActive') : t('cronJobs.statusInactive'),
       render: (job) => (
         <StatusBadge status={job.enabled !== false ? 'active' : 'paused'} />
       ),
     },
     {
       key: 'name',
-      header: 'Navn',
+      header: t('cronJobs.columns.name'),
       sortable: true,
       sortKey: (job) => job.name,
       exportValue: (job) => job.name,
@@ -390,17 +393,17 @@ export default function CronJobs() {
     },
     {
       key: 'schedule',
-      header: 'Interval',
-      exportValue: (job) => formatSchedule(job.schedule),
+      header: t('cronJobs.columns.interval'),
+      exportValue: (job) => formatSchedule(job.schedule, t),
       render: (job) => (
         <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
-          {formatSchedule(job.schedule)}
+          {formatSchedule(job.schedule, t)}
         </span>
       ),
     },
     {
       key: 'lastRun',
-      header: 'Sidst kørt',
+      header: t('cronJobs.columns.lastRun'),
       sortable: true,
       sortKey: (job) => job.lastRun ? new Date(job.lastRun) : null,
       exportValue: (job) => job.lastRun ? formatRelativeTime(job.lastRun) : '',
@@ -412,7 +415,7 @@ export default function CronJobs() {
     },
     {
       key: 'nextRun',
-      header: 'Næste kørsel',
+      header: t('cronJobs.columns.nextRun'),
       sortable: true,
       sortKey: (job) => {
         const nr = calcNextRun(job)
@@ -433,19 +436,19 @@ export default function CronJobs() {
     },
     {
       key: 'actions',
-      header: 'Handlinger',
+      header: t('cronJobs.columns.actions'),
       render: (job) => {
         const isRunning = !!runningJobs[job.id]
         const isToggling = !!togglingJobs[job.id]
         const isEnabled = job.enabled !== false
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={e => e.stopPropagation()}>
-            {/* Kør nu */}
+            {/* Run now */}
             <button
               type="button"
               onClick={() => runJobNow(job.id)}
               disabled={isRunning}
-              title="Kør nu"
+              title={t('cronJobs.runNow')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -465,14 +468,14 @@ export default function CronJobs() {
               }}
             >
               <Icon name={isRunning ? 'arrow-path' : 'play'} size={12} className={isRunning ? 'animate-spin' : ''} />
-              Kør nu
+              {t('cronJobs.runNow')}
             </button>
-            {/* Enable/Disable */}
+            {/* Enable/Disable status */}
             <button
               type="button"
               onClick={() => toggleEnabled(job.id, isEnabled)}
               disabled={isToggling}
-              title={isEnabled ? 'Deaktiver' : 'Aktiver'}
+              title={isEnabled ? t('cronJobs.disable') : t('cronJobs.enable')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -495,13 +498,13 @@ export default function CronJobs() {
                 ? <Icon name="arrow-path" size={12} className="animate-spin" />
                 : <Icon name={isEnabled ? 'pause' : 'play'} size={12} />
               }
-              {isEnabled ? 'Deaktiver' : 'Aktiver'}
+              {isEnabled ? t('cronJobs.disable') : t('cronJobs.enable')}
             </button>
-            {/* Historik */}
+            {/* History */}
             <button
               type="button"
               onClick={() => openHistory(job.id)}
-              title="Seneste kørsler"
+              title={t('cronJobs.historyTitle')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -521,32 +524,32 @@ export default function CronJobs() {
         )
       },
     },
-  ], [runningJobs, togglingJobs, runJobNow, toggleEnabled, openHistory])
+  ], [runningJobs, togglingJobs, runJobNow, toggleEnabled, openHistory, t])
 
   return (
     <div className="animate-page-in">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold">Planlagte Jobs</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{t('cronJobs.title')}</h1>
         {!isConnected && (
           <span
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-orange-400"
             style={{ background: 'rgba(255,149,0,0.1)' }}
           >
-            Offline
+            {t('cronJobs.offline')}
           </span>
         )}
         <DataFreshness className="ml-auto" />
       </div>
       <p className="caption mb-6">
-        {isLoading ? 'Indlæser...' : `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'}`}
-        {isConnected && <span className="text-green-400 ml-1">(live)</span>}
+        {isLoading ? t('cronJobs.historyLoading') : (jobs.length === 1 ? t('cronJobs.subtitleSingular') : t('cronJobs.subtitle', { count: jobs.length }))}
+        {isConnected && <span className="text-green-400 ml-1">({t('cronJobs.live')})</span>}
       </p>
 
-      {/* Handlingsknapper */}
+      {/* Action buttons */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
-          onClick={() => showToast('info', 'Denne funktion kommer snart')}
+          onClick={() => showToast('info', t('cronJobs.comingSoon'))}
           style={{
             minHeight: '44px',
             background: '#007AFF',
@@ -559,10 +562,10 @@ export default function CronJobs() {
             cursor: 'pointer',
           }}
         >
-          Opret Job
+          {t('cronJobs.createJob')}
         </button>
         <button
-          onClick={() => showToast('info', 'Denne funktion kommer snart')}
+          onClick={() => showToast('info', t('cronJobs.comingSoon'))}
           style={{
             minHeight: '44px',
             background: 'rgba(0,122,255,0.1)',
@@ -575,11 +578,11 @@ export default function CronJobs() {
             cursor: 'pointer',
           }}
         >
-          Alarmregler
+          {t('cronJobs.alertRules')}
         </button>
       </div>
 
-      {/* Indlæsnings-skeleton */}
+      {/* Loading skeleton */}
       {isLoading ? (
         <Card>
           <style>{shimmerStyle}</style>
@@ -592,11 +595,10 @@ export default function CronJobs() {
           <div className="text-center py-16 px-4">
             <Icon name="clock" size={40} className="text-white/30 mx-auto mb-4" />
             <p className="text-lg font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Ingen planlagte jobs endnu
+              {t('cronJobs.noJobsTitle')}
             </p>
             <p className="caption max-w-md mx-auto">
-              Planlagte jobs giver dig mulighed for at automatisere gentagne opgaver som rapporter,
-              sundhedstjek, backups og mere. Klik "Opret Job" for at komme i gang.
+              {t('cronJobs.noJobsDescription')}
             </p>
           </div>
         </Card>
@@ -607,7 +609,7 @@ export default function CronJobs() {
             columns={columns}
             searchable={true}
             exportable={true}
-            exportFilename="planlagte-jobs"
+            exportFilename="scheduled-jobs"
             pageSize={25}
             onRowClick={(job) => openHistory(job.id)}
           />

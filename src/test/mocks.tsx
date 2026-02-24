@@ -49,3 +49,21 @@ vi.mock('../hooks/useKeyboardShortcuts', () => ({
     '3': 'agents',
   },
 }))
+// ── Mock react-i18next ────────────────────────────────────────────────────────
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string, options?: any) => {
+      // Return fallback if provided, otherwise simple key interpolation for tests
+      if (fallback && typeof fallback === 'string') return fallback
+      return key
+    },
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: 'en',
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: () => { },
+  },
+}))

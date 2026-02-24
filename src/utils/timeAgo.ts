@@ -1,9 +1,10 @@
+import i18n from '../i18n'
+
 /**
- * Fælles timeAgo utility — dansk relativ tidsformatering.
- * Bruges af hele Mission Kontrol UI.
+ * Shared timeAgo utility with simple i18n support.
+ * Used throughout the Mission Kontrol UI.
  *
- * Accepterer: ISO-streng, Date-objekt eller Unix-timestamp (ms).
- * Output: "lige nu", "3 min siden", "2 timer siden", "i går", "5 dage siden", osv.
+ * Accepts: ISO string, Date object or Unix timestamp (ms).
  */
 
 export function timeAgo(date: string | Date | number): string {
@@ -20,26 +21,36 @@ export function timeAgo(date: string | Date | number): string {
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
 
+  const t = i18n.t
+
   if (future) {
-    if (minutes < 1) return 'lige nu'
-    if (minutes < 60) return `om ${minutes} min`
-    if (hours < 24) return `om ${hours} ${hours === 1 ? 'time' : 'timer'}`
-    if (days === 1) return 'i morgen'
-    return `om ${days} dage`
+    if (minutes < 1) return t('dates.soon')
+    if (minutes < 60) return t('dates.inMinutes', { count: minutes })
+    if (hours < 24) {
+      const key = hours === 1 ? 'dates.inHours' : 'dates.inHoursPlural'
+      return t(key, { count: hours })
+    }
+    if (days === 1) return t('dates.tomorrow')
+    return t('dates.inDays', { count: days })
   }
 
-  if (seconds < 60) return 'lige nu'
-  if (minutes < 60) return `${minutes} min siden`
-  if (hours < 24) return `${hours} ${hours === 1 ? 'time' : 'timer'} siden`
-  if (days === 1) return 'i går'
-  if (days < 30) return `${days} dage siden`
+  if (seconds < 60) return t('dates.justNow')
+  if (minutes < 60) return t('dates.minutesAgo', { count: minutes })
+  if (hours < 24) {
+    const key = hours === 1 ? 'dates.hoursAgo' : 'dates.hoursAgoPlural'
+    return t(key, { count: hours })
+  }
+  if (days === 1) return t('dates.yesterday')
+  if (days < 30) return t('dates.daysAgo', { count: days })
+
   const months = Math.floor(days / 30)
-  if (months < 12) return `${months} ${months === 1 ? 'måned' : 'måneder'} siden`
+  if (months < 12) return t('dates.monthsAgo', { count: months })
+
   const years = Math.floor(days / 365)
-  return `${years} ${years === 1 ? 'år' : 'år'} siden`
+  return t('dates.yearsAgo', { count: years })
 }
 
 /**
- * Alias for backward-kompatibilitet med kode der bruger formatTimeAgo(timestamp: number).
+ * Alias for backward compatibility with code using formatTimeAgo(timestamp: number).
  */
 export const formatTimeAgo = timeAgo

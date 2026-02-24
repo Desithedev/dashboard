@@ -60,7 +60,7 @@ function sleep(ms: number) {
 function isRetryableError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err || '')
   if (!msg) return true
-  if (msg.includes('Ingen auth token')) return false
+  if (msg.includes('No auth token')) return false
   // Do not retry typical client errors
   if (/HTTP\s+4\d\d/.test(msg)) return false
   return true
@@ -82,13 +82,13 @@ export async function fetchWithRetry<T>(fn: () => Promise<T>, options?: { retrie
       await sleep(delay)
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr || 'Ukendt fejl'))
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr || 'Unknown error'))
 }
 
 export async function invokeToolRaw(tool: string, args: Record<string, unknown>): Promise<unknown> {
   const url = resolveApiUrl(getGatewayUrl())
   const token = getGatewayToken()
-  if (!token) throw new Error('Ingen auth token konfigureret')
+  if (!token) throw new Error('No auth token configured')
 
   let res: Response
   try {
@@ -101,20 +101,20 @@ export async function invokeToolRaw(tool: string, args: Record<string, unknown>)
       body: JSON.stringify({ tool, args }),
     })
   } catch (e: any) {
-    throw new Error(`Netværksfejl: ${e?.message || e || 'Ukendt fejl'}`)
+    throw new Error(`Network error: ${e?.message || e || 'Unknown error'}`)
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText || 'Ukendt'}`)
+    throw new Error(`HTTP ${res.status}: ${text || res.statusText || 'Unknown'}`)
   }
   let data: any
   try {
     data = await res.json()
   } catch {
-    throw new Error('Ugyldigt JSON svar fra gateway')
+    throw new Error('Invalid JSON response from gateway')
   }
-  if (!data.ok) throw new Error(data.error?.message || 'API fejl')
+  if (!data.ok) throw new Error(data.error?.message || 'API error')
   return data
 }
 
@@ -177,7 +177,7 @@ export async function fetchSessionHistory(sessionKey: string, limit = 5): Promis
   return []
 }
 
-// Ny funktion til fuld session historik med tool calls
+// New function for full session history with tool calls
 export interface ToolCall {
   tool: string
   args: Record<string, any>
@@ -190,12 +190,12 @@ export interface DetailedSessionMessage extends SessionMessage {
 }
 
 export async function getSessionHistory(sessionKey: string): Promise<DetailedSessionMessage[]> {
-  const data = await invokeToolRaw('sessions_history', { 
-    sessionKey, 
-    includeTools: true, 
-    limit: 50 
+  const data = await invokeToolRaw('sessions_history', {
+    sessionKey,
+    includeTools: true,
+    limit: 50
   }) as any
-  
+
   const text = data.result?.content?.[0]?.text
   if (text) {
     try {
@@ -216,14 +216,14 @@ export async function fetchSessions(): Promise<SessionsResponse> {
   }
   // Try details directly
   if (data.result?.details?.sessions) return data.result.details
-  throw new Error('Ugyldigt sessions svar')
+  throw new Error('Invalid sessions response')
 }
 
 export async function fetchStatus(): Promise<string> {
   const data = await fetchWithRetry(() => invokeToolRaw('session_status', {})) as any
   const text = data.result?.content?.[0]?.text
   if (text) return text
-  throw new Error('Ugyldigt status svar')
+  throw new Error('Invalid status response')
 }
 
 export async function fetchCronJobs(): Promise<CronJobApi[]> {
@@ -257,7 +257,7 @@ export async function fetchConfig(): Promise<Record<string, any>> {
     } catch { /* fall through */ }
   }
   if (data.result?.details) return data.result.details
-  throw new Error('Ugyldigt config svar')
+  throw new Error('Invalid config response')
 }
 
 export interface AgentApi {
@@ -312,7 +312,7 @@ export async function createAgent(config: {
 }): Promise<any> {
   // Create agent by spawning a session with the task
   return invokeToolRaw('sessions_spawn', {
-    task: config.task || `Du er agent "${config.name}". Vent på instruktioner.`,
+    task: config.task || `You are agent "${config.name}". Wait for instructions.`,
     model: config.model || 'sonnet',
     label: config.label || config.name,
   })
@@ -351,24 +351,24 @@ export async function fetchInstalledSkills(): Promise<SkillInfo[]> {
     `
     const result = await invokeToolRaw('exec', { command: scanCmd }) as any
     const text = result.result?.content?.[0]?.text || ''
-    
+
     const skills: SkillInfo[] = []
     for (const line of text.split('\n')) {
       if (!line.startsWith('SKILL|')) continue
       const [, name, description, location] = line.split('|')
       if (!name) continue
-      
-      let category = 'Andet'
+
+      let category = 'Other'
       const n = name.toLowerCase()
-      if (n.includes('github') || n.includes('git') || n.includes('coding') || n.includes('pr-')) category = 'Udvikling'
+      if (n.includes('github') || n.includes('git') || n.includes('coding') || n.includes('pr-')) category = 'Development'
       else if (n.includes('browser') || n.includes('web')) category = 'Automation'
-      else if (n.includes('perplexity') || n.includes('search') || n.includes('oracle')) category = 'Søgning'
-      else if (n.includes('youtube') || n.includes('video') || n.includes('media') || n.includes('image') || n.includes('whisper') || n.includes('tts') || n.includes('voice') || n.includes('camera')) category = 'Medier'
-      else if (n.includes('newsletter') || n.includes('mail') || n.includes('slack') || n.includes('discord') || n.includes('notion') || n.includes('trello')) category = 'Kommunikation'
-      else if (n.includes('summarize') || n.includes('summary') || n.includes('gemini') || n.includes('openai')) category = 'AI / Tekst'
-      else if (n.includes('weather') || n.includes('food') || n.includes('places') || n.includes('spotify')) category = 'Livsstil'
-      else if (n.includes('health') || n.includes('1password')) category = 'Sikkerhed'
-      
+      else if (n.includes('perplexity') || n.includes('search') || n.includes('oracle')) category = 'Search'
+      else if (n.includes('youtube') || n.includes('video') || n.includes('media') || n.includes('image') || n.includes('whisper') || n.includes('tts') || n.includes('voice') || n.includes('camera')) category = 'Media'
+      else if (n.includes('newsletter') || n.includes('mail') || n.includes('slack') || n.includes('discord') || n.includes('notion') || n.includes('trello')) category = 'Communication'
+      else if (n.includes('summarize') || n.includes('summary') || n.includes('gemini') || n.includes('openai')) category = 'AI / Text'
+      else if (n.includes('weather') || n.includes('food') || n.includes('places') || n.includes('spotify')) category = 'Lifestyle'
+      else if (n.includes('health') || n.includes('1password')) category = 'Security'
+
       skills.push({
         name,
         description: description || name,
@@ -376,7 +376,7 @@ export async function fetchInstalledSkills(): Promise<SkillInfo[]> {
         category,
       })
     }
-    
+
     return skills.sort((a, b) => {
       if (a.location === 'workspace' && b.location !== 'workspace') return -1
       if (b.location === 'workspace' && a.location !== 'workspace') return 1
@@ -391,7 +391,7 @@ export async function fetchInstalledSkills(): Promise<SkillInfo[]> {
 export async function installSkill(name: string): Promise<any> {
   // Use sessions_spawn to run clawhub install command
   return invokeToolRaw('sessions_spawn', {
-    task: `Installer skill '${name}' via clawhub. Kør kommandoen: clawhub install ${name}`,
+    task: `Install skill '${name}' via clawhub. Run the command: clawhub install ${name}`,
     model: 'sonnet',
     label: 'skill-install',
   })
@@ -402,14 +402,14 @@ export async function searchSkills(query: string): Promise<{ name: string; versi
     // Use clawhub search CLI command
     const data = await invokeToolRaw('exec', { command: `clawhub search ${query} --limit 15` }) as any
     const text = data.result?.content?.[0]?.text || ''
-    
+
     const results: { name: string; version: string; description: string; score: number }[] = []
     const lines = text.trim().split('\n').filter(Boolean)
-    
+
     for (const line of lines) {
       // Skip "- Searching" and empty lines
       if (line.includes('Searching') || !line.trim()) continue
-      
+
       // Parse format: "skill-name vX.X.X  Description text  (score)"
       // Example: "lb-supabase-skill v0.1.0  Supabase Complete Documentation  (3.444)"
       const match = line.match(/^(\S+)\s+v?([\d.]+)\s+(.+?)\s+\(([\d.]+)\)/)
@@ -423,7 +423,7 @@ export async function searchSkills(query: string): Promise<{ name: string; versi
         })
       }
     }
-    
+
     return results
   } catch (e) {
     console.error('Failed to search ClawHub:', e)
@@ -437,7 +437,7 @@ export async function readFileContent(path: string): Promise<string> {
   const data = await invokeToolRaw('read', { path }) as any
   const text = data.result?.content?.[0]?.text
   if (typeof text === 'string') return text
-  throw new Error('Kunne ikke læse fil')
+  throw new Error('Could not read file')
 }
 
 export async function downloadFile(path: string): Promise<{ content: string; name: string }> {
@@ -464,7 +464,7 @@ export async function fetchWorkspaceFiles(): Promise<{ name: string; size: strin
       const name = fullPath.split('/').pop() || fullPath
       const ext = name.split('.').pop()?.toLowerCase() || ''
       const typeMap: Record<string, string> = {
-        md: 'Markdown', txt: 'Tekst', json: 'JSON', js: 'JavaScript', ts: 'TypeScript',
+        md: 'Markdown', txt: 'Text', json: 'JSON', js: 'JavaScript', ts: 'TypeScript',
         tsx: 'React TSX', jsx: 'React JSX', css: 'CSS', html: 'HTML', sh: 'Shell',
         yml: 'YAML', yaml: 'YAML', toml: 'TOML', mjs: 'ES Module',
       }
@@ -473,7 +473,7 @@ export async function fetchWorkspaceFiles(): Promise<{ name: string; size: strin
         path: fullPath.trim(),
         size,
         modified,
-        type: typeMap[ext] || ext.toUpperCase() || 'Fil',
+        type: typeMap[ext] || ext.toUpperCase() || 'File',
       })
     }
   }
@@ -486,7 +486,7 @@ export async function fetchWorkspaceFiles(): Promise<{ name: string; size: strin
         name: file,
         path: `/data/.openclaw/workspace/${file}`,
         size: 'N/A',
-        modified: 'Ukendt',
+        modified: 'Unknown',
         type: 'Markdown',
       })
     }
@@ -498,12 +498,12 @@ export async function fetchWorkspaceFiles(): Promise<{ name: string; size: strin
 export async function fetchSystemInfo(): Promise<Record<string, string>> {
   // Use session_status and gateway config.get instead of exec
   const info: Record<string, string> = {}
-  
+
   try {
     // Get session status for runtime info
     const statusData = await invokeToolRaw('session_status', {}) as any
     const statusText = statusData.result?.content?.[0]?.text || ''
-    
+
     // Parse session_status output
     // Format: "Runtime: agent=main | host=... | os=... | model=... | ..."
     const runtimeMatch = statusText.match(/Runtime:\s*(.+)/i)
@@ -521,22 +521,22 @@ export async function fetchSystemInfo(): Promise<Record<string, string>> {
         }
       }
     }
-    
+
     // Get gateway config for version and mode info
     const configData = await invokeToolRaw('gateway', { action: 'config.get' }) as any
     const configText = configData.result?.content?.[0]?.text || ''
-    
+
     if (configText) {
       try {
         const parsed = JSON.parse(configText)
         const rawConfig = parsed.result?.raw
         const config = typeof rawConfig === 'string' ? JSON.parse(rawConfig) : (rawConfig || parsed)
-        
+
         if (config.gateway) {
           info.gatewayMode = config.gateway.mode || 'unknown'
           info.gatewayPort = String(config.gateway.port || '18789')
         }
-        
+
         // Extract version from result metadata if available
         if (parsed.version) {
           info.openclawVersion = parsed.version
@@ -545,15 +545,15 @@ export async function fetchSystemInfo(): Promise<Record<string, string>> {
         console.error('Failed to parse config:', e)
       }
     }
-    
+
     // Add some derived info
     info.hostType = 'Docker Container'
-    info.uptime = 'Se session_status for detaljer'
-    
+    info.uptime = 'See session_status for details'
+
   } catch (e) {
     console.error('Failed to fetch system info:', e)
   }
-  
+
   return info
 }
 
@@ -582,23 +582,23 @@ export async function searchWorkspace(query: string): Promise<{ file: string; li
   // Use memory_search instead of grep via exec
   const data = await invokeToolRaw('memory_search', { query }) as any
   const text = data.result?.content?.[0]?.text || ''
-  
+
   const results: { file: string; line: number; text: string }[] = []
-  
+
   if (text) {
     const lines = text.split('\n').filter(Boolean)
-    
+
     for (const line of lines.slice(0, 30)) {
       // Try to extract file and content from search result
       // Memory search format varies, but typically includes filename and snippet
       const fileMatch = line.match(/([A-Z_]+\.md|[\w/-]+\.(ts|tsx|json|js|mjs|md))/i)
-      
+
       if (fileMatch) {
         const file = fileMatch[0].replace('/data/.openclaw/workspace/', '')
         // Extract text content (everything after filename and colon)
         const textMatch = line.substring(line.indexOf(fileMatch[0]) + fileMatch[0].length)
         const cleanText = textMatch.replace(/^:\s*/, '').trim()
-        
+
         if (cleanText) {
           results.push({
             file,
@@ -609,7 +609,7 @@ export async function searchWorkspace(query: string): Promise<{ file: string; li
       }
     }
   }
-  
+
   return results
 }
 
@@ -617,7 +617,7 @@ export async function fetchAllSessionHistory(limit = 20): Promise<{ session: str
   const sessionsData = await fetchSessions()
   const entries: { session: string; role: string; text: string; timestamp?: number }[] = []
   const sessions = sessionsData.sessions?.slice(0, 10) || []
-  
+
   for (const s of sessions) {
     try {
       const msgs = await fetchSessionHistory(s.key, 3)
@@ -631,7 +631,7 @@ export async function fetchAllSessionHistory(limit = 20): Promise<{ session: str
       }
     } catch { /* skip */ }
   }
-  
+
   return entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, limit)
 }
 
@@ -678,7 +678,7 @@ export async function fetchAllSessions(): Promise<TranscriptSession[]> {
   try {
     const archive = await fetchStaticArchive('sessions-archive.json')
     if (archive?.sessions?.length) return archive.sessions
-  } catch {}
+  } catch { }
 
   // Fallback: use live Gateway API
   try {
@@ -689,7 +689,7 @@ export async function fetchAllSessions(): Promise<TranscriptSession[]> {
       try {
         const parsed = JSON.parse(text)
         sessions = parsed.sessions || []
-      } catch {}
+      } catch { }
     }
     if (!sessions.length && data.result?.details?.sessions) {
       sessions = data.result.details.sessions
@@ -710,7 +710,7 @@ export async function fetchAllSessions(): Promise<TranscriptSession[]> {
         ts: m.timestamp,
       })) || [],
     }))
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -720,14 +720,14 @@ export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
   try {
     const archive = await fetchStaticArchive('memory-archive.json')
     if (archive?.entries?.length) return archive.entries
-  } catch {}
+  } catch { }
 
   // Fallback: read memory directory via Gateway exec tool
   try {
     const listResult = await invokeToolRaw('exec', { command: 'ls -1 /data/.openclaw/workspace/memory/*.md 2>/dev/null' }) as any
     const listText = listResult.result?.content?.[0]?.text || ''
     const files = listText.split('\n').filter((f: string) => f.endsWith('.md'))
-    
+
     if (files.length === 0) return []
 
     const entries: MemoryEntry[] = []
@@ -735,7 +735,7 @@ export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
       const filename = filePath.split('/').pop() || ''
       const dateMatch = filename.match(/^(\d{4}-\d{2}-\d{2})/)
       if (!dateMatch) continue
-      
+
       try {
         const readResult = await invokeToolRaw('exec', { command: `cat "${filePath}"` }) as any
         const content = readResult.result?.content?.[0]?.text || ''
@@ -746,10 +746,10 @@ export async function fetchMemoryFiles(): Promise<MemoryEntry[]> {
             content,
           })
         }
-      } catch {}
+      } catch { }
     }
     return entries.sort((a, b) => b.date.localeCompare(a.date))
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -766,7 +766,7 @@ export async function readTranscriptMessages(agent: string, sessionId: string, l
     // First check if session is in active list (has embedded messages)
     const allSessions = await fetchAllSessions()
     const session = allSessions.find((s: any) => s.sessionId === sessionId)
-    
+
     if (session) {
       // Use actual sessionKey from API
       if ((session as any)?.sessionKey) {
@@ -802,7 +802,7 @@ export async function readTranscriptMessages(agent: string, sessionId: string, l
         }
       } catch { /* try next key */ }
     }
-  } catch {}
+  } catch { }
   return []
 }
 
@@ -830,17 +830,17 @@ export async function fetchProjects(): Promise<Project[]> {
   try {
     // Use relative URL for API endpoint
     const response = await fetch('/api/projects')
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
-    
+
     const data: ProjectsResponse = await response.json()
-    
+
     if (!data.ok || !data.projects) {
       throw new Error('Invalid response format')
     }
-    
+
     return data.projects
   } catch (error) {
     console.error('Failed to fetch projects:', error)

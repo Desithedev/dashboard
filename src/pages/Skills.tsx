@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from '../components/Icon'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
@@ -33,39 +34,40 @@ interface RecommendedSkill {
 // Detect category from skill name/path
 function detectCategory(name: string): string {
   const map: Record<string, string> = {
-    'perplexity': 'Søgning', 'youtube-watcher': 'Medier', 'clawhub': 'System',
-    'healthcheck': 'Sikkerhed', 'weather': 'Data', 'openai-image-gen': 'AI / Kreativ',
-    'openai-whisper-api': 'AI / Lyd', 'openai-whisper': 'AI / Lyd', 'skill-creator': 'Udvikling',
-    'github': 'Udvikling', 'coding-agent': 'Udvikling', 'discord': 'Kommunikation',
-    'slack': 'Kommunikation', 'notion': 'Produktivitet', 'trello': 'Produktivitet',
-    'spotify-player': 'Medier', 'canvas': 'Visuel', 'summarize': 'AI / Tekst',
-    'session-logs': 'System', 'model-usage': 'System', 'voice-call': 'Kommunikation',
-    'imsg': 'Kommunikation', 'apple-notes': 'Produktivitet', 'apple-reminders': 'Produktivitet',
-    'bear-notes': 'Produktivitet', 'things-mac': 'Produktivitet', 'obsidian': 'Produktivitet',
+    'perplexity': 'search', 'youtube-watcher': 'media', 'clawhub': 'system',
+    'healthcheck': 'security', 'weather': 'data', 'openai-image-gen': 'creative',
+    'openai-whisper-api': 'audio', 'openai-whisper': 'audio', 'skill-creator': 'development',
+    'github': 'development', 'coding-agent': 'development', 'discord': 'communication',
+    'slack': 'communication', 'notion': 'productivity', 'trello': 'productivity',
+    'spotify-player': 'media', 'canvas': 'visual', 'summarize': 'text',
+    'session-logs': 'system', 'model-usage': 'system', 'voice-call': 'communication',
+    'imsg': 'communication', 'apple-notes': 'productivity', 'apple-reminders': 'productivity',
+    'bear-notes': 'productivity', 'things-mac': 'productivity', 'obsidian': 'productivity',
   }
-  return map[name] || 'Andet'
+  return map[name] || 'other'
 }
 
 const categoryColors: Record<string, { text: string; bg: string }> = {
-  'Søgning': { text: 'text-blue-400', bg: 'rgba(0,122,255,0.1)' },
-  'Medier': { text: 'text-purple-400', bg: 'rgba(175,82,222,0.1)' },
-  'System': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
-  'Sikkerhed': { text: 'text-red-400', bg: 'rgba(255,59,48,0.1)' },
-  'Data': { text: 'text-green-400', bg: 'rgba(52,199,89,0.1)' },
-  'AI / Kreativ': { text: 'text-pink-400', bg: 'rgba(255,45,85,0.1)' },
-  'AI / Lyd': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
-  'AI / Tekst': { text: 'text-cyan-400', bg: 'rgba(0,199,190,0.1)' },
-  'Udvikling': { text: 'text-yellow-400', bg: 'rgba(255,204,0,0.1)' },
-  'Kommunikation': { text: 'text-indigo-400', bg: 'rgba(88,86,214,0.1)' },
-  'Produktivitet': { text: 'text-teal-400', bg: 'rgba(48,176,199,0.1)' },
-  'Visuel': { text: 'text-violet-400', bg: 'rgba(139,92,246,0.1)' },
-  'Restaurant': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
-  'Andet': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
+  'search': { text: 'text-blue-400', bg: 'rgba(0,122,255,0.1)' },
+  'media': { text: 'text-purple-400', bg: 'rgba(175,82,222,0.1)' },
+  'system': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
+  'security': { text: 'text-red-400', bg: 'rgba(255,59,48,0.1)' },
+  'data': { text: 'text-green-400', bg: 'rgba(52,199,89,0.1)' },
+  'creative': { text: 'text-pink-400', bg: 'rgba(255,45,85,0.1)' },
+  'audio': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
+  'text': { text: 'text-cyan-400', bg: 'rgba(0,199,190,0.1)' },
+  'development': { text: 'text-yellow-400', bg: 'rgba(255,204,0,0.1)' },
+  'communication': { text: 'text-indigo-400', bg: 'rgba(88,86,214,0.1)' },
+  'productivity': { text: 'text-teal-400', bg: 'rgba(48,176,199,0.1)' },
+  'visual': { text: 'text-violet-400', bg: 'rgba(139,92,246,0.1)' },
+  'restaurant': { text: 'text-orange-400', bg: 'rgba(255,149,0,0.1)' },
+  'other': { text: 'text-gray-400', bg: 'rgba(142,142,147,0.1)' },
 }
 
 export default function Skills() {
-  usePageTitle('Skills')
-  
+  const { t } = useTranslation()
+  usePageTitle(t('skills.title'))
+
   const { isConnected } = useLiveData()
   const [installedSkills, setInstalledSkills] = useState<Skill[]>([])
   const [recommendedSkills, setRecommendedSkills] = useState<RecommendedSkill[]>([])
@@ -91,18 +93,19 @@ export default function Skills() {
       const skillsData = await fetchInstalledSkills()
       const skills: Skill[] = skillsData.map(s => ({
         ...s,
-        path: s.location === 'workspace' 
+        path: s.location === 'workspace'
           ? `/data/.openclaw/workspace/skills/${s.name}`
           : `/usr/local/lib/node_modules/openclaw/skills/${s.name}`,
+        category: s.category || detectCategory(s.name)
       }))
       setInstalledSkills(skills)
     } catch (err) {
       console.error('Failed to fetch skills:', err)
-      setInstalledError('Færdigheder kunne ikke hentes. Tjek Gateway-forbindelsen.')
+      setInstalledError(t('skills.errors.fetchFailed'))
     } finally {
       setLoadingInstalled(false)
     }
-  }, [isConnected])
+  }, [isConnected, t])
 
   // Fetch recommended skills from ClawHub search using API
   const fetchRecommended = useCallback(async () => {
@@ -114,20 +117,20 @@ export default function Skills() {
       const seen = new Set<string>()
       const results: RecommendedSkill[] = []
       const reasons: Record<string, string> = {
-        'supabase': 'Database integration til dine projekter',
-        'vercel': 'Deploy management for Mission Kontrol',
-        'github': 'Repo og PR management',
-        'restaurant': 'Relevant for OrderFlow / FLOW',
-        'deploy': 'Deployment automation',
+        'supabase': t('skills.reasons.supabase', 'Database integration for your projects'),
+        'vercel': t('skills.reasons.vercel', 'Deploy management for Mission Kontrol'),
+        'github': t('skills.reasons.github', 'Repo and PR management'),
+        'restaurant': t('skills.reasons.restaurant', 'Relevant for OrderFlow / FLOW'),
+        'deploy': t('skills.reasons.deploy', 'Deployment automation'),
       }
-      const categories: Record<string, string> = {
-        'supabase': 'Udvikling', 'vercel': 'Udvikling', 'github': 'Udvikling',
-        'restaurant': 'Restaurant', 'deploy': 'Udvikling',
+      const categories_map: Record<string, string> = {
+        'supabase': 'development', 'vercel': 'development', 'github': 'development',
+        'restaurant': 'restaurant', 'deploy': 'development',
       }
 
       for (const query of searches) {
         const skillResults = await searchSkills(query)
-        
+
         for (const skill of skillResults) {
           if (!seen.has(skill.name) && skill.score >= 0.2) {
             seen.add(skill.name)
@@ -136,8 +139,8 @@ export default function Skills() {
               name: skill.name,
               version: skill.version,
               description: skill.description,
-              reason: reasons[query] || `Relevant for ${query}`,
-              category: categories[query] || 'Andet',
+              reason: reasons[query] || t('skills.reasons.generic', 'Relevant for {{query}}', { query }),
+              category: categories_map[query] || 'other',
               owner,
               url: `https://clawhub.com/${skill.name}`,
               score: skill.score,
@@ -166,9 +169,9 @@ export default function Skills() {
         description: s.description,
         score: s.score,
       })))
-    } catch (err) { 
+    } catch (err) {
       console.error('Failed to search ClawHub:', err)
-      setBrowseResults([]) 
+      setBrowseResults([])
     }
     finally { setBrowseLoading(false) }
   }, [])
@@ -192,8 +195,8 @@ export default function Skills() {
   useEffect(() => { fetchInstalledSkillsData() }, [fetchInstalledSkillsData])
   useEffect(() => { if (tab === 'recommended' && recommendedSkills.length === 0) fetchRecommended() }, [tab, fetchRecommended, recommendedSkills.length])
 
-  const categories = [...new Set(installedSkills.map(s => s.category))]
-  
+  const categoriesSet = [...new Set(installedSkills.map(s => s.category))]
+
   const filteredSkills = installedSkills.filter(s => {
     if (filterCategory && s.category !== filterCategory) return false
     if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase()) && !s.description.toLowerCase().includes(searchQuery.toLowerCase())) return false
@@ -205,7 +208,7 @@ export default function Skills() {
 
   const CategoryBadge = ({ category }: { category: string }) => {
     const c = categoryColors[category] || { text: 'text-white/50', bg: 'rgba(255,255,255,0.05)' }
-    return <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.text}`} style={{ background: c.bg }}>{category}</span>
+    return <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.text}`} style={{ background: c.bg }}>{t(`skills.categories.${category}`)}</span>
   }
 
   if (loadingInstalled && installedSkills.length === 0) {
@@ -215,39 +218,39 @@ export default function Skills() {
   return (
     <div className="relative animate-page-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Færdigheder</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{t('skills.title')}</h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <DataFreshness />
           <div className="overflow-x-auto flex-1 sm:flex-none">
             <div className="flex items-center gap-1 p-1 rounded-xl min-w-fit" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              {(['installed', 'recommended', 'browse'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)}
+              {(['installed', 'recommended', 'browse'] as const).map(t_tab => (
+                <button key={t_tab} onClick={() => setTab(t_tab)}
                   className="px-4 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap"
                   style={{
-                    background: tab === t ? 'rgba(0,122,255,0.2)' : 'transparent',
-                    color: tab === t ? '#fff' : 'rgba(255,255,255,0.5)',
-                    border: tab === t ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
+                    background: tab === t_tab ? 'rgba(0,122,255,0.2)' : 'transparent',
+                    color: tab === t_tab ? '#fff' : 'rgba(255,255,255,0.5)',
+                    border: tab === t_tab ? '1px solid rgba(0,122,255,0.3)' : '1px solid transparent',
                     minHeight: '44px',
                   }}>
-                  {t === 'installed' ? `Installeret (${installedSkills.length})` : t === 'recommended' ? 'Anbefalede' : 'Gennemse'}
+                  {t_tab === 'installed' ? t('skills.tabs.installed', { count: installedSkills.length }) : t_tab === 'recommended' ? t('skills.tabs.recommended') : t('skills.tabs.browse')}
                 </button>
               ))}
             </div>
           </div>
         </div>
       </div>
-      <p className="caption mb-5">Administrer agent-færdigheder og plugins</p>
+      <p className="caption mb-5">{t('skills.description')}</p>
 
       {tab === 'installed' && (
         <>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5">
             <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input text-xs py-1.5 w-full sm:w-auto" style={{ minHeight: '44px' }}>
-              <option value="">Alle kategorier</option>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="">{t('skills.filter.allCategories')}</option>
+              {categoriesSet.map(c => <option key={c} value={c}>{t(`skills.categories.${c}`)}</option>)}
             </select>
             <div className="relative w-full sm:w-auto">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40"><Icon name="magnifying-glass" size={14} /></span>
-              <input type="text" placeholder="Søg i skills..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-full sm:w-48 pl-8" style={{ minHeight: '44px' }} />
+              <input type="text" placeholder={t('skills.search.placeholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="input text-xs py-1.5 w-full sm:w-48 pl-8" style={{ minHeight: '44px' }} />
             </div>
           </div>
 
@@ -258,15 +261,15 @@ export default function Skills() {
             </div>
           ) : installedError ? (
             <ErrorState
-              title="Færdigheder kunne ikke hentes"
+              title={t('skills.errors.fetchFailedTitle')}
               message={installedError}
               onRetry={fetchInstalledSkillsData}
             />
           ) : installedSkills.length === 0 ? (
             <EmptyState
               icon="sparkle"
-              title="Ingen skills fundet"
-              description="Tjek Gateway forbindelsen i Indstillinger"
+              title={t('skills.empty.noSkills')}
+              description={t('skills.empty.noSkillsDesc')}
             />
           ) : (
             <>
@@ -274,7 +277,7 @@ export default function Skills() {
                 <>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-2 h-2 rounded-full bg-green-500" />
-                    <h3 className="text-sm font-semibold text-white">Bruger-installerede</h3>
+                    <h3 className="text-sm font-semibold text-white">{t('skills.installed.userInstalled')}</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{workspaceSkills.length}</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
@@ -302,7 +305,7 @@ export default function Skills() {
                 <>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    <h3 className="text-sm font-semibold text-white">System Skills</h3>
+                    <h3 className="text-sm font-semibold text-white">{t('skills.installed.systemSkills')}</h3>
                     <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>{systemSkills.length}</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -334,22 +337,22 @@ export default function Skills() {
           <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.15)' }}>
             <div className="flex items-center gap-2 mb-2">
               <Icon name="sparkle" size={16} className="text-blue-400" />
-              <h3 className="text-sm font-semibold text-blue-400">Anbefalede fra ClawHub</h3>
+              <h3 className="text-sm font-semibold text-blue-400">{t('skills.clawhub.recommendedTitle')}</h3>
             </div>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              Live søgeresultater fra clawhub.com baseret på din tech stack (Supabase, Vercel, GitHub, Restauranter).
+              {t('skills.clawhub.recommendedDesc')}
             </p>
           </div>
           {loadingRecommended ? (
             <div className="text-center py-12">
-              <p style={{ color: 'rgba(255,255,255,0.4)' }}>Søger på ClawHub...</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)' }}>{t('skills.clawhub.searching')}</p>
             </div>
           ) : recommendedSkills.length === 0 ? (
             <EmptyState
               icon="sparkle"
-              title="Ingen anbefalinger fundet"
-              description="Ingen ClawHub-resultater matchede din tech stack"
-              action={{ label: 'Prøv igen', onClick: fetchRecommended }}
+              title={t('skills.empty.noRecommendations')}
+              description={t('skills.empty.noRecommendationsDesc')}
+              action={{ label: t('common.retry'), onClick: fetchRecommended }}
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -374,12 +377,12 @@ export default function Skills() {
                       disabled={installing === s.name}
                       className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
                       style={{ background: '#007AFF', color: '#fff', minHeight: '44px', opacity: installing === s.name ? 0.6 : 1 }}>
-                      {installing === s.name ? 'Installerer...' : 'Installer'}
+                      {installing === s.name ? t('skills.clawhub.installing') : t('skills.clawhub.install')}
                     </button>
                     <a href={s.url} target="_blank" rel="noopener noreferrer"
                       className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all inline-flex items-center justify-center gap-1"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', minHeight: '44px' }}>
-                      <Icon name="doc" size={11} /> Se på ClawHub
+                      <Icon name="doc" size={11} /> {t('skills.clawhub.viewOnClawHub')}
                     </a>
                   </div>
                 </div>
@@ -393,17 +396,15 @@ export default function Skills() {
         <>
           <div className="space-y-4 mb-6">
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <h3 className="text-sm font-semibold text-white mb-3">Søg på ClawHub</h3>
-              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Find og installer skills fra clawhub.com</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input type="text" value={browseQuery} onChange={e => setBrowseQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && searchClawHub(browseQuery)}
-                  placeholder="Søg efter skills..." className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
+                  placeholder={t('skills.clawhub.searchDesc')} className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
                 <button onClick={() => searchClawHub(browseQuery)}
                   disabled={browseLoading}
                   className="px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap"
                   style={{ background: '#007AFF', color: '#fff', minHeight: '44px', opacity: browseLoading ? 0.6 : 1 }}>
-                  {browseLoading ? 'Søger...' : 'Søg'}
+                  {browseLoading ? t('common.searching') : t('common.load')}
                 </button>
               </div>
             </div>
@@ -419,14 +420,14 @@ export default function Skills() {
                     </div>
                     <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.description}</p>
                     {s.score !== undefined && (
-                      <p className="text-[10px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>Relevans: {(s.score * 100).toFixed(0)}%</p>
+                      <p className="text-[10px] mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>{t('skills.clawhub.relevance', { score: (s.score * 100).toFixed(0) })}</p>
                     )}
                     <div className="flex gap-2">
                       <button onClick={() => handleInstall(s.name)}
                         disabled={installing === s.name}
                         className="text-xs px-3 py-1.5 rounded-lg font-medium"
                         style={{ background: '#007AFF', color: '#fff', minHeight: '44px', opacity: installing === s.name ? 0.6 : 1 }}>
-                        {installing === s.name ? 'Installerer...' : 'Installer'}
+                        {installing === s.name ? t('skills.clawhub.installing') : t('skills.clawhub.install')}
                       </button>
                       <a href={`https://clawhub.com/${s.name}`} target="_blank" rel="noopener noreferrer"
                         className="text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1"
@@ -440,15 +441,15 @@ export default function Skills() {
             )}
 
             <div className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <h3 className="text-sm font-semibold text-white mb-3">Installer fra URL</h3>
-              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>Indsæt en URL til en GitHub repo eller skill-pakke</p>
+              <h3 className="text-sm font-semibold text-white mb-3">{t('skills.installUrl.title')}</h3>
+              <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('skills.installUrl.description')}</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input type="url" value={installUrl} onChange={e => setInstallUrl(e.target.value)}
-                  placeholder="https://github.com/user/skill-name" className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
+                  placeholder={t('skills.installUrl.placeholder')} className="input flex-1 text-sm" style={{ minHeight: '44px' }} />
                 <button onClick={() => { if (installUrl) handleInstall(installUrl) }}
                   className="px-4 py-2 text-sm font-medium rounded-xl transition-all whitespace-nowrap"
                   style={{ background: '#007AFF', color: '#fff', minHeight: '44px' }}>
-                  Installer
+                  {t('skills.clawhub.install')}
                 </button>
               </div>
             </div>
@@ -478,12 +479,12 @@ export default function Skills() {
             <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>{selectedSkill.description}</p>
             <div className="space-y-3">
               <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Placering</p>
+                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('skills.detail.location')}</p>
                 <p className="text-xs font-mono text-white/70">{selectedSkill.path}</p>
               </div>
               <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>Type</p>
-                <p className="text-sm text-white">{selectedSkill.location === 'workspace' ? 'Bruger-installeret' : 'System skill'}</p>
+                <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('skills.detail.type')}</p>
+                <p className="text-sm text-white">{selectedSkill.location === 'workspace' ? t('skills.detail.userType') : t('skills.detail.systemType')}</p>
               </div>
             </div>
           </div>

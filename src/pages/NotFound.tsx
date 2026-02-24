@@ -1,6 +1,8 @@
 import Icon from '../components/Icon'
+import { useTranslation } from 'react-i18next'
 
 export default function NotFound() {
+  const { t } = useTranslation()
   const hash = window.location.hash.replace('#', '') || '/'
 
   return (
@@ -53,7 +55,7 @@ export default function NotFound() {
             letterSpacing: '-0.02em',
           }}
         >
-          Side ikke fundet
+          {t('common.pageNotFound')}
         </h2>
 
         <p
@@ -64,7 +66,7 @@ export default function NotFound() {
             lineHeight: '1.6',
           }}
         >
-          Ruten du leder efter findes ikke.
+          {t('common.pageNotFoundDescription')}
         </p>
 
         <p
@@ -105,7 +107,7 @@ export default function NotFound() {
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
             <Icon name="arrow-left" size={14} />
-            Gå til Dashboard
+            {t('common.backToDashboard')}
           </span>
         </button>
       </div>

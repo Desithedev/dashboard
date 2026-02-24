@@ -11,6 +11,7 @@ import PageErrorBoundary from './components/PageErrorBoundary'
 import PageTransition from './components/PageTransition'
 import { useHashRouter } from './hooks/useHashRouter'
 import { useFaviconBadge } from './hooks/useFaviconBadge'
+import { useTranslation } from 'react-i18next'
 
 // Lazy load all pages for better performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -54,28 +55,7 @@ const pages: Record<string, React.ComponentType> = {
   upload: Upload,
 }
 
-const pageNames: Record<string, string> = {
-  dashboard: 'Dashboard',
-  communication: 'Kommunikation',
-  journal: 'Journal',
-  tasks: 'Opgaver',
-  documents: 'Dokumenter',
-  agents: 'Agenter',
-  skills: 'Skills',
-  intelligence: 'Intelligence',
-  weekly: 'Ugentlig Recap',
-  clients: 'Klienter',
-  cron: 'Cron Jobs',
-  api: 'API Forbrug',
-  workshop: 'Workshop',
-  index: 'Index',
-  evals: 'Evaluering',
-  settings: 'Indstillinger',
-  notifications: 'Notifikationer',
-  upload: 'Upload',
-}
-
-/** Aktiverer favicon-badge (kræver at være inside LiveDataProvider) */
+/** Enables favicon-badge (must be inside LiveDataProvider) */
 function FaviconBadge() {
   useFaviconBadge()
   return null
@@ -98,6 +78,28 @@ function LoadingFallback() {
 
 export default function App() {
   const [page, setPage] = useHashRouter('dashboard')
+  const { t } = useTranslation()
+
+  const pageNames: Record<string, string> = {
+    dashboard: t('pages.dashboard.header', 'Dashboard'),
+    communication: t('pages.communication.title', 'Communication'),
+    journal: t('pages.journal.title', 'Journal'),
+    tasks: t('pages.tasks.title', 'Tasks'),
+    documents: t('pages.documents.title', 'Documents'),
+    agents: t('pages.agents.title', 'Agents'),
+    skills: t('pages.skills.title', 'Skills'),
+    intelligence: t('pages.intelligence.title', 'Intelligence'),
+    weekly: t('pages.weekly.title', 'Weekly recap'),
+    clients: t('pages.clients.title', 'Projects'),
+    cron: t('pages.cronJobs.title', 'Scheduled jobs'),
+    api: t('pages.apiUsage.title', 'API usage'),
+    workshop: t('pages.workshop.title', 'Workshop'),
+    index: t('pages.index.title', 'Search'),
+    evals: t('pages.evals.title', 'Evaluations'),
+    settings: t('pages.settings.title', 'Settings'),
+    notifications: t('pages.notifications.title', 'Notifications'),
+    upload: t('pages.upload.title', 'File upload'),
+  }
   const Page = pages[page] || NotFound
 
   return (
@@ -107,13 +109,11 @@ export default function App() {
         <ToastProvider>
           <ConnectionToast />
           {/*
-           * KeyboardShortcutsProvider håndterer:
-           *   Ctrl+K / Cmd+K  → kommandopalet
-           *   Ctrl+/          → shortcuts overlay
-           *   ?               → shortcuts overlay
-           *   1–9             → sidenavigation
-           *   Escape          → luk overlays
-           * Den renderer selv CommandPalette + KeyboardShortcutsHelp.
+           * KeyboardShortcutsProvider handles:
+           * 1. Global shortcuts (Cmd+K, Escape)
+           * 2. Page navigation (1-9)
+           * 3. Showing shortcuts modal (?)
+           * It renders CommandPalette + KeyboardShortcutsHelp itself.
            */}
           <KeyboardShortcutsProvider onNavigate={setPage}>
             <UpdateBanner />

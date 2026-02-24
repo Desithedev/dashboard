@@ -1,33 +1,38 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import StatusBadge from '../StatusBadge'
 import type { ApiSession } from '../../api/openclaw'
 import { formatTimeAgo } from './utils'
 
-interface LiveAktivitetOgSessionerProps {
+interface LiveActivityProps {
   sessions: ApiSession[]
 }
 
-const LiveAktivitetOgSessioner = memo(function LiveAktivitetOgSessioner({
+const LiveActivity = memo(function LiveActivity({
   sessions,
-}: LiveAktivitetOgSessionerProps) {
+}: LiveActivityProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
       {/* Live Aktivitet */}
-      <Card title="Live Aktivitet" subtitle="Seneste agent-handlinger">
+      <Card title={t('dashboard.liveActivity', 'Live Activity')} subtitle={t('dashboard.recentAgentActions', 'Recent agent actions')}>
         {sessions.length === 0 ? (
-          <div className="text-center py-8 text-white/50 text-sm">Ingen aktivitet</div>
+          <div className="text-center py-8 text-white/50 text-sm">
+            {t('dashboard.noActivity', 'No activity')}
+          </div>
         ) : (
           <div className="space-y-3 min-w-0">
             {sessions.slice(0, 5).map(s => {
               const isActive = Date.now() - s.updatedAt < 120000
               const timeAgo = formatTimeAgo(s.updatedAt)
               const sessionType = s.key.includes('subagent')
-                ? 'Subagent'
+                ? t('dashboard.subAgent', 'Sub-agent')
                 : s.key.includes('main')
-                ? 'Hovedagent'
-                : 'Session'
-              const agentName = s.displayName || s.label || s.key.split(':')[1] || 'Unavngiven'
+                  ? t('dashboard.mainAgent', 'Main Agent')
+                  : t('dashboard.session', 'Session')
+              const agentName = s.displayName || s.label || s.key.split(':')[1] || t('dashboard.unnamed', 'Unnamed')
 
               return (
                 <div key={s.key} className="py-2 glass-row min-w-0 overflow-hidden">
@@ -40,7 +45,7 @@ const LiveAktivitetOgSessioner = memo(function LiveAktivitetOgSessioner({
                     <span className="caption text-xs flex-shrink-0 ml-2">{timeAgo}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs min-w-0 overflow-hidden">
-                    <span className="caption flex-shrink-0">{s.channel || 'ingen kanal'}</span>
+                    <span className="caption flex-shrink-0">{s.channel || t('dashboard.noChannel', 'no channel')}</span>
                     <span className="text-white/20 flex-shrink-0">·</span>
                     <span className="font-mono caption truncate">{s.model}</span>
                     {s.contextTokens && (
@@ -60,9 +65,14 @@ const LiveAktivitetOgSessioner = memo(function LiveAktivitetOgSessioner({
       </Card>
 
       {/* Sessioner */}
-      <Card title="Sessioner" subtitle={`${sessions.length} live sessioner`}>
+      <Card
+        title={t('dashboard.sessions', 'Sessions')}
+        subtitle={t('dashboard.liveSessionsCount', '{{count}} live sessions', { count: sessions.length })}
+      >
         {sessions.length === 0 ? (
-          <div className="text-center py-8 text-white/50 text-sm">Ingen aktive sessioner</div>
+          <div className="text-center py-8 text-white/50 text-sm">
+            {t('dashboard.noActiveSessions', 'No active sessions')}
+          </div>
         ) : (
           <div className="space-y-3 min-w-0">
             {sessions.map(s => {
@@ -75,9 +85,9 @@ const LiveAktivitetOgSessioner = memo(function LiveAktivitetOgSessioner({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">
-                      {s.displayName || s.label || (s.key === 'agent:main:main' ? 'Hovedagent' : s.key)}
+                      {s.displayName || s.label || (s.key === 'agent:main:main' ? t('dashboard.mainAgent', 'Main Agent') : s.key)}
                     </p>
-                    <p className="caption truncate">{s.key} · {s.channel || 'ingen kanal'}</p>
+                    <p className="caption truncate">{s.key} · {s.channel || t('dashboard.noChannel', 'no channel')}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="caption hidden sm:inline">{timeAgo}</span>
@@ -104,4 +114,4 @@ const LiveAktivitetOgSessioner = memo(function LiveAktivitetOgSessioner({
   )
 })
 
-export default LiveAktivitetOgSessioner
+export default LiveActivity

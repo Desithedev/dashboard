@@ -1,4 +1,5 @@
 import Icon from './Icon'
+import { useTranslation } from 'react-i18next'
 
 interface SearchBarProps {
   value: string
@@ -6,7 +7,10 @@ interface SearchBarProps {
   placeholder?: string
 }
 
-export default function SearchBar({ value, onChange, placeholder = 'Søg...' }: SearchBarProps) {
+export default function SearchBar({ value, onChange, placeholder }: SearchBarProps) {
+  const { t } = useTranslation()
+  const defaultPlaceholder = t('common.searching', 'Search...') // Translate the default placeholder
+
   return (
     <div className="relative">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
@@ -16,7 +20,7 @@ export default function SearchBar({ value, onChange, placeholder = 'Søg...' }: 
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder || defaultPlaceholder} // Use provided placeholder or translated default
         className="input w-full pl-10"
       />
     </div>

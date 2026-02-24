@@ -7,20 +7,20 @@ export default function ConnectionStatus() {
   const [showTooltip, setShowTooltip] = useState(false)
   const relativeTime = useRelativeTime(lastUpdated)
 
-  // Grøn=0 fejl, Gul=1-2, Rød=3+
+  // Green=0 errors, Yellow=1-2, Red=3+
   const color = !isConnected || consecutiveErrors >= 3
     ? '#FF453A'
     : consecutiveErrors >= 1
-    ? '#FFD60A'
-    : '#30D158'
+      ? '#FFD60A'
+      : '#30D158'
 
   const label = !isConnected
     ? 'Afbrudt'
     : consecutiveErrors >= 3
-    ? 'Ustabil forbindelse'
-    : consecutiveErrors >= 1
-    ? 'Langsom forbindelse'
-    : 'Forbundet'
+      ? 'Unstable connection'
+      : consecutiveErrors >= 1
+        ? 'Langsom forbindelse'
+        : 'Forbundet'
 
   return (
     <div

@@ -2,14 +2,14 @@ import { useCallback } from 'react'
 import { useToast as useToastContext } from '../components/Toast'
 
 /**
- * Convenience hook der eksponerer toast.success(), toast.error() osv.
+ * Convenience hook that exposes toast.success(), toast.error() etc.
  *
  * @example
  * const toast = useToast()
- * toast.success('Kopieret til udklipsholder')
- * toast.error('Noget gik galt')
- * toast.warning('Vær opmærksom')
- * toast.info('Handling modtaget')
+ * toast.success('Copied to clipboard')
+ * toast.error('Something went wrong')
+ * toast.warning('Be aware')
+ * toast.info('Action received')
  */
 export function useToast() {
   const { showToast } = useToastContext()

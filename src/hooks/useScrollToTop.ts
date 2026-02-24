@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * useScrollToTop — scroller vinduet til toppen ved page-skift.
- * Kør `window.scrollTo(0, 0)` umiddelbart når `page` ændres,
- * så brugeren altid starter øverst på den nye side.
+ * useScrollToTop — Scrolls the window to the top on page change.
+ * Run `window.scrollTo(0, 0)` immediately when `page` changes,
+ * so the user always starts at the top of the new page.
  *
- * @param page - Den aktive side-nøgle (f.eks. 'dashboard', 'tasks')
+ * @param page - The active page key (e.g. 'dashboard', 'tasks')
  */
 export function useScrollToTop(page: string): void {
   const prevPageRef = useRef(page)

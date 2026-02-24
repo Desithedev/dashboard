@@ -1,4 +1,5 @@
 import { ReactNode, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 
 export interface Column<T> {
@@ -118,6 +119,7 @@ function Table<T extends { id: string }>({
   exportable,
   exportFilename,
 }: TableProps<T>) {
+  const { t, i18n } = useTranslation()
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection | null>(null)
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null)
@@ -194,18 +196,32 @@ function Table<T extends { id: string }>({
     const col = columns.find(c => c.key === sortKey)
     if (!col || !col.sortable) return filteredData
 
+    const next = [...filteredData]
+    const locale = i18n.language || 'en'
+
     const getValue = (item: T) => {
       if (col.sortKey) return col.sortKey(item)
       return (item as Record<string, unknown>)?.[col.key]
     }
 
-    const next = [...filteredData]
     next.sort((a, b) => {
-      const cmp = compareValues(getValue(a), getValue(b))
+      const vA = normalizeSortValue(getValue(a))
+      const vB = normalizeSortValue(getValue(b))
+
+      if (vA == null && vB == null) return 0
+      if (vA == null) return 1
+      if (vB == null) return -1
+
+      let cmp: number
+      if (typeof vA === 'number' && typeof vB === 'number') {
+        cmp = vA - vB
+      } else {
+        cmp = String(vA).localeCompare(String(vB), locale, { numeric: true, sensitivity: 'base' })
+      }
       return sortDir === 'asc' ? cmp : -cmp
     })
     return next
-  }, [filteredData, columns, sortKey, sortDir])
+  }, [filteredData, columns, sortKey, sortDir, i18n.language])
 
   // Pagination
   const totalItems = sortedData.length
@@ -301,7 +317,7 @@ function Table<T extends { id: string }>({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${exportFilename ?? 'eksport'}.csv`
+    a.download = `${exportFilename ?? t('common.export', 'export')}.csv`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -368,7 +384,7 @@ function Table<T extends { id: string }>({
                   value={rawQuery}
                   onChange={handleSearchChange}
                   onKeyDown={handleSearchKeyDown}
-                  placeholder="Søg..."
+                  placeholder={t('common.searching', 'Search...')}
                   className="w-full placeholder-white/20"
                   style={{
                     paddingLeft: '34px',
@@ -453,7 +469,7 @@ function Table<T extends { id: string }>({
                 }}
               >
                 <Icon name="download" size={14} />
-                Eksportér CSV
+                {t('common.exportCsv', 'Export CSV')}
               </button>
             )}
           </div>
@@ -468,7 +484,7 @@ function Table<T extends { id: string }>({
                 paddingLeft: '2px',
               }}
             >
-              {filteredData.length} af {data.length}
+              {t('common.pagination.status', '{{current}} of {{total}}', { current: filteredData.length, total: data.length })}
             </p>
           )}
         </div>
@@ -542,24 +558,24 @@ function Table<T extends { id: string }>({
               const isActive = activeRowIndex === idx
               const baseBg = isActive ? 'rgba(255,255,255,0.04)' : 'transparent'
               return (
-              <tr
-                key={item.id}
-                onClick={() => onRowClick?.(item)}
-                className={onRowClick ? 'cursor-pointer' : ''}
-                style={{
-                  borderBottom: '1px solid rgba(255,255,255,0.04)',
-                  background: baseBg,
-                  transition: 'background 0.15s',
-                }}
-                onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseOut={e => (e.currentTarget.style.background = baseBg)}
-              >
-                {columns.map(col => (
-                  <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ''}`}>
-                    {col.render(item)}
-                  </td>
-                ))}
-              </tr>
+                <tr
+                  key={item.id}
+                  onClick={() => onRowClick?.(item)}
+                  className={onRowClick ? 'cursor-pointer' : ''}
+                  style={{
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    background: baseBg,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                  onMouseOut={e => (e.currentTarget.style.background = baseBg)}
+                >
+                  {columns.map(col => (
+                    <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ''}`}>
+                      {col.render(item)}
+                    </td>
+                  ))}
+                </tr>
               )
             })}
             {isFiltering && filteredData.length === 0 && (
@@ -573,7 +589,7 @@ function Table<T extends { id: string }>({
                     fontSize: '13px',
                   }}
                 >
-                  Ingen resultater for &ldquo;{query}&rdquo;
+                  {t('common.noResultsQuery', 'No results for "{{query}}"', { query })}
                 </td>
               </tr>
             )}
@@ -602,7 +618,7 @@ function Table<T extends { id: string }>({
               whiteSpace: 'nowrap',
             }}
           >
-            Viser {startIdx + 1}–{endIdx} af {totalItems}
+            {t('common.pagination.showing', 'Showing {{start}}–{{end}} of {{total}}', { start: startIdx + 1, end: endIdx, total: totalItems })}
           </span>
 
           {/* Page controls */}
@@ -610,25 +626,25 @@ function Table<T extends { id: string }>({
             {/* Forrige */}
             <button
               type="button"
-              aria-label="Forrige side"
+              aria-label={t('common.pagination.prevPage', 'Previous page')}
               disabled={safePage === 0}
               onClick={() => goToPage(safePage - 1)}
               style={safePage === 0 ? paginationBtnDisabled : paginationBtnBase}
               onMouseOver={e => {
                 if (safePage !== 0) {
                   (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                    ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
                 }
               }}
               onMouseOut={e => {
                 if (safePage !== 0) {
                   (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
-                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                    ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
                 }
               }}
             >
               <Icon name="chevron-left" size={14} />
-              <span style={{ marginLeft: '2px', fontSize: '12px' }}>Forrige</span>
+              <span style={{ marginLeft: '2px', fontSize: '12px' }}>{t('common.pagination.previous', 'Previous')}</span>
             </button>
 
             {/* Page numbers */}
@@ -645,20 +661,20 @@ function Table<T extends { id: string }>({
                   <button
                     key={page}
                     type="button"
-                    aria-label={`Side ${page + 1}`}
+                    aria-label={t('common.pagination.pageNumber', 'Page {{number}}', { number: page + 1 })}
                     aria-current={page === safePage ? 'page' : undefined}
                     onClick={() => goToPage(page)}
                     style={page === safePage ? paginationBtnActive : paginationBtnBase}
                     onMouseOver={e => {
                       if (page !== safePage) {
                         (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-                        ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                          ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
                       }
                     }}
                     onMouseOut={e => {
                       if (page !== safePage) {
                         (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
-                        ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                          ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
                       }
                     }}
                   >
@@ -668,27 +684,27 @@ function Table<T extends { id: string }>({
               )}
             </div>
 
-            {/* Næste */}
+            {/* Next */}
             <button
               type="button"
-              aria-label="Næste side"
+              aria-label={t('common.pagination.nextPage', 'Next page')}
               disabled={safePage >= totalPages - 1}
               onClick={() => goToPage(safePage + 1)}
               style={safePage >= totalPages - 1 ? paginationBtnDisabled : paginationBtnBase}
               onMouseOver={e => {
                 if (safePage < totalPages - 1) {
                   (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
+                    ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'
                 }
               }}
               onMouseOut={e => {
                 if (safePage < totalPages - 1) {
                   (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
-                  ;(e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
+                    ; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'
                 }
               }}
             >
-              <span style={{ marginRight: '2px', fontSize: '12px' }}>Næste</span>
+              <span style={{ marginRight: '2px', fontSize: '12px' }}>{t('common.pagination.next', 'Next')}</span>
               <Icon name="chevron-right" size={14} />
             </button>
           </div>

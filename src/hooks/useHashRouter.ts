@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 /**
  * Hash-baseret routing hook for Mission Kontrol
- * Gør sider bookmarkable og understøtter browser back/forward
+ * Makes pages bookmarkable and supports browser back/forward
  */
 export function useHashRouter(defaultPage = 'dashboard'): [string, (page: string) => void] {
   const getPageFromHash = (): string => {

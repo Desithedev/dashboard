@@ -1,4 +1,5 @@
 import { useLiveData } from '../api/LiveDataContext'
+import { useTranslation } from 'react-i18next'
 import Icon from './Icon'
 
 interface MaisonFlyoutProps {
@@ -7,6 +8,7 @@ interface MaisonFlyoutProps {
 }
 
 export default function MaisonFlyout({ isOpen, onClose }: MaisonFlyoutProps) {
+  const { t } = useTranslation()
   const { sessions } = useLiveData()
   
   if (!isOpen) return null
@@ -69,13 +71,13 @@ export default function MaisonFlyout({ isOpen, onClose }: MaisonFlyoutProps) {
 
         {/* System Status */}
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>System Status</p>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('components.systemStatus', 'System Status')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
             {[
-              { label: 'Model', value: 'Claude Opus 4.6' },
-              { label: 'Status', value: 'Online', color: '#30D158' },
-              { label: 'Sessions', value: `${activeSessions.length} aktive` },
-              { label: 'Kanal', value: 'Telegram' },
+              { label: t('components.model', 'Model'), value: 'Claude Opus 4.6' },
+              { label: t('components.status', 'Status'), value: t('components.online', 'Online'), color: '#30D158' },
+              { label: t('components.sessions', 'Sessions'), value: `${activeSessions.length} ${t('components.active', 'active')}` },
+              { label: t('components.channel', 'Channel'), value: t('components.telegram', 'Telegram') },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{item.label}</span>
@@ -89,7 +91,7 @@ export default function MaisonFlyout({ isOpen, onClose }: MaisonFlyoutProps) {
         <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Capabilities</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['Fil Operationer', 'Shell', 'Web Søgning', 'Sub-agents', 'Browser', 'Cron'].map((cap, i) => (
+            {['File Operations', 'Shell', 'Web Search', 'Sub-agents', 'Browser', 'Cron'].map((cap, i) => (
               <span key={i} style={{
                 fontSize: 11, padding: '3px 8px', borderRadius: 4,
                 background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.55)',

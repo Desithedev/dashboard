@@ -3,11 +3,11 @@
  * Global keyboard shortcut provider for Mission Kontrol.
  *
  * Shortcuts:
- *  Ctrl+K / Cmd+K  → Åbn kommandopalet
- *  Ctrl+/          → Vis shortcuts overlay
- *  ?               → Vis shortcuts overlay (Shift+/)
- *  1–9             → Naviger til siderne (kun uden aktivt inputfelt)
- *  Escape          → Luk åbne overlays/modals
+ *  Ctrl+K / Cmd+K  → Open command palette
+ *  Ctrl+/          → Show shortcuts overlay
+ *  ?               → Show shortcuts overlay (Shift+/)
+ *  1–9             → Navigate to pages (only without active input field)
+ *  Escape          → Close open overlays/modals
  */
 import {
   createContext,
@@ -86,7 +86,7 @@ export function KeyboardShortcutsProvider({
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable
 
-      // Ctrl+K / Cmd+K → Toggle kommandopalet
+      // Ctrl+K / Cmd+K → Toggle command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         if (cmdOpenRef.current) {
@@ -110,7 +110,7 @@ export function KeyboardShortcutsProvider({
         return
       }
 
-      // Escape → Luk det øverste overlay/modal
+      // Escape → Close the top overlay/modal
       if (e.key === 'Escape') {
         if (cmdOpenRef.current) {
           e.preventDefault()
@@ -119,20 +119,20 @@ export function KeyboardShortcutsProvider({
           e.preventDefault()
           setHelpOpen(false)
         } else {
-          // Lad andre komponenter lytte til 'modal-close'
+          // Let other components listen for 'modal-close'
           window.dispatchEvent(new CustomEvent('modal-close'))
         }
         return
       }
 
-      // ? (Shift+/) → Toggle shortcuts overlay (kun uden aktivt inputfelt)
+      // ? (Shift+/) → Toggle shortcuts overlay (only when no input field is focused)
       if (!isInputFocused && !cmdOpenRef.current && e.key === '?') {
         e.preventDefault()
         setHelpOpen(o => !o)
         return
       }
 
-      // Tal 1–9 → Naviger til side (kun uden aktivt inputfelt og lukket palet)
+      // Numbers 1–9 → Navigate to page (only when no input field is focused and palette closed)
       if (!isInputFocused && !cmdOpenRef.current) {
         const page = NUMBER_SHORTCUTS[e.key]
         if (page) {
@@ -158,7 +158,7 @@ export function KeyboardShortcutsProvider({
   return (
     <KeyboardShortcutsContext.Provider value={contextValue}>
       {children}
-      {/* Modals rendes her så de altid er tilgængelige globalt */}
+      {/* Modals are rendered here so they are always available globally */}
       <CommandPalette open={cmdOpen} onClose={closeCmd} onNavigate={handleNavigate} />
       <KeyboardShortcutsModal open={helpOpen} onClose={closeHelp} />
     </KeyboardShortcutsContext.Provider>
@@ -171,7 +171,7 @@ export function useKeyboardShortcutsContext(): KeyboardShortcutsContextValue {
   const ctx = useContext(KeyboardShortcutsContext)
   if (!ctx) {
     throw new Error(
-      'useKeyboardShortcutsContext skal bruges inden i <KeyboardShortcutsProvider>',
+      'useKeyboardShortcutsContext must be used within a <KeyboardShortcutsProvider>',
     )
   }
   return ctx

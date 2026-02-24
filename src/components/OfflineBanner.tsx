@@ -1,30 +1,26 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLiveData } from '../api/LiveDataContext'
 import Icon from './Icon'
 
 /**
- * OfflineBanner — Global forbindelsesstatus-banner
- *
- * Slider ned fra toppen når Gateway-forbindelsen er nede.
- * Viser "Forbindelse genoprettet" i grønt i 3 sekunder ved genopretning.
- *
- * Placering: fast (position: fixed) over alt indhold.
- * Integreret i Layout.tsx.
+ * OfflineBanner — Global connection status banner.
+ * Slides down from top when Gateway connection is lost.
+ * Shows "Connection restored" in green for 3s after reconnection.
  */
 export default function OfflineBanner() {
   const { isConnected, lastUpdated, consecutiveErrors } = useLiveData()
+  const { t } = useTranslation()
   const [showReconnected, setShowReconnected] = useState(false)
   const prevConnected = useRef<boolean | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    // Undgå at vise "genoprettet" ved første render
     if (prevConnected.current === null) {
       prevConnected.current = isConnected
       return
     }
 
-    // Forbindelsen er netop genoprettet
     if (prevConnected.current === false && isConnected === true) {
       setShowReconnected(true)
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -40,7 +36,6 @@ export default function OfflineBanner() {
     }
   }, [])
 
-  // Vis kun offline-tilstand efter mindst ét mislykket forsøg
   const shouldShowOffline = !isConnected && (lastUpdated !== null || consecutiveErrors > 0)
   const visible = shouldShowOffline || showReconnected
 
@@ -59,10 +54,10 @@ export default function OfflineBanner() {
         aria-atomic="true"
         aria-label={
           shouldShowOffline
-            ? 'Forbindelse til Gateway afbrudt'
+            ? t('connection.offlineBannerLabel')
             : showReconnected
-            ? 'Forbindelse genoprettet'
-            : undefined
+              ? t('connection.reconnectedBannerLabel')
+              : undefined
         }
         className="lg:left-60"
         style={{
@@ -76,7 +71,6 @@ export default function OfflineBanner() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          // Gradientbaggrund: rød/orange ved offline, grøn ved genoprettet
           background: showReconnected
             ? 'linear-gradient(90deg, rgba(30, 140, 60, 0.28) 0%, rgba(48, 209, 88, 0.22) 50%, rgba(30, 140, 60, 0.28) 100%)'
             : 'linear-gradient(90deg, rgba(255, 69, 58, 0.22) 0%, rgba(255, 159, 10, 0.20) 50%, rgba(255, 69, 58, 0.22) 100%)',
@@ -88,12 +82,10 @@ export default function OfflineBanner() {
           boxShadow: showReconnected
             ? '0 2px 20px rgba(48, 209, 88, 0.18), inset 0 1px 0 rgba(48, 209, 88, 0.12)'
             : '0 2px 24px rgba(255, 69, 58, 0.22), inset 0 1px 0 rgba(255, 159, 10, 0.14)',
-          // Slide-in/slide-out
           transform: visible ? 'translateY(0)' : 'translateY(-100%)',
           transition:
             'transform 320ms cubic-bezier(0.4, 0, 0.2, 1), background 400ms ease, border-color 400ms ease, box-shadow 400ms ease',
           pointerEvents: visible ? 'auto' : 'none',
-          // Pulserende animation kun når offline
           animation: shouldShowOffline
             ? 'offline-banner-pulse 2.8s ease-in-out infinite'
             : 'none',
@@ -124,8 +116,8 @@ export default function OfflineBanner() {
           }}
         >
           {showReconnected
-            ? 'Forbindelse genoprettet'
-            : 'Forbindelse til Gateway afbrudt — forsøger at genoprette...'}
+            ? t('connection.reconnectedBannerMsg')
+            : t('connection.offlineBannerMsg')}
         </span>
       </div>
     </>

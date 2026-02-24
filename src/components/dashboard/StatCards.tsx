@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import Card from '../Card'
 import Icon from '../Icon'
 import type { DailySpend } from './types'
@@ -28,6 +29,8 @@ const StatCards = memo(function StatCards({
   cronActiveCount,
   cronJobsTotal,
 }: StatCardsProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
       <Card style={{ position: 'relative', overflow: 'visible', animationDelay: '0ms' }}>
@@ -37,9 +40,11 @@ const StatCards = memo(function StatCards({
           background: 'radial-gradient(ellipse, rgba(0, 122, 255, 0.3) 0%, transparent 70%)',
           filter: 'blur(20px)', zIndex: -1,
         }} />
-        <p className="caption">Aktive Sessioner</p>
+        <p className="caption">{t('dashboard.activeSessions', 'Active Sessions')}</p>
         <p className="text-2xl font-bold mt-1">{sessionsCount}</p>
-        <p className="caption mt-1">{runningCount} aktive, {completedCount} afsluttet</p>
+        <p className="caption mt-1">
+          {t('dashboard.active', 'active', { count: runningCount })}, {t('dashboard.completed', 'completed', { count: completedCount })}
+        </p>
       </Card>
 
       <Card style={{ position: 'relative', overflow: 'visible', animationDelay: '60ms' }}>
@@ -49,9 +54,9 @@ const StatCards = memo(function StatCards({
           background: 'radial-gradient(ellipse, rgba(48, 209, 88, 0.3) 0%, transparent 70%)',
           filter: 'blur(20px)', zIndex: -1,
         }} />
-        <p className="caption">Tokens i Session</p>
+        <p className="caption">{t('dashboard.tokensInSession', 'Tokens in Session')}</p>
         <p className="text-2xl font-bold mt-1">{tokensValue}</p>
-        <p className="caption mt-1">{parsedTokens || 'Ingen data'}</p>
+        <p className="caption mt-1">{parsedTokens || t('dashboard.unknown', 'No data')}</p>
       </Card>
 
       <Card style={{ position: 'relative', overflow: 'visible', animationDelay: '120ms' }}>
@@ -62,13 +67,13 @@ const StatCards = memo(function StatCards({
           filter: 'blur(20px)', zIndex: -1,
         }} />
         <div className="flex items-center justify-between">
-          <p className="caption">Dagligt Forbrug</p>
+          <p className="caption">{t('dashboard.dailyConsumption', 'Daily Consumption')}</p>
           <Icon name="zap" size={14} style={{ color: 'rgba(255,255,255,0.45)' }} />
         </div>
         <p className="text-2xl font-bold mt-1">
-          {dailySpend.hasData ? `~${Math.round(dailySpend.dkk)} kr` : 'Ingen data'}
+          {dailySpend.hasData ? `~${Math.round(dailySpend.dkk)} kr` : t('dashboard.unknown', 'No data')}
         </p>
-        <p className="caption mt-1">i dag</p>
+        <p className="caption mt-1">{t('common.today', 'today')}</p>
       </Card>
 
       <Card style={{ position: 'relative', overflow: 'visible', animationDelay: '180ms' }}>
@@ -78,7 +83,7 @@ const StatCards = memo(function StatCards({
           background: 'radial-gradient(ellipse, rgba(175, 82, 222, 0.3) 0%, transparent 70%)',
           filter: 'blur(20px)', zIndex: -1,
         }} />
-        <p className="caption">Model</p>
+        <p className="caption">{t('common.model', 'Model')}</p>
         <p className="text-2xl font-bold mt-1">{parsedModel || 'N/A'}</p>
         <p className="caption mt-1">{parsedContext || 'Anthropic API'}</p>
       </Card>
@@ -90,8 +95,8 @@ const StatCards = memo(function StatCards({
           background: 'radial-gradient(ellipse, rgba(255, 159, 10, 0.3) 0%, transparent 70%)',
           filter: 'blur(20px)', zIndex: -1,
         }} />
-        <p className="caption">Planlagte Jobs</p>
-        <p className="text-2xl font-bold mt-1">{cronActiveCount} aktive</p>
+        <p className="caption">{t('dashboard.cronJobs', 'Scheduled Jobs')}</p>
+        <p className="text-2xl font-bold mt-1">{cronActiveCount} {t('dashboard.active', 'active')}</p>
         <p className="caption mt-1">{cronJobsTotal} total</p>
       </Card>
     </div>

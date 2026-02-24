@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import { useToast } from '../components/Toast'
 import { useLiveData } from '../api/LiveDataContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useTranslation } from 'react-i18next'
 import { getGatewayUrl, getGatewayToken, setGatewayUrl, setGatewayToken, testConnection, fetchSystemInfo } from '../api/openclaw'
 import { SettingsSkeleton } from '../components/SkeletonLoader'
 import DataFreshness from '../components/DataFreshness'
@@ -66,6 +67,7 @@ function ResourceBar({ label, pct, leftLabel, rightLabel }: { label: string; pct
 }
 
 function ApiConnectionSection() {
+  const { t } = useTranslation()
   const { isConnected, lastUpdated } = useLiveData()
   const { showToast } = useToast()
   const [url, setUrl] = useState(() => getGatewayUrl())
@@ -81,7 +83,7 @@ function ApiConnectionSection() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     window.dispatchEvent(new Event('openclaw-settings-changed'))
-    showToast('success', 'Indstillinger gemt')
+    showToast('success', t('settings.savedToast', 'Settings saved'))
   }
 
   const handleTest = async () => {
@@ -94,29 +96,29 @@ function ApiConnectionSection() {
     setTesting(false)
     if (result.ok) {
       window.dispatchEvent(new Event('openclaw-settings-changed'))
-      showToast('success', 'Forbindelse testet OK')
+      showToast('success', t('settings.connectionOk', 'Connection test OK'))
     } else {
-      showToast('error', `Test fejlede: ${result.error || 'Ukendt fejl'}`)
+      showToast('error', t('settings.connectionFailed', 'Test failed: {{message}}', { message: result.error || 'Unknown error' }))
     }
   }
 
   return (
-    <Card title="API Forbindelse" subtitle="Forbind til OpenClaw Gateway">
+    <Card title={t('settings.apiSectionTitle', 'API Connection')} subtitle={t('settings.apiSectionSubtitle', 'Connect to OpenClaw Gateway')}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: isConnected ? 'rgba(52,199,89,0.08)' : 'rgba(255,59,48,0.08)' }}>
           <span className={`w-3 h-3 rounded-full ${isConnected ? 'bg-[#34C759]' : 'bg-[#FF3B30]'}`} />
           <div>
             <p className={`text-sm font-medium ${isConnected ? 'text-green-400' : 'text-red-400'}`}>
-              {isConnected ? 'Forbundet' : 'Ikke forbundet'}
+              {isConnected ? t('common.live', 'Connected') : t('common.offline', 'Not connected')}
             </p>
             {lastUpdated && isConnected && (
-              <p className="text-xs text-green-400">Sidst opdateret: {lastUpdated.toLocaleTimeString('da-DK')}</p>
+              <p className="text-xs text-green-400">{t('journal.updatedJustNow', 'Updated just now')}: {lastUpdated.toLocaleTimeString()}</p>
             )}
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium block mb-1.5">Gateway URL</label>
+          <label className="text-sm font-medium block mb-1.5">{t('settings.gatewayUrl', 'Gateway URL')}</label>
           <input
             type="text"
             value={url}
@@ -128,28 +130,28 @@ function ApiConnectionSection() {
         </div>
 
         <div>
-          <label className="text-sm font-medium block mb-1.5">Auth Token</label>
+          <label className="text-sm font-medium block mb-1.5">{t('settings.gatewayToken', 'Auth Token')}</label>
           <input
             type="password"
             value={token}
             onChange={e => setToken(e.target.value)}
-            placeholder="Gateway auth token"
+            placeholder={t('settings.gatewayTokenPlaceholder', 'Gateway auth token')}
             className="w-full px-3 py-2 text-sm rounded-xl transition-all duration-150"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#ffffff', colorScheme: 'dark', minHeight: '44px' }}
           />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button onClick={handleSave} style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>{saved ? '✓ Gemt!' : 'Gem'}</button>
+          <button onClick={handleSave} style={{ minHeight: '44px', background: '#007AFF', color: '#fff', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>{saved ? `✓ ${t('settings.saved', 'Saved!')}` : t('common.save', 'Save')}</button>
           <button onClick={handleTest} disabled={testing} style={{ minHeight: '44px', background: 'rgba(0,122,255,0.1)', color: '#007AFF', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: 500, border: '1px solid rgba(0,122,255,0.2)', cursor: 'pointer' }}>
-            {testing ? 'Tester...' : 'Test Forbindelse'}
+            {testing ? t('settings.testing', 'Testing...') : t('settings.testConnection', 'Test Connection')}
           </button>
         </div>
 
         {testResult && (
           <div className={`p-3 rounded-xl text-sm ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}
             style={{ background: testResult.ok ? 'rgba(52,199,89,0.08)' : 'rgba(255,59,48,0.08)' }}>
-            {testResult.ok ? '✅ Forbindelse OK!' : `❌ Fejl: ${testResult.error}`}
+            {testResult.ok ? `✅ ${t('settings.connectionOk', 'Connection OK!')}` : `❌ ${t('common.error', 'Error')}: ${testResult.error}`}
           </div>
         )}
       </div>
@@ -158,9 +160,10 @@ function ApiConnectionSection() {
 }
 
 export default function Settings() {
-  usePageTitle('Indstillinger')
-  
-  const [activeTab, setActiveTab] = useState<'api' | 'system' | 'modeller' | 'sikkerhed'>('api')
+  const { t } = useTranslation()
+  usePageTitle(t('settings.title', 'Settings'))
+
+  const [activeTab, setActiveTab] = useState<'api' | 'system' | 'modeller' | 'security'>('api')
   const { isConnected, gatewayConfig } = useLiveData()
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({})
   const [loadingSystem, setLoadingSystem] = useState(false)
@@ -182,8 +185,8 @@ export default function Settings() {
     const chConf = liveChannels[key] || {}
     const enabled = conf.enabled !== false
     let status: string = 'setup'
-    let detail = 'Ikke konfigureret'
-    if (!enabled) { status = 'off'; detail = 'Deaktiveret' }
+    let detail = t('settings.noChannelsConfigured', 'Not configured')
+    if (!enabled) { status = 'off'; detail = t('common.offline', 'Disabled') }
     else if (key === 'telegram' && chConf.botToken) { status = 'ok'; detail = `dmPolicy: ${chConf.dmPolicy || 'default'}` }
     else if (key === 'whatsapp' && chConf.dmPolicy) { status = 'warning'; detail = `dmPolicy: ${chConf.dmPolicy}` }
     else if (key === 'imessage' && chConf.cliPath) { status = 'warning'; detail = `cliPath: ${chConf.cliPath}` }
@@ -197,18 +200,18 @@ export default function Settings() {
   return (
     <div className="animate-page-in">
       <div className="flex items-center gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-white">Indstillinger</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{t('settings.title', 'Settings')}</h1>
         <DataFreshness className="ml-auto" />
       </div>
-      <p className="caption mb-6">API forbindelse, systemkonfiguration, modeller og sikkerhed</p>
+      <p className="caption mb-6">{t('settings.subtitle', 'API connection, system configuration, models and security')}</p>
 
       <div className="overflow-x-auto mb-6">
         <div className="flex gap-1 min-w-fit">
-          {(['api', 'system', 'modeller', 'sikkerhed'] as const).map(tab => (
+          {(['api', 'system', 'modeller', 'security'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-apple-blue text-white' : 'px-4 py-2 rounded-xl text-sm font-medium bg-white/5 border border-white/10 text-white'}`}
               style={{ minHeight: '44px' }}>
-              {tab === 'api' ? 'API Forbindelse' : tab === 'system' ? 'System' : tab === 'modeller' ? 'Modeller' : 'Sikkerhed'}
+              {tab === 'api' ? t('settings.tabApi', 'API Connection') : tab === 'system' ? t('settings.tabSystem', 'System') : tab === 'modeller' ? t('settings.tabModels', 'Models') : t('settings.tabSecurity', 'Security')}
             </button>
           ))}
         </div>
@@ -219,16 +222,16 @@ export default function Settings() {
           <ApiConnectionSection />
 
           {isConnected && gatewayConfig && (
-            <Card title="Gateway Konfiguration" subtitle="Live data fra API" style={{ animationDelay: '0ms' }}>
+            <Card title={t('settings.gatewayConfigTitle', 'Gateway Configuration')} subtitle={t('settings.gatewayConfigSubtitle', 'Live data from API')} style={{ animationDelay: '0ms' }}>
               <div className="space-y-2 text-sm">
                 {[
-                  ['Port', gatewayConfig.gateway?.port],
-                  ['Tilstand', gatewayConfig.gateway?.mode],
-                  ['Bind', gatewayConfig.gateway?.bind],
-                  ['Auth tilstand', gatewayConfig.gateway?.auth?.mode],
-                  ['Primær model', gatewayConfig.agents?.defaults?.model?.primary],
-                  ['Maks agenter', gatewayConfig.agents?.defaults?.maxConcurrent],
-                  ['Maks sub-agenter', gatewayConfig.agents?.defaults?.subagents?.maxConcurrent],
+                  [t('settings.gateway.port', 'Port'), gatewayConfig.gateway?.port],
+                  [t('settings.gateway.mode', 'Mode'), gatewayConfig.gateway?.mode],
+                  [t('settings.gateway.bind', 'Bind'), gatewayConfig.gateway?.bind],
+                  [t('settings.gateway.authMode', 'Auth mode'), gatewayConfig.gateway?.auth?.mode],
+                  [t('settings.primaryModelTitle', 'Primary model'), gatewayConfig.agents?.defaults?.model?.primary],
+                  [t('settings.concurrency.maxAgents', 'Max agents'), gatewayConfig.agents?.defaults?.maxConcurrent],
+                  [t('settings.concurrency.maxSubAgents', 'Max sub-agents'), gatewayConfig.agents?.defaults?.subagents?.maxConcurrent],
                 ].filter(([, v]) => v !== undefined).map(([label, value], i) => (
                   <div key={i} className="flex justify-between py-2 glass-row">
                     <span className="caption">{label}</span>
@@ -246,47 +249,47 @@ export default function Settings() {
           {!isConnected ? (
             <Card>
               <div className="text-center py-8">
-                <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-                <p className="text-sm text-white/50">Gå til API Forbindelse for at konfigurere</p>
+                <p className="text-white/70 mb-2">{t('dashboard.notConnectedTitle', 'No connection to Gateway')}</p>
+                <p className="text-sm text-white/50">{t('settings.systemNoConnectionDescription', 'Go to API Connection to configure')}</p>
               </div>
             </Card>
           ) : loadingSystem ? (
             <SettingsSkeleton />
           ) : (
             <>
-              <Card title="Systeminformation">
+              <Card title={t('settings.systemInfoTitle', 'System Information')}>
                 {Object.keys(systemInfo).length === 0 ? (
-                  <div className="text-center py-8 text-white/50">Ingen systemdata tilgængelig</div>
+                  <div className="text-center py-8 text-white/50">{t('settings.noSystemData', 'No system data available')}</div>
                 ) : (
                   <div className="space-y-2 text-sm">
-                    {systemInfo.host && <div className="flex justify-between py-2 glass-row"><span className="caption">Vært</span><span className="font-medium">{systemInfo.host} {systemInfo.hostType && `(${systemInfo.hostType})`}</span></div>}
-                    {systemInfo.os && <div className="flex justify-between py-2 glass-row"><span className="caption">OS</span><span className="font-medium">{systemInfo.os} {systemInfo.kernel && `— ${systemInfo.kernel}`}</span></div>}
-                    {systemInfo.cpu && <div className="flex justify-between py-2 glass-row"><span className="caption">CPU</span><span className="font-medium">{systemInfo.cpu}</span></div>}
+                    {systemInfo.host && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('common.host', 'Host')}</span><span className="font-medium">{systemInfo.host} {systemInfo.hostType && `(${systemInfo.hostType})`}</span></div>}
+                    {systemInfo.os && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('settings.system.os', 'OS')}</span><span className="font-medium">{systemInfo.os} {systemInfo.kernel && `— ${systemInfo.kernel}`}</span></div>}
+                    {systemInfo.cpu && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('settings.system.cpu', 'CPU')}</span><span className="font-medium">{systemInfo.cpu}</span></div>}
                     {systemInfo.ramTotal && (() => {
                       const totalGB = parseMemoryGB(systemInfo.ramTotal)
                       const usedGB = parseMemoryGB(systemInfo.ramUsed)
                       const pct = totalGB > 0 ? Math.round((usedGB / totalGB) * 100) : 0
-                      const leftLabel = systemInfo.ramUsed ? `${systemInfo.ramUsed} brugt` : ''
-                      const rightLabel = [systemInfo.ramTotal && `${systemInfo.ramTotal} total`, systemInfo.ramAvailable && `${systemInfo.ramAvailable} fri`].filter(Boolean).join(' · ')
-                      return <ResourceBar key="ram" label="RAM" pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
+                      const leftLabel = systemInfo.ramUsed ? `${systemInfo.ramUsed} ${t('common.active', 'used')}` : ''
+                      const rightLabel = [systemInfo.ramTotal && `${systemInfo.ramTotal} ${t('settings.system.total', 'total')}`, systemInfo.ramAvailable && `${systemInfo.ramAvailable} ${t('settings.system.free', 'free')}`].filter(Boolean).join(' · ')
+                      return <ResourceBar key="ram" label={t('settings.system.ram', 'RAM')} pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
                     })()}
                     {systemInfo.diskTotal && (() => {
                       const pct = systemInfo.diskPercent ?? 0
-                      const leftLabel = systemInfo.diskUsed ? `${systemInfo.diskUsed} brugt` : ''
-                      const rightLabel = `${systemInfo.diskTotal} total`
-                      return <ResourceBar key="disk" label="Disk" pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
+                      const leftLabel = systemInfo.diskUsed ? `${systemInfo.diskUsed} ${t('common.active', 'used')}` : ''
+                      const rightLabel = `${systemInfo.diskTotal} ${t('settings.system.total', 'total')}`
+                      return <ResourceBar key="disk" label={t('settings.system.disk', 'Disk')} pct={pct} leftLabel={leftLabel} rightLabel={rightLabel} />
                     })()}
                     {systemInfo.nodeVersion && <div className="flex justify-between py-2 glass-row"><span className="caption">Node.js</span><span className="font-medium">{systemInfo.nodeVersion}</span></div>}
-                    {systemInfo.uptime && <div className="flex justify-between py-2 glass-row"><span className="caption">Oppetid</span><span className="font-medium">{systemInfo.uptime}</span></div>}
-                    {systemInfo.openclawVersion && <div className="flex justify-between py-2 glass-row"><span className="caption">OpenClaw Version</span><span className="font-medium">{systemInfo.openclawVersion}</span></div>}
-                    {systemInfo.gatewayMode && <div className="flex justify-between py-2 glass-row"><span className="caption">Gateway</span><span className="font-medium">{systemInfo.gatewayMode}</span></div>}
+                    {systemInfo.uptime && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('dashboard.system.uptime', 'Uptime')}</span><span className="font-medium">{systemInfo.uptime}</span></div>}
+                    {systemInfo.openclawVersion && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('common.version', 'Version')}</span><span className="font-medium">{systemInfo.openclawVersion}</span></div>}
+                    {systemInfo.gatewayMode && <div className="flex justify-between py-2 glass-row"><span className="caption">{t('settings.gateway.mode', 'Gateway Mode')}</span><span className="font-medium">{systemInfo.gatewayMode}</span></div>}
                   </div>
                 )}
               </Card>
 
-              <Card title="Kanalkonfiguration">
+              <Card title={t('settings.channelConfigTitle', 'Channel Configuration')}>
                 {displayChannels.length === 0 ? (
-                  <div className="text-center py-8 text-white/50">Ingen kanaler konfigureret</div>
+                  <div className="text-center py-8 text-white/50">{t('settings.noChannelsConfigured', 'No channels configured')}</div>
                 ) : (
                   <div className="space-y-2">
                     {displayChannels.map((ch: any, i: number) => (
@@ -295,12 +298,11 @@ export default function Settings() {
                           <p className="font-medium">{ch.name}</p>
                           <p className="caption">{ch.detail}</p>
                         </div>
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                          ch.status === 'ok' ? 'text-green-400' :
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ch.status === 'ok' ? 'text-green-400' :
                           ch.status === 'warning' ? 'text-orange-400' :
-                          ch.status === 'setup' ? 'text-white/50' : 'text-white/40'
-                        }`} style={{ background: ch.status === 'ok' ? 'rgba(52,199,89,0.1)' : ch.status === 'warning' ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
-                          {ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? 'ADVARSEL' : ch.status === 'setup' ? 'OPSÆTNING' : 'FRA'}
+                            ch.status === 'setup' ? 'text-white/50' : 'text-white/40'
+                          }`} style={{ background: ch.status === 'ok' ? 'rgba(52,199,89,0.1)' : ch.status === 'warning' ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
+                          {ch.status === 'ok' ? 'OK' : ch.status === 'warning' ? t('common.warning', 'WARNING') : ch.status === 'setup' ? t('settings.channels.statusSetup', 'SETUP') : t('common.offline', 'OFF')}
                         </span>
                       </div>
                     ))}
@@ -308,7 +310,7 @@ export default function Settings() {
                 )}
               </Card>
 
-              <Card title="Workspace Filer">
+              <Card title={t('settings.workspaceFilesTitle', 'Workspace Files')}>
                 <div className="space-y-1">
                   {['AGENTS.md', 'BOOT.md', 'BOOTSTRAP.md', 'HEARTBEAT.md', 'IDENTITY.md', 'MEMORY.md', 'SOUL.md', 'TOOLS.md', 'USER.md'].map(f => (
                     <div key={f} className="flex items-center gap-2 py-1.5 text-sm">
@@ -328,31 +330,30 @@ export default function Settings() {
           {!isConnected ? (
             <Card>
               <div className="text-center py-8">
-                <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-                <p className="text-sm text-white/50">Gå til API Forbindelse for at konfigurere</p>
+                <p className="text-white/70 mb-2">{t('dashboard.notConnectedTitle', 'No connection to Gateway')}</p>
+                <p className="text-sm text-white/50">{t('settings.systemNoConnectionDescription', 'Go to API Connection to configure')}</p>
               </div>
             </Card>
           ) : (
             <>
-              <Card title="Primær Model">
+              <Card title={t('settings.primaryModelTitle', 'Primary Model')}>
                 <div className="p-4 rounded-xl" style={{ background: 'rgba(0,122,255,0.06)' }}>
                   <p className="font-semibold text-apple-blue">{primaryModel}</p>
-                  <p className="caption mt-1">Standardmodel for alle agenter</p>
+                  <p className="caption mt-1">{t('settings.primaryModelSubtitle', 'Default model for all agents')}</p>
                 </div>
               </Card>
 
-              <Card title="Tilgængelige Modeller" subtitle={`${allModels.length} modeller konfigureret`}>
+              <Card title={t('settings.availableModelsTitle', 'Available Models')} subtitle={t('settings.availableModelsSubtitle', { count: allModels.length })}>
                 {allModels.length === 0 ? (
-                  <div className="text-center py-8 text-white/50">Ingen modeller konfigureret</div>
+                  <div className="text-center py-8 text-white/50">{t('apiUsage.noModelsConfigured', 'No models configured')}</div>
                 ) : (
                   <div className="space-y-2">
                     {allModels.map((m: string, i: number) => (
                       <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
                         <span className="font-mono font-medium">{m}</span>
-                        <span className={`text-xs px-2.5 py-1 rounded-full ${
-                          m === primaryModel ? 'text-blue-400' : m.includes('haiku') ? 'text-orange-400' : 'text-white/50'
-                        }`} style={{ background: m === primaryModel ? 'rgba(0,122,255,0.1)' : m.includes('haiku') ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
-                          {m === primaryModel ? 'Primær' : m.includes('haiku') ? 'Under anbefalet' : 'Tilgængelig'}
+                        <span className={`text-xs px-2.5 py-1 rounded-full ${m === primaryModel ? 'text-blue-400' : m.includes('haiku') ? 'text-orange-400' : 'text-white/50'
+                          }`} style={{ background: m === primaryModel ? 'rgba(0,122,255,0.1)' : m.includes('haiku') ? 'rgba(255,149,0,0.1)' : 'rgba(255,255,255,0.06)' }}>
+                          {m === primaryModel ? t('settings.models.primary', 'Primary') : m.includes('haiku') ? t('settings.models.belowRecommended', 'Below recommended') : t('common.status.available', 'Available')}
                         </span>
                       </div>
                     ))}
@@ -360,14 +361,14 @@ export default function Settings() {
                 )}
               </Card>
 
-              <Card title="Samtidige Begrænsninger">
+              <Card title={t('settings.concurrencyLimitsTitle', 'Concurrency Limits')}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 text-sm">
                   <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <p className="caption">Maks Samtidige Agenter</p>
+                    <p className="caption">{t('settings.concurrency.maxAgents', 'Max Concurrent Agents')}</p>
                     <p className="text-2xl font-bold mt-1">{gatewayConfig?.agents?.defaults?.maxConcurrent || 'N/A'}</p>
                   </div>
                   <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <p className="caption">Maks Samtidige Sub-agenter</p>
+                    <p className="caption">{t('settings.concurrency.maxSubAgents', 'Max Concurrent Sub-agents')}</p>
                     <p className="text-2xl font-bold mt-1">{gatewayConfig?.agents?.defaults?.subagents?.maxConcurrent || 'N/A'}</p>
                   </div>
                 </div>
@@ -377,36 +378,36 @@ export default function Settings() {
         </div>
       )}
 
-      {activeTab === 'sikkerhed' && (
+      {activeTab === 'security' && (
         <div className="space-y-4">
           {!isConnected ? (
             <Card>
               <div className="text-center py-8">
-                <p className="text-white/70 mb-2">Ingen forbindelse til Gateway</p>
-                <p className="text-sm text-white/50">Gå til API Forbindelse for at konfigurere</p>
+                <p className="text-white/70 mb-2">{t('dashboard.notConnectedTitle', 'No connection to Gateway')}</p>
+                <p className="text-sm text-white/50">{t('settings.systemNoConnectionDescription', 'Go to API Connection to configure')}</p>
               </div>
             </Card>
           ) : (
             <>
-              <Card title="Sikkerhedsadvarsler">
+              <Card title={t('settings.securityAlertsTitle', 'Security Alerts')}>
                 <div className="space-y-3">
                   {allModels.some((m: string) => m.includes('haiku')) && (
                     <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: 'rgba(255,149,0,0.06)' }}>
                       <Icon name="exclamation" size={16} className="text-orange-500 mt-0.5" />
                       <div>
-                        <p className="font-medium text-orange-400">Modeller under anbefalet niveau</p>
-                        <p className="text-sm text-orange-400 mt-1">claude-haiku modeller er konfigureret men under de anbefalede niveauer for produktion.</p>
+                        <p className="font-medium text-orange-400">{t('settings.modelsBelowLevelTitle', 'Models below recommended level')}</p>
+                        <p className="text-sm text-orange-400 mt-1">{t('settings.haikuWarning', 'claude-haiku models are configured but below recommended levels for production.')}</p>
                       </div>
                     </div>
                   )}
-                  <div className="text-center py-4 text-white/50 text-sm">Ingen kritiske advarsler</div>
+                  <div className="text-center py-4 text-white/50 text-sm">{t('settings.noCriticalAlerts', 'No critical alerts')}</div>
                 </div>
               </Card>
 
-              <Card title="Autentificeringsprofiler">
+              <Card title={t('settings.authProfilesTitle', 'Authentication Profiles')}>
                 <div className="space-y-2">
                   {[
-                    { name: 'anthropic:default', type: 'api_key', desc: 'Standard API-nøgle autentificering' },
+                    { name: 'anthropic:default', type: 'api_key', desc: t('settings.authProfileDesc', 'Standard API key authentication') },
                   ].map((p, i) => (
                     <div key={i} className="flex items-center justify-between py-3 glass-row">
                       <div>
@@ -419,26 +420,26 @@ export default function Settings() {
                 </div>
               </Card>
 
-              <Card title="Websøgning">
+              <Card title={t('settings.webSearchTitle', 'Web Search')}>
                 <div className="p-4 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.06)' }}>
                   <p className="font-medium">Perplexity Sonar Pro Search</p>
-                  <p className="caption mt-1">Via OpenRouter — aktiveret og konfigureret</p>
+                  <p className="caption mt-1">{t('settings.webSearchSubtitle', 'Via OpenRouter — enabled and configured')}</p>
                 </div>
               </Card>
 
-              <Card title="Projekter">
+              <Card title={t('clients.title', 'Projects')}>
                 <div className="space-y-2">
                   {[
-                    { name: 'Mission Kontrol', status: 'Aktiv', desc: 'Operations-dashboard webapp' },
-                    { name: 'OrderFlow AI / FLOW', status: 'På pause', desc: 'AI-drevet ordrebehandling' },
+                    { name: 'Mission Kontrol', status: t('common.active', 'Active'), desc: t('settings.missionKontrolDesc', 'Operations-dashboard webapp') },
+                    { name: 'OrderFlow AI / FLOW', status: t('clients.pausedProjectLabel', 'On pause'), desc: t('settings.orderflowDesc', 'AI-driven order processing') },
                   ].map((p, i) => (
                     <div key={i} className="flex items-center justify-between py-2 glass-row text-sm">
                       <div>
                         <p className="font-medium">{p.name}</p>
                         <p className="caption">{p.desc}</p>
                       </div>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${p.status === 'Aktiv' ? 'text-green-400' : 'text-orange-400'}`}
-                        style={{ background: p.status === 'Aktiv' ? 'rgba(52,199,89,0.1)' : 'rgba(255,149,0,0.1)' }}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${p.status === t('common.active', 'Active') ? 'text-green-400' : 'text-orange-400'}`}
+                        style={{ background: p.status === t('common.active', 'Active') ? 'rgba(52,199,89,0.1)' : 'rgba(255,149,0,0.1)' }}>
                         {p.status}
                       </span>
                     </div>

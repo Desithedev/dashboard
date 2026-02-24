@@ -7,11 +7,11 @@ const PING_INTERVAL_MS = 10_000 // 10 sekunder mellem hvert ping
 export type PingStatus = 'green' | 'yellow' | 'red' | 'unknown'
 
 export interface GatewayPingData {
-  /** Seneste målt latency i ms. null = endnu ikke målt. */
+  /** Latest measured latency in ms. null = not yet measured. */
   latency: number | null
-  /** Ringbuffer med de seneste MAX_HISTORY målinger. Nulstilles ved page refresh. */
+  /** Ring buffer with the latest MAX_HISTORY measurements. Reset on page refresh. */
   history: number[]
-  /** Farvekode baseret på latency: <200ms=green, <500ms=yellow, >=500ms=red */
+  /** Color code based on latency: <200ms=green, <500ms=yellow, >=500ms=red */
   status: PingStatus
   /** True mens et ping-kald er i gang */
   isPinging: boolean
@@ -25,9 +25,9 @@ function latencyToStatus(ms: number | null): PingStatus {
 }
 
 /**
- * Måler responstid (performance.now) på et let `session_status`-kald til Gateway.
- * Gemmer de seneste 20 målinger i komponentens state (nulstilles ved page refresh).
- * Poller automatisk hvert 10. sekund.
+ * Measures response time (performance.now) for a light `session_status` call to the Gateway.
+ * Stores the 20 most recent measurements in the component's state (reset on page refresh).
+ * Automatically polls every 10 seconds.
  */
 export function useGatewayPing(): GatewayPingData {
   const [latency, setLatency] = useState<number | null>(null)
@@ -44,14 +44,14 @@ export function useGatewayPing(): GatewayPingData {
       setLatency(ms)
       setHistory(prev => [...prev, ms].slice(-MAX_HISTORY))
     } catch {
-      // Ved fejl tilføjes ingen måling — eksisterende latency bibeholdes
+      // On error, no measurement is added — existing latency is retained
     } finally {
       setIsPinging(false)
     }
   }, [])
 
   useEffect(() => {
-    ping() // Første ping straks ved mount
+    ping() // Initial ping immediately on mount
     intervalRef.current = setInterval(ping, PING_INTERVAL_MS)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)

@@ -1,9 +1,9 @@
 /**
  * ToastContext
  *
- * Re-eksporterer toast-systemet fra Toast.tsx for at følge
- * contexts/-konventionen. Brug `useToast` fra hooks/useToast.ts
- * eller importer direkte herfra.
+ * Re-exports the toast system from Toast.tsx to follow
+ * the project's architectural pattern. Use `useToast` from hooks/useToast.ts
+ * or import directly from here.
  *
  * @example
  * import { ToastProvider, useToast } from '../contexts/ToastContext'
